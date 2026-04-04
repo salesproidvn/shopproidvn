@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
 import { useWishlist } from '../context/WishlistContext';
 import { useCart } from '../context/CartContext';
 import { formatVND } from '../utils/format';
@@ -11,49 +10,27 @@ import { Heart, ShoppingCart, Trash2, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 
 const WishlistPage = () => {
-  const { user } = useAuth();
   const { wishlist, toggleWishlist } = useWishlist();
   const { addToCart } = useCart();
   const [searchQuery, setSearchQuery] = useState('');
 
   const handleRemove = async (productId) => {
     try {
-      await toggleWishlist(productId);
+      await toggleWishlist(productId, null);
       toast.success('Đã xóa khỏi wishlist');
     } catch (err) {
       toast.error('Không thể xóa khỏi wishlist');
     }
   };
 
-  const handleAddToCart = async (productId) => {
+  const handleAddToCart = async (product) => {
     try {
-      await addToCart(productId);
+      await addToCart(product.id, product);
       toast.success('Đã thêm vào giỏ hàng');
     } catch (err) {
       toast.error('Không thể thêm vào giỏ hàng');
     }
   };
-
-  if (!user) {
-    return (
-      <div className="min-h-screen flex flex-col bg-white">
-        <Header searchQuery={searchQuery} setSearchQuery={setSearchQuery} onSearch={() => {}} />
-        <main className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <Heart className="w-16 h-16 text-[#E2E8F0] mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-[#0F172A] mb-2">Wishlist</h2>
-            <p className="text-[#64748B] mb-4">Vui lòng đăng nhập để xem wishlist của bạn</p>
-            <Link to="/">
-              <Button className="bg-[#0055FF] hover:bg-[#0040CC] rounded-full">
-                Quay về trang chủ
-              </Button>
-            </Link>
-          </div>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen flex flex-col bg-white" data-testid="wishlist-page">
@@ -107,7 +84,9 @@ const WishlistPage = () => {
                     >
                       <Trash2 className="w-5 h-5" />
                     </Button>
-                    <span className="badge-category absolute top-4 left-4">{product.category}</span>
+                    {product.category && (
+                      <span className="badge-category absolute top-4 left-4">{product.category}</span>
+                    )}
                   </div>
                   <div className="p-6">
                     <h3 className="font-semibold text-[#0F172A] text-lg mb-2 line-clamp-2">
@@ -120,7 +99,7 @@ const WishlistPage = () => {
                       <Button
                         size="icon"
                         className="w-12 h-12 rounded-full bg-[#0055FF] hover:bg-[#0040CC]"
-                        onClick={() => handleAddToCart(product.id)}
+                        onClick={() => handleAddToCart(product)}
                         data-testid={`add-cart-wishlist-${product.id}`}
                       >
                         <ShoppingCart className="w-5 h-5" />

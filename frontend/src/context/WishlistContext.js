@@ -1,58 +1,27 @@
-import { createContext, useContext, useState, useEffect } from 'react';
-import axios from 'axios';
-import { useAuth } from './AuthContext';
+import { createContext, useContext, useState } from 'react';
 
 const WishlistContext = createContext(null);
 
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
-
 export const WishlistProvider = ({ children }) => {
+  // Local wishlist state for homepage demo (not persisted to backend)
   const [wishlist, setWishlist] = useState([]);
-  const [wishlistIds, setWishlistIds] = useState(new Set());
-  const [loading, setLoading] = useState(false);
-  const { user } = useAuth();
 
-  const fetchWishlist = async () => {
-    if (!user) {
-      setWishlist([]);
-      setWishlistIds(new Set());
-      return;
+  const toggleWishlist = async (productId, product) => {
+    const exists = wishlist.find(p => p.id === productId);
+    if (exists) {
+      setWishlist(wishlist.filter(p => p.id !== productId));
+      return { in_wishlist: false };
+    } else if (product) {
+      setWishlist([...wishlist, product]);
+      return { in_wishlist: true };
     }
-    try {
-      setLoading(true);
-      const { data } = await axios.get(`${API}/wishlist`, { withCredentials: true });
-      setWishlist(data);
-      setWishlistIds(new Set(data.map(p => p.id)));
-    } catch (e) {
-      console.error('Error fetching wishlist:', e);
-    } finally {
-      setLoading(false);
-    }
+    return { in_wishlist: false };
   };
 
-  useEffect(() => {
-    if (user) {
-      fetchWishlist();
-    } else {
-      setWishlist([]);
-      setWishlistIds(new Set());
-    }
-  }, [user]);
-
-  const toggleWishlist = async (productId) => {
-    try {
-      const { data } = await axios.post(`${API}/wishlist/toggle/${productId}`, {}, { withCredentials: true });
-      await fetchWishlist();
-      return data;
-    } catch (e) {
-      throw e;
-    }
-  };
-
-  const isInWishlist = (productId) => wishlistIds.has(productId);
+  const isInWishlist = (productId) => wishlist.some(p => p.id === productId);
 
   return (
-    <WishlistContext.Provider value={{ wishlist, loading, toggleWishlist, isInWishlist, fetchWishlist }}>
+    <WishlistContext.Provider value={{ wishlist, loading: false, toggleWishlist, isInWishlist }}>
       {children}
     </WishlistContext.Provider>
   );

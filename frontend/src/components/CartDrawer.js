@@ -1,5 +1,4 @@
 import { useCart } from '../context/CartContext';
-import { useAuth } from '../context/AuthContext';
 import { formatVND } from '../utils/format';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet';
 import { Button } from '../components/ui/button';
@@ -8,23 +7,6 @@ import { Minus, Plus, Trash2, ShoppingBag } from 'lucide-react';
 
 const CartDrawer = ({ open, onOpenChange }) => {
   const { cart, cartTotal, updateQuantity, removeFromCart, clearCart } = useCart();
-  const { user } = useAuth();
-
-  if (!user) {
-    return (
-      <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent className="w-full sm:max-w-lg" data-testid="cart-drawer">
-          <SheetHeader>
-            <SheetTitle className="text-xl font-bold">Giỏ hàng</SheetTitle>
-          </SheetHeader>
-          <div className="flex flex-col items-center justify-center h-[60vh] text-center">
-            <ShoppingBag className="w-16 h-16 text-[#E2E8F0] mb-4" />
-            <p className="text-[#64748B]">Vui lòng đăng nhập để xem giỏ hàng</p>
-          </div>
-        </SheetContent>
-      </Sheet>
-    );
-  }
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>

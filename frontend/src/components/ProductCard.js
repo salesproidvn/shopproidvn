@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Heart, ShoppingCart, Eye } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
 import { formatVND } from '../utils/format';
@@ -9,7 +8,6 @@ import { toast } from 'sonner';
 import ProductModal from './ProductModal';
 
 const ProductCard = ({ product }) => {
-  const { user } = useAuth();
   const { addToCart } = useCart();
   const { isInWishlist, toggleWishlist } = useWishlist();
   const [showModal, setShowModal] = useState(false);
@@ -19,12 +17,8 @@ const ProductCard = ({ product }) => {
 
   const handleAddToCart = async (e) => {
     e.stopPropagation();
-    if (!user) {
-      toast.error('Vui lòng đăng nhập để thêm vào giỏ hàng');
-      return;
-    }
     try {
-      await addToCart(product.id);
+      await addToCart(product.id, product);
       toast.success('Đã thêm vào giỏ hàng');
     } catch (err) {
       toast.error('Không thể thêm vào giỏ hàng');
@@ -33,12 +27,8 @@ const ProductCard = ({ product }) => {
 
   const handleToggleWishlist = async (e) => {
     e.stopPropagation();
-    if (!user) {
-      toast.error('Vui lòng đăng nhập để thêm vào wishlist');
-      return;
-    }
     try {
-      const result = await toggleWishlist(product.id);
+      const result = await toggleWishlist(product.id, product);
       toast.success(result.in_wishlist ? 'Đã thêm vào wishlist' : 'Đã xóa khỏi wishlist');
     } catch (err) {
       toast.error('Không thể cập nhật wishlist');

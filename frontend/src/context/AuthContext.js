@@ -27,6 +27,12 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     const { data } = await axios.post(`${API}/auth/login`, { email, password }, { withCredentials: true });
     setUser(data);
+    // Redirect based on role
+    if (data.role === 'super_admin') {
+      window.location.href = '/admin';
+    } else if (data.role === 'shop_owner') {
+      window.location.href = '/dashboard';
+    }
     return data;
   };
 

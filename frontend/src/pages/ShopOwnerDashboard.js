@@ -18,7 +18,7 @@ import { toast } from 'sonner';
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 const ShopOwnerDashboard = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [shop, setShop] = useState(null);
@@ -42,12 +42,13 @@ const ShopOwnerDashboard = () => {
   const [shopForm, setShopForm] = useState({});
 
   useEffect(() => {
+    if (authLoading) return; // Wait for auth check
     if (!user || (user.role !== 'shop_owner' && user.role !== 'super_admin')) {
       navigate('/');
       return;
     }
     fetchData();
-  }, [user, navigate]);
+  }, [user, authLoading, navigate]);
 
   const fetchData = async () => {
     try {

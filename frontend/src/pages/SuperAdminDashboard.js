@@ -14,7 +14,7 @@ import { toast } from 'sonner';
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 const SuperAdminDashboard = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [shops, setShops] = useState([]);
@@ -28,12 +28,13 @@ const SuperAdminDashboard = () => {
   const [newOwner, setNewOwner] = useState({ email: '', password: '', name: '', shop_name: '' });
 
   useEffect(() => {
+    if (authLoading) return; // Wait for auth check
     if (!user || user.role !== 'super_admin') {
       navigate('/');
       return;
     }
     fetchData();
-  }, [user, navigate]);
+  }, [user, authLoading, navigate]);
 
   const fetchData = async () => {
     try {
@@ -108,7 +109,7 @@ const SuperAdminDashboard = () => {
     { id: 'users', label: 'Users', icon: Users },
   ];
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC]">
         <div className="animate-spin w-8 h-8 border-4 border-[#0055FF] border-t-transparent rounded-full" />
