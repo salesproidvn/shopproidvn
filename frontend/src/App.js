@@ -6,6 +6,9 @@ import { CartProvider } from "./context/CartContext";
 import { WishlistProvider } from "./context/WishlistContext";
 import HomePage from "./pages/HomePage";
 import WishlistPage from "./pages/WishlistPage";
+import SuperAdminDashboard from "./pages/SuperAdminDashboard";
+import ShopOwnerDashboard from "./pages/ShopOwnerDashboard";
+import StorefrontPage from "./pages/StorefrontPage";
 
 function App() {
   return (
@@ -16,6 +19,9 @@ function App() {
             <Routes>
               <Route path="/" element={<HomePage />} />
               <Route path="/wishlist" element={<WishlistPage />} />
+              <Route path="/admin" element={<SuperAdminDashboard />} />
+              <Route path="/dashboard" element={<ShopOwnerDashboard />} />
+              <Route path="/shop/:slug" element={<StorefrontPage />} />
             </Routes>
           </BrowserRouter>
           <Toaster 

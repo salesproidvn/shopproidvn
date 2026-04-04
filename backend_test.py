@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Backend API Testing for The Wi Shop E-commerce Application
-Tests all authentication, product, cart, and wishlist endpoints
+Multi-tenant E-commerce Platform API Testing
+Tests Super Admin, Shop Owner, and Public Storefront functionality
 """
 
 import requests
@@ -9,15 +9,17 @@ import sys
 import json
 from datetime import datetime
 
-class WiShopAPITester:
+class MultiTenantEcommerceAPITester:
     def __init__(self, base_url="https://shop-desktop-ui.preview.emergentagent.com/api"):
         self.base_url = base_url
         self.session = requests.Session()
         self.session.headers.update({'Content-Type': 'application/json'})
         self.tests_run = 0
         self.tests_passed = 0
-        self.user_data = None
-        self.test_product_id = "prod-001"  # Sony Wireless Headphones
+        self.admin_data = None
+        self.shop_owner_data = None
+        self.created_shop_owner_id = None
+        self.demo_shop_slug = "the-elite-shop"
 
     def log_test(self, name, success, details=""):
         """Log test result"""
@@ -38,70 +40,10 @@ class WiShopAPITester:
         except Exception as e:
             return self.log_test("API Root", False, str(e))
 
-    def test_get_products(self):
-        """Test getting all products"""
-        try:
-            response = self.session.get(f"{self.base_url}/products")
-            success = response.status_code == 200 and len(response.json()) > 0
-            return self.log_test("Get Products", success, f"Status: {response.status_code}, Count: {len(response.json()) if success else 0}")
-        except Exception as e:
-            return self.log_test("Get Products", False, str(e))
+    # ==================== SUPER ADMIN TESTS ====================
 
-    def test_get_categories(self):
-        """Test getting categories"""
-        try:
-            response = self.session.get(f"{self.base_url}/categories")
-            success = response.status_code == 200 and len(response.json()) > 0
-            return self.log_test("Get Categories", success, f"Status: {response.status_code}")
-        except Exception as e:
-            return self.log_test("Get Categories", False, str(e))
-
-    def test_search_products(self):
-        """Test product search"""
-        try:
-            response = self.session.get(f"{self.base_url}/products?search=Sony")
-            success = response.status_code == 200
-            return self.log_test("Search Products", success, f"Status: {response.status_code}")
-        except Exception as e:
-            return self.log_test("Search Products", False, str(e))
-
-    def test_filter_products_by_category(self):
-        """Test filtering products by category"""
-        try:
-            response = self.session.get(f"{self.base_url}/products?category=Electronics")
-            success = response.status_code == 200
-            return self.log_test("Filter Products by Category", success, f"Status: {response.status_code}")
-        except Exception as e:
-            return self.log_test("Filter Products by Category", False, str(e))
-
-    def test_get_single_product(self):
-        """Test getting a single product"""
-        try:
-            response = self.session.get(f"{self.base_url}/products/{self.test_product_id}")
-            success = response.status_code == 200
-            return self.log_test("Get Single Product", success, f"Status: {response.status_code}")
-        except Exception as e:
-            return self.log_test("Get Single Product", False, str(e))
-
-    def test_register_user(self):
-        """Test user registration"""
-        try:
-            timestamp = datetime.now().strftime("%H%M%S")
-            user_data = {
-                "email": f"testuser{timestamp}@test.com",
-                "password": "testpass123",
-                "name": f"Test User {timestamp}"
-            }
-            response = self.session.post(f"{self.base_url}/auth/register", json=user_data)
-            success = response.status_code == 200
-            if success:
-                self.user_data = response.json()
-            return self.log_test("User Registration", success, f"Status: {response.status_code}")
-        except Exception as e:
-            return self.log_test("User Registration", False, str(e))
-
-    def test_login_admin(self):
-        """Test admin login"""
+    def test_super_admin_login(self):
+        """Test super admin login"""
         try:
             login_data = {
                 "email": "admin@thewishop.com",
@@ -110,99 +52,272 @@ class WiShopAPITester:
             response = self.session.post(f"{self.base_url}/auth/login", json=login_data)
             success = response.status_code == 200
             if success:
-                self.user_data = response.json()
-            return self.log_test("Admin Login", success, f"Status: {response.status_code}")
+                self.admin_data = response.json()
+                # Check if role is super_admin
+                success = self.admin_data.get("role") == "super_admin"
+            return self.log_test("Super Admin Login", success, f"Status: {response.status_code}")
         except Exception as e:
-            return self.log_test("Admin Login", False, str(e))
+            return self.log_test("Super Admin Login", False, str(e))
 
-    def test_get_user_profile(self):
-        """Test getting current user profile"""
+    def test_super_admin_stats(self):
+        """Test super admin dashboard stats"""
+        try:
+            response = self.session.get(f"{self.base_url}/admin/stats")
+            success = response.status_code == 200
+            if success:
+                data = response.json()
+                # Check if required stats are present
+                required_keys = ['total_shops', 'active_shops', 'total_orders', 'total_shop_owners', 'total_revenue']
+                success = all(key in data for key in required_keys)
+            return self.log_test("Super Admin Stats", success, f"Status: {response.status_code}")
+        except Exception as e:
+            return self.log_test("Super Admin Stats", False, str(e))
+
+    def test_super_admin_get_shops(self):
+        """Test super admin get all shops"""
+        try:
+            response = self.session.get(f"{self.base_url}/admin/shops")
+            success = response.status_code == 200
+            if success:
+                shops = response.json()
+                success = isinstance(shops, list) and len(shops) > 0
+            return self.log_test("Super Admin Get Shops", success, f"Status: {response.status_code}")
+        except Exception as e:
+            return self.log_test("Super Admin Get Shops", False, str(e))
+
+    def test_super_admin_get_users(self):
+        """Test super admin get all users"""
+        try:
+            response = self.session.get(f"{self.base_url}/admin/users")
+            success = response.status_code == 200
+            if success:
+                users = response.json()
+                success = isinstance(users, list) and len(users) > 0
+            return self.log_test("Super Admin Get Users", success, f"Status: {response.status_code}")
+        except Exception as e:
+            return self.log_test("Super Admin Get Users", False, str(e))
+
+    def test_super_admin_create_shop_owner(self):
+        """Test super admin create shop owner"""
+        try:
+            timestamp = datetime.now().strftime("%H%M%S")
+            shop_owner_data = {
+                "email": f"testowner{timestamp}@test.com",
+                "password": "testpass123",
+                "name": f"Test Owner {timestamp}",
+                "shop_name": f"Test Shop {timestamp}"
+            }
+            response = self.session.post(f"{self.base_url}/admin/users", json=shop_owner_data)
+            success = response.status_code == 200
+            if success:
+                created_user = response.json()
+                self.created_shop_owner_id = created_user.get("id")
+            return self.log_test("Super Admin Create Shop Owner", success, f"Status: {response.status_code}")
+        except Exception as e:
+            return self.log_test("Super Admin Create Shop Owner", False, str(e))
+
+    # ==================== SHOP OWNER TESTS ====================
+
+    def test_shop_owner_login(self):
+        """Test shop owner login"""
+        try:
+            login_data = {
+                "email": "demo@thewishop.com",
+                "password": "demo123"
+            }
+            response = self.session.post(f"{self.base_url}/auth/login", json=login_data)
+            success = response.status_code == 200
+            if success:
+                self.shop_owner_data = response.json()
+                # Check if role is shop_owner and has shop_id
+                success = (self.shop_owner_data.get("role") == "shop_owner" and 
+                          self.shop_owner_data.get("shop_id") is not None)
+            return self.log_test("Shop Owner Login", success, f"Status: {response.status_code}")
+        except Exception as e:
+            return self.log_test("Shop Owner Login", False, str(e))
+
+    def test_shop_owner_dashboard_stats(self):
+        """Test shop owner dashboard stats"""
+        try:
+            response = self.session.get(f"{self.base_url}/dashboard/stats")
+            success = response.status_code == 200
+            if success:
+                data = response.json()
+                # Check if required stats are present
+                required_keys = ['total_products', 'total_orders', 'pending_orders', 'total_revenue']
+                success = all(key in data for key in required_keys)
+            return self.log_test("Shop Owner Dashboard Stats", success, f"Status: {response.status_code}")
+        except Exception as e:
+            return self.log_test("Shop Owner Dashboard Stats", False, str(e))
+
+    def test_shop_owner_get_shop(self):
+        """Test shop owner get shop details"""
+        try:
+            response = self.session.get(f"{self.base_url}/dashboard/shop")
+            success = response.status_code == 200
+            if success:
+                shop = response.json()
+                # Check if shop has required fields
+                required_keys = ['id', 'name', 'slug']
+                success = all(key in shop for key in required_keys)
+            return self.log_test("Shop Owner Get Shop", success, f"Status: {response.status_code}")
+        except Exception as e:
+            return self.log_test("Shop Owner Get Shop", False, str(e))
+
+    def test_shop_owner_update_shop(self):
+        """Test shop owner update shop"""
+        try:
+            update_data = {
+                "description": "Updated shop description for testing"
+            }
+            response = self.session.put(f"{self.base_url}/dashboard/shop", json=update_data)
+            success = response.status_code == 200
+            return self.log_test("Shop Owner Update Shop", success, f"Status: {response.status_code}")
+        except Exception as e:
+            return self.log_test("Shop Owner Update Shop", False, str(e))
+
+    def test_shop_owner_get_products(self):
+        """Test shop owner get products"""
+        try:
+            response = self.session.get(f"{self.base_url}/dashboard/products")
+            success = response.status_code == 200
+            if success:
+                products = response.json()
+                success = isinstance(products, list)
+            return self.log_test("Shop Owner Get Products", success, f"Status: {response.status_code}")
+        except Exception as e:
+            return self.log_test("Shop Owner Get Products", False, str(e))
+
+    def test_shop_owner_create_category(self):
+        """Test shop owner create category"""
+        try:
+            timestamp = datetime.now().strftime("%H%M%S")
+            category_data = {
+                "name": f"Test Category {timestamp}",
+                "description": "Test category description"
+            }
+            response = self.session.post(f"{self.base_url}/dashboard/categories", json=category_data)
+            success = response.status_code == 200
+            return self.log_test("Shop Owner Create Category", success, f"Status: {response.status_code}")
+        except Exception as e:
+            return self.log_test("Shop Owner Create Category", False, str(e))
+
+    def test_shop_owner_get_categories(self):
+        """Test shop owner get categories"""
+        try:
+            response = self.session.get(f"{self.base_url}/dashboard/categories")
+            success = response.status_code == 200
+            if success:
+                categories = response.json()
+                success = isinstance(categories, list)
+            return self.log_test("Shop Owner Get Categories", success, f"Status: {response.status_code}")
+        except Exception as e:
+            return self.log_test("Shop Owner Get Categories", False, str(e))
+
+    def test_shop_owner_create_product(self):
+        """Test shop owner create product"""
+        try:
+            timestamp = datetime.now().strftime("%H%M%S")
+            product_data = {
+                "name": f"Test Product {timestamp}",
+                "price": 100000,
+                "description": "Test product description",
+                "image_url": "https://images.unsplash.com/photo-1722891067479-5fd39edbfc3d?w=500",
+                "stock": 10
+            }
+            response = self.session.post(f"{self.base_url}/dashboard/products", json=product_data)
+            success = response.status_code == 200
+            return self.log_test("Shop Owner Create Product", success, f"Status: {response.status_code}")
+        except Exception as e:
+            return self.log_test("Shop Owner Create Product", False, str(e))
+
+    def test_shop_owner_get_orders(self):
+        """Test shop owner get orders"""
+        try:
+            response = self.session.get(f"{self.base_url}/dashboard/orders")
+            success = response.status_code == 200
+            if success:
+                orders = response.json()
+                success = isinstance(orders, list)
+            return self.log_test("Shop Owner Get Orders", success, f"Status: {response.status_code}")
+        except Exception as e:
+            return self.log_test("Shop Owner Get Orders", False, str(e))
+
+    # ==================== PUBLIC STOREFRONT TESTS ====================
+
+    def test_public_get_shop_by_slug(self):
+        """Test public get shop by slug"""
+        try:
+            response = self.session.get(f"{self.base_url}/shop/{self.demo_shop_slug}")
+            success = response.status_code == 200
+            if success:
+                shop = response.json()
+                # Check if shop has required fields
+                required_keys = ['id', 'name', 'slug']
+                success = all(key in shop for key in required_keys)
+            return self.log_test("Public Get Shop by Slug", success, f"Status: {response.status_code}")
+        except Exception as e:
+            return self.log_test("Public Get Shop by Slug", False, str(e))
+
+    def test_public_get_shop_products(self):
+        """Test public get shop products"""
+        try:
+            response = self.session.get(f"{self.base_url}/shop/{self.demo_shop_slug}/products")
+            success = response.status_code == 200
+            if success:
+                products = response.json()
+                success = isinstance(products, list) and len(products) > 0
+            return self.log_test("Public Get Shop Products", success, f"Status: {response.status_code}")
+        except Exception as e:
+            return self.log_test("Public Get Shop Products", False, str(e))
+
+    def test_public_get_shop_categories(self):
+        """Test public get shop categories"""
+        try:
+            response = self.session.get(f"{self.base_url}/shop/{self.demo_shop_slug}/categories")
+            success = response.status_code == 200
+            if success:
+                categories = response.json()
+                success = isinstance(categories, list)
+            return self.log_test("Public Get Shop Categories", success, f"Status: {response.status_code}")
+        except Exception as e:
+            return self.log_test("Public Get Shop Categories", False, str(e))
+
+    def test_public_create_order(self):
+        """Test public create order"""
+        try:
+            order_data = {
+                "customer_name": "Test Customer",
+                "customer_phone": "0123456789",
+                "customer_email": "test@example.com",
+                "customer_address": "123 Test Street",
+                "items": [
+                    {"product_id": "prod-001", "quantity": 1}
+                ],
+                "note": "Test order"
+            }
+            response = self.session.post(f"{self.base_url}/shop/{self.demo_shop_slug}/orders", json=order_data)
+            success = response.status_code == 200
+            if success:
+                order_result = response.json()
+                success = "order_id" in order_result
+            return self.log_test("Public Create Order", success, f"Status: {response.status_code}")
+        except Exception as e:
+            return self.log_test("Public Create Order", False, str(e))
+
+    # ==================== AUTH TESTS ====================
+
+    def test_auth_me(self):
+        """Test get current user"""
         try:
             response = self.session.get(f"{self.base_url}/auth/me")
             success = response.status_code == 200
-            return self.log_test("Get User Profile", success, f"Status: {response.status_code}")
+            if success:
+                user = response.json()
+                success = "id" in user and "email" in user and "role" in user
+            return self.log_test("Auth Me", success, f"Status: {response.status_code}")
         except Exception as e:
-            return self.log_test("Get User Profile", False, str(e))
-
-    def test_add_to_cart(self):
-        """Test adding item to cart"""
-        try:
-            cart_item = {
-                "product_id": self.test_product_id,
-                "quantity": 2
-            }
-            response = self.session.post(f"{self.base_url}/cart/add", json=cart_item)
-            success = response.status_code == 200
-            return self.log_test("Add to Cart", success, f"Status: {response.status_code}")
-        except Exception as e:
-            return self.log_test("Add to Cart", False, str(e))
-
-    def test_get_cart(self):
-        """Test getting cart contents"""
-        try:
-            response = self.session.get(f"{self.base_url}/cart")
-            success = response.status_code == 200
-            return self.log_test("Get Cart", success, f"Status: {response.status_code}")
-        except Exception as e:
-            return self.log_test("Get Cart", False, str(e))
-
-    def test_update_cart_item(self):
-        """Test updating cart item quantity"""
-        try:
-            cart_item = {
-                "product_id": self.test_product_id,
-                "quantity": 3
-            }
-            response = self.session.post(f"{self.base_url}/cart/update", json=cart_item)
-            success = response.status_code == 200
-            return self.log_test("Update Cart Item", success, f"Status: {response.status_code}")
-        except Exception as e:
-            return self.log_test("Update Cart Item", False, str(e))
-
-    def test_toggle_wishlist(self):
-        """Test adding/removing item from wishlist"""
-        try:
-            response = self.session.post(f"{self.base_url}/wishlist/toggle/{self.test_product_id}")
-            success = response.status_code == 200
-            return self.log_test("Toggle Wishlist", success, f"Status: {response.status_code}")
-        except Exception as e:
-            return self.log_test("Toggle Wishlist", False, str(e))
-
-    def test_get_wishlist(self):
-        """Test getting wishlist"""
-        try:
-            response = self.session.get(f"{self.base_url}/wishlist")
-            success = response.status_code == 200
-            return self.log_test("Get Wishlist", success, f"Status: {response.status_code}")
-        except Exception as e:
-            return self.log_test("Get Wishlist", False, str(e))
-
-    def test_check_wishlist_status(self):
-        """Test checking if item is in wishlist"""
-        try:
-            response = self.session.get(f"{self.base_url}/wishlist/check/{self.test_product_id}")
-            success = response.status_code == 200
-            return self.log_test("Check Wishlist Status", success, f"Status: {response.status_code}")
-        except Exception as e:
-            return self.log_test("Check Wishlist Status", False, str(e))
-
-    def test_remove_from_cart(self):
-        """Test removing item from cart"""
-        try:
-            response = self.session.delete(f"{self.base_url}/cart/{self.test_product_id}")
-            success = response.status_code == 200
-            return self.log_test("Remove from Cart", success, f"Status: {response.status_code}")
-        except Exception as e:
-            return self.log_test("Remove from Cart", False, str(e))
-
-    def test_clear_cart(self):
-        """Test clearing entire cart"""
-        try:
-            response = self.session.delete(f"{self.base_url}/cart")
-            success = response.status_code == 200
-            return self.log_test("Clear Cart", success, f"Status: {response.status_code}")
-        except Exception as e:
-            return self.log_test("Clear Cart", False, str(e))
+            return self.log_test("Auth Me", False, str(e))
 
     def test_logout(self):
         """Test user logout"""
@@ -213,44 +328,74 @@ class WiShopAPITester:
         except Exception as e:
             return self.log_test("User Logout", False, str(e))
 
+    # ==================== CLEANUP TESTS ====================
+
+    def test_cleanup_created_user(self):
+        """Clean up created test user (requires super admin)"""
+        if not self.created_shop_owner_id:
+            return self.log_test("Cleanup Created User", True, "No user to cleanup")
+        
+        try:
+            # Login as super admin first
+            login_data = {
+                "email": "admin@thewishop.com",
+                "password": "admin123"
+            }
+            self.session.post(f"{self.base_url}/auth/login", json=login_data)
+            
+            # Delete the created user
+            response = self.session.delete(f"{self.base_url}/admin/users/{self.created_shop_owner_id}")
+            success = response.status_code == 200
+            return self.log_test("Cleanup Created User", success, f"Status: {response.status_code}")
+        except Exception as e:
+            return self.log_test("Cleanup Created User", False, str(e))
+
     def run_all_tests(self):
         """Run all API tests"""
-        print("🚀 Starting The Wi Shop API Tests")
-        print("=" * 50)
+        print("🚀 Starting Multi-tenant E-commerce Platform API Tests")
+        print("=" * 60)
 
         # Test basic endpoints
         self.test_api_root()
-        self.test_get_products()
-        self.test_get_categories()
-        self.test_search_products()
-        self.test_filter_products_by_category()
-        self.test_get_single_product()
 
-        # Test authentication flow
-        self.test_register_user()
-        self.test_get_user_profile()
+        # Test Super Admin functionality
+        print("\n📋 Testing Super Admin Functionality...")
+        self.test_super_admin_login()
+        self.test_super_admin_stats()
+        self.test_super_admin_get_shops()
+        self.test_super_admin_get_users()
+        self.test_super_admin_create_shop_owner()
 
-        # Test cart operations (requires auth)
-        self.test_add_to_cart()
-        self.test_get_cart()
-        self.test_update_cart_item()
+        # Test Shop Owner functionality
+        print("\n🏪 Testing Shop Owner Functionality...")
+        self.test_shop_owner_login()
+        self.test_shop_owner_dashboard_stats()
+        self.test_shop_owner_get_shop()
+        self.test_shop_owner_update_shop()
+        self.test_shop_owner_get_products()
+        self.test_shop_owner_get_categories()
+        self.test_shop_owner_create_category()
+        self.test_shop_owner_create_product()
+        self.test_shop_owner_get_orders()
 
-        # Test wishlist operations (requires auth)
-        self.test_toggle_wishlist()
-        self.test_get_wishlist()
-        self.test_check_wishlist_status()
+        # Test Auth functionality
+        print("\n🔐 Testing Auth Functionality...")
+        self.test_auth_me()
 
-        # Test cleanup operations
-        self.test_remove_from_cart()
-        self.test_clear_cart()
-        self.test_logout()
+        # Test Public Storefront functionality (no auth required)
+        print("\n🌐 Testing Public Storefront Functionality...")
+        self.test_logout()  # Logout first to test public endpoints
+        self.test_public_get_shop_by_slug()
+        self.test_public_get_shop_products()
+        self.test_public_get_shop_categories()
+        self.test_public_create_order()
 
-        # Test admin login
-        self.test_login_admin()
-        self.test_logout()
+        # Cleanup
+        print("\n🧹 Cleanup...")
+        self.test_cleanup_created_user()
 
         # Print summary
-        print("\n" + "=" * 50)
+        print("\n" + "=" * 60)
         print(f"📊 Test Results: {self.tests_passed}/{self.tests_run} passed")
         success_rate = (self.tests_passed / self.tests_run) * 100 if self.tests_run > 0 else 0
         print(f"📈 Success Rate: {success_rate:.1f}%")
@@ -259,7 +404,7 @@ class WiShopAPITester:
 
 def main():
     """Main test execution"""
-    tester = WiShopAPITester()
+    tester = MultiTenantEcommerceAPITester()
     success = tester.run_all_tests()
     return 0 if success else 1
 
