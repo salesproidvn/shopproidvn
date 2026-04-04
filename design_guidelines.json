@@ -1,0 +1,104 @@
+{
+  "theme": "Light",
+  "archetype": "4 (Swiss & High-Contrast - Blue & White variant)",
+  "colors": {
+    "primary": "#0055FF",
+    "primary_hover": "#0040CC",
+    "background": "#FFFFFF",
+    "surface": "#F8FAFC",
+    "surface_secondary": "#EFF6FF",
+    "text_main": "#0F172A",
+    "text_muted": "#64748B",
+    "border": "#E2E8F0"
+  },
+  "typography": {
+    "headings": {
+      "font_family": "Cabinet Grotesk",
+      "weights": ["700", "800"],
+      "sizes": {
+        "h1": "text-4xl sm:text-5xl lg:text-6xl tracking-tighter",
+        "h2": "text-2xl sm:text-3xl lg:text-4xl tracking-tight",
+        "h3": "text-xl sm:text-2xl tracking-tight"
+      }
+    },
+    "body": {
+      "font_family": "Manrope",
+      "weights": ["400", "500", "600"],
+      "sizes": {
+        "base": "text-base leading-relaxed",
+        "small": "text-sm",
+        "xs": "text-xs tracking-[0.05em]"
+      }
+    }
+  },
+  "layout_spacing": {
+    "philosophy": "Generous spacing. Product grid structure. Ample white space around elements to highlight products.",
+    "container": "max-w-7xl mx-auto px-6 lg:px-12",
+    "product_grid": "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8",
+    "paddings": {
+      "section": "py-24",
+      "card": "p-6"
+    }
+  },
+  "components": {
+    "card": "bg-white border border-[#E2E8F0]/60 hover:border-[#0055FF]/30 transition-colors rounded-2xl overflow-hidden hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)]",
+    "button_primary": "bg-[#0055FF] text-white hover:bg-[#0040CC] font-semibold rounded-full px-6 py-3 transition-all shadow-sm hover:shadow-md",
+    "button_secondary": "bg-[#F8FAFC] text-[#0F172A] hover:bg-[#E2E8F0] font-semibold rounded-full px-6 py-3 transition-all",
+    "header": "sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-[#E2E8F0]/40",
+    "input": "border border-[#E2E8F0] rounded-lg bg-[#F8FAFC] px-4 py-2 focus:ring-2 focus:ring-[#0055FF]/20 focus:border-[#0055FF] outline-none transition-all",
+    "badge": "uppercase text-[10px] font-bold tracking-wider px-3 py-1 rounded-full bg-[#0055FF]/10 text-[#0055FF]"
+  },
+  "animations": {
+    "hover_lift": "hover:-translate-y-1 transition-transform duration-300 ease-out",
+    "image_zoom": "hover:scale-105 transition-transform duration-500 ease-out"
+  },
+  "media": {
+    "hero_banner": {
+      "url": "https://static.prod-images.emergentagent.com/jobs/4a43ef8b-4a51-4219-845e-075d0c87222c/images/032b2a39b5b498b4fb69814c632e83c3c957b48e0659c8da1a2d291a4653a6a7.png",
+      "description": "Hero banner for the shop, minimalist podium with blue and white theme"
+    },
+    "products": [
+      {
+        "id": "1",
+        "name": "Sony Wireless Headphones",
+        "price": 2490000,
+        "category": "Electronics",
+        "url": "https://images.unsplash.com/photo-1722891067479-5fd39edbfc3d?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NDh8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjBtaW5pbWFsaXN0JTIwaGVhZHBob25lcyUyMGlzb2xhdGVkfGVufDB8fHx8MTc3NTMyMTk0MHww&ixlib=rb-4.1.0&q=85"
+      },
+      {
+        "id": "2",
+        "name": "Black Studio Headphones",
+        "price": 1850000,
+        "category": "Electronics",
+        "url": "https://images.unsplash.com/photo-1600086827875-a63b01f1335c?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NDh8MHwxfHNlYXJjaHwzfHxtb2Rlcm4lMjBtaW5pbWFsaXN0JTIwaGVhZHBob25lcyUyMGlzb2xhdGVkfGVufDB8fHx8MTc3NTMyMTk0MHww&ixlib=rb-4.1.0&q=85"
+      },
+      {
+        "id": "3",
+        "name": "Grey Casual Sneakers",
+        "price": 1200000,
+        "category": "Fashion",
+        "url": "https://images.pexels.com/photos/5526492/pexels-photo-5526492.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+      },
+      {
+        "id": "4",
+        "name": "Minimalist Smartphone",
+        "price": 14500000,
+        "category": "Electronics",
+        "url": "https://images.unsplash.com/photo-1759588071782-b2091e07d737?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2OTV8MHwxfHNlYXJjaHwzfHxtb2Rlcm4lMjBtaW5pbWFsaXN0JTIwaGVhZHBob25lcyUyMGlzb2xhdGVkfGVufDB8fHx8MTc3NTMyMTk0MHww&ixlib=rb-4.1.0&q=85"
+      }
+    ]
+  },
+  "instructions_to_main_agent": [
+    "Use pure functional components in React (.js files only, not .tsx).",
+    "Use Tailwind CSS for all styling according to the guidelines.",
+    "Do NOT use HTML <select> or native form elements. Use Shadcn components heavily customized to match the blue-white theme.",
+    "Include 'data-testid' on all interactive elements (buttons, inputs, links, cart, wishlist, products).",
+    "Use lucide-react for standard e-commerce icons (ShoppingCart, Heart, User, Search).",
+    "Features required: Product Grid Display, Search Bar, Category Filter Dropdown, Shopping Cart (drawer/modal), Wishlist (toggle), User Authentication (Login/Register dialog/view), Contact Info Section (Footer), Product Detail View (dialog/view), Add to Cart Button, Navigation Header.",
+    "Prices must be formatted in VND currency (e.g., 2.490.000 ₫). Provide a utility function for this.",
+    "Product cards must have an 'Add to Cart' button and a 'Wishlist' heart icon overlayed on the image or at the bottom corner.",
+    "The Hero section should feature the hero_banner image layered with a bold marketing message.",
+    "Ensure Header stays sticky and has a glassy blur effect.",
+    "Implement states for toggling Wishlist items, Shopping Cart drawer, and Auth. Mock the API interaction."
+  ]
+}
