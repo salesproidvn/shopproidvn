@@ -622,12 +622,12 @@ const ShopOwnerDashboard = () => {
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Category</label>
-              <Select value={productForm.category_id} onValueChange={(val) => setProductForm({ ...productForm, category_id: val })}>
+              <Select value={productForm.category_id || "none"} onValueChange={(val) => setProductForm({ ...productForm, category_id: val === "none" ? "" : val })}>
                 <SelectTrigger data-testid="product-category-select">
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent className="bg-white">
-                  <SelectItem value="">None</SelectItem>
+                  <SelectItem value="none">None</SelectItem>
                   {categories.map((cat) => (
                     <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
                   ))}

@@ -25,25 +25,38 @@ A multi-tenant e-commerce platform that allows individuals and small businesses 
 
 #### Shop Owner Dashboard (/dashboard)
 - Dashboard overview with stats (products, orders, pending orders, revenue)
-- Product Management: Create, Edit, Delete products
+- Product Management: Create, Edit, Delete products (5-column grid)
 - Category Management: Create, Edit, Delete categories
-- Order Management: View orders, update status
+- Order Management: View orders, update status, **view order details**
 - Shop Settings: Edit shop profile, logo, contact info, social links
+- **Theme Color Customization**: 6 color options (Blue, Green, Purple, Red, Orange, Pink)
 
 #### Public Storefront (/shop/:slug)
 - Unique URL for each shop (e.g., /shop/the-elite-shop)
-- Product catalog with search and category filtering
+- Product catalog with search and category filtering (5-column grid)
 - Product detail modals
 - Shopping cart functionality
 - Checkout/order form with customer details
 - Contact info display
+
+#### Homepage
+- Clean product grid (5 columns desktop, 2 columns mobile)
+- No hero section
+- No footer
+- Category filter
+- Search functionality
+
+### UI/UX Updates
+- All modals (login, product, cart, checkout) have white backgrounds
+- Responsive grid: 5 columns desktop, 2 columns mobile
+- Clean, minimal design without hero/footer clutter
 
 ### Technical Implementation
 - **Backend**: FastAPI with MongoDB (multi-tenant data isolation)
 - **Frontend**: React with Tailwind CSS, Shadcn UI components
 - **Authentication**: JWT tokens with httpOnly cookies
 - **Currency**: VND (Vietnamese Dong)
-- **Theme**: Blue/White color scheme
+- **Theme**: Blue/White color scheme (customizable per shop)
 
 ## Test Credentials
 - **Super Admin**: admin@thewishop.com / admin123
