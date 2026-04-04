@@ -5,8 +5,8 @@ import { formatVND } from '../utils/format';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '../components/ui/sheet';
 import { ScrollArea } from '../components/ui/scroll-area';
 import { 
   Search, ShoppingCart, Phone, Mail, MapPin, Facebook, Instagram, 
@@ -242,7 +242,7 @@ const StorefrontPage = () => {
       </section>
 
       {/* Products */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <main className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Filters */}
         <div className="flex flex-col sm:flex-row gap-4 mb-8">
           <div className="md:hidden flex-1">
@@ -261,7 +261,7 @@ const StorefrontPage = () => {
             <SelectTrigger className="w-full sm:w-[200px]" data-testid="category-filter">
               <SelectValue placeholder="Danh mục" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-white">
               {categories.map((cat) => (
                 <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
               ))}
@@ -269,13 +269,13 @@ const StorefrontPage = () => {
           </Select>
         </div>
 
-        {/* Product Grid */}
+        {/* Product Grid - 5 columns desktop, 2 mobile */}
         {products.length === 0 ? (
           <div className="text-center py-24">
             <p className="text-[#64748B] text-lg">Không tìm thấy sản phẩm nào</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6" data-testid="product-grid">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 lg:gap-6" data-testid="product-grid">
             {products.map((product) => (
               <div
                 key={product.id}
@@ -350,7 +350,8 @@ const StorefrontPage = () => {
 
       {/* Product Modal */}
       <Dialog open={!!selectedProduct} onOpenChange={() => setSelectedProduct(null)}>
-        <DialogContent className="sm:max-w-2xl p-0 overflow-hidden" data-testid="product-modal">
+        <DialogContent className="sm:max-w-2xl p-0 overflow-hidden bg-white" data-testid="product-modal">
+          <DialogDescription className="sr-only">Chi tiết sản phẩm</DialogDescription>
           {selectedProduct && (
             <div className="grid md:grid-cols-2">
               <div className="aspect-square bg-[#F8FAFC]">
@@ -377,9 +378,10 @@ const StorefrontPage = () => {
 
       {/* Cart Drawer */}
       <Sheet open={showCart} onOpenChange={setShowCart}>
-        <SheetContent className="w-full sm:max-w-md flex flex-col" data-testid="cart-drawer">
+        <SheetContent className="w-full sm:max-w-md flex flex-col bg-white" data-testid="cart-drawer">
           <SheetHeader>
             <SheetTitle>Giỏ hàng ({cartCount})</SheetTitle>
+            <SheetDescription>Các sản phẩm trong giỏ hàng</SheetDescription>
           </SheetHeader>
 
           {cart.length === 0 ? (
@@ -434,9 +436,10 @@ const StorefrontPage = () => {
 
       {/* Checkout Modal */}
       <Dialog open={showCheckout} onOpenChange={setShowCheckout}>
-        <DialogContent className="sm:max-w-md" data-testid="checkout-modal">
+        <DialogContent className="sm:max-w-md bg-white" data-testid="checkout-modal">
           <DialogHeader>
             <DialogTitle>Thông tin đặt hàng</DialogTitle>
+            <DialogDescription>Nhập thông tin để hoàn tất đơn hàng</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleCheckout} className="space-y-4">
             <div>

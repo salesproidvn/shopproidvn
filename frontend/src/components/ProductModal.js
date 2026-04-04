@@ -3,7 +3,7 @@ import { Heart, ShoppingCart, Minus, Plus } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
 import { formatVND } from '../utils/format';
-import { Dialog, DialogContent } from '../components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription } from '../components/ui/dialog';
 import { Button } from '../components/ui/button';
 import { toast } from 'sonner';
 
@@ -37,7 +37,8 @@ const ProductModal = ({ product, open, onOpenChange }) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-4xl p-0 overflow-hidden" data-testid="product-modal">
+      <DialogContent className="sm:max-w-4xl p-0 overflow-hidden bg-white" data-testid="product-modal">
+        <DialogDescription className="sr-only">Chi tiết sản phẩm {product.name}</DialogDescription>
         <div className="grid md:grid-cols-2">
           {/* Image */}
           <div className="aspect-square bg-[#F8FAFC]">

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { formatApiErrorDetail } from '../utils/format';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -50,11 +50,14 @@ const AuthModal = ({ open, onOpenChange }) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md" data-testid="auth-modal">
+      <DialogContent className="sm:max-w-md bg-white" data-testid="auth-modal">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-center">
             {mode === 'login' ? 'Đăng nhập' : 'Đăng ký'}
           </DialogTitle>
+          <DialogDescription className="text-center text-[#64748B]">
+            {mode === 'login' ? 'Đăng nhập để quản lý cửa hàng' : 'Tạo tài khoản mới'}
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">

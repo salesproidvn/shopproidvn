@@ -7,11 +7,11 @@ import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Input } from '../components/ui/input';
 import { Textarea } from '../components/ui/textarea';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { 
   LayoutDashboard, Package, FolderOpen, ShoppingCart, Settings, 
-  LogOut, Menu, X, Plus, Pencil, Trash2, TrendingUp, Clock
+  LogOut, Menu, X, Plus, Pencil, Trash2, TrendingUp, Clock, Eye, Palette
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -28,13 +28,17 @@ const ShopOwnerDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [loading, setLoading] = useState(true);
+  
+  // Theme color
+  const [themeColor, setThemeColor] = useState('#0055FF');
 
   // Modal states
   const [showProductModal, setShowProductModal] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
-  const [showShopModal, setShowShopModal] = useState(false);
+  const [showOrderModal, setShowOrderModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [editingCategory, setEditingCategory] = useState(null);
+  const [selectedOrder, setSelectedOrder] = useState(null);
 
   // Form states
   const [productForm, setProductForm] = useState({ name: '', price: '', category_id: '', description: '', image_url: '', stock: '' });
@@ -42,7 +46,7 @@ const ShopOwnerDashboard = () => {
   const [shopForm, setShopForm] = useState({});
 
   useEffect(() => {
-    if (authLoading) return; // Wait for auth check
+    if (authLoading) return;
     if (!user || (user.role !== 'shop_owner' && user.role !== 'super_admin')) {
       navigate('/');
       return;
@@ -77,7 +81,12 @@ const ShopOwnerDashboard = () => {
   const handleSaveProduct = async (e) => {
     e.preventDefault();
     try {
-      const data = { ...productForm, price: parseInt(productForm.price), stock: parseInt(productForm.stock) || 0 };
+      const data = { 
+        ...productForm, 
+        price: parseInt(productForm.price), 
+        stock: parseInt(productForm.stock) || 0,
+        category_id: productForm.category_id || null
+      };
       if (editingProduct) {
         await axios.put(`${API}/dashboard/products/${editingProduct.id}`, data, { withCredentials: true });
         toast.success('Product updated');
@@ -163,7 +172,6 @@ const ShopOwnerDashboard = () => {
     try {
       await axios.put(`${API}/dashboard/shop`, shopForm, { withCredentials: true });
       toast.success('Shop updated');
-      setShowShopModal(false);
       fetchData();
     } catch (err) {
       toast.error('Failed to update shop');
@@ -181,6 +189,11 @@ const ShopOwnerDashboard = () => {
     }
   };
 
+  const openOrderDetail = (order) => {
+    setSelectedOrder(order);
+    setShowOrderModal(true);
+  };
+
   const handleLogout = async () => {
     await logout();
     navigate('/');
@@ -191,7 +204,7 @@ const ShopOwnerDashboard = () => {
     { id: 'products', label: 'Products', icon: Package },
     { id: 'categories', label: 'Categories', icon: FolderOpen },
     { id: 'orders', label: 'Orders', icon: ShoppingCart },
-    { id: 'settings', label: 'Shop Settings', icon: Settings },
+    { id: 'settings', label: 'Settings', icon: Settings },
   ];
 
   const statusColors = {
@@ -203,7 +216,16 @@ const ShopOwnerDashboard = () => {
     cancelled: 'bg-red-100 text-red-700'
   };
 
-  if (loading) {
+  const themeColors = [
+    { name: 'Blue', value: '#0055FF' },
+    { name: 'Green', value: '#10B981' },
+    { name: 'Purple', value: '#8B5CF6' },
+    { name: 'Red', value: '#EF4444' },
+    { name: 'Orange', value: '#F97316' },
+    { name: 'Pink', value: '#EC4899' },
+  ];
+
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC]">
         <div className="animate-spin w-8 h-8 border-4 border-[#0055FF] border-t-transparent rounded-full" />
@@ -212,7 +234,7 @@ const ShopOwnerDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC]" data-testid="shop-owner-dashboard">
+    <div className="min-h-screen bg-[#F8FAFC]" data-testid="shop-owner-dashboard" style={{ '--theme-color': themeColor }}>
       {/* Sidebar */}
       <aside className={`fixed top-0 left-0 h-full bg-[#0F172A] text-white transition-all z-50 ${sidebarOpen ? 'w-64' : 'w-20'}`}>
         <div className="p-6 flex items-center justify-between">
@@ -232,7 +254,8 @@ const ShopOwnerDashboard = () => {
             <button
               key={item.id}
               onClick={() => setActiveTab(item.id)}
-              className={`w-full flex items-center gap-4 px-6 py-3 hover:bg-white/10 transition-colors ${activeTab === item.id ? 'bg-[#0055FF]' : ''}`}
+              className={`w-full flex items-center gap-4 px-6 py-3 hover:bg-white/10 transition-colors`}
+              style={{ backgroundColor: activeTab === item.id ? themeColor : 'transparent' }}
               data-testid={`nav-${item.id}`}
             >
               <item.icon className="w-5 h-5 flex-shrink-0" />
@@ -251,7 +274,7 @@ const ShopOwnerDashboard = () => {
 
       {/* Main Content */}
       <main className={`transition-all ${sidebarOpen ? 'ml-64' : 'ml-20'} p-8`}>
-        <div className="max-w-7xl mx-auto">
+        <div className="max-w-[1600px] mx-auto">
           {/* Header */}
           <div className="mb-8 flex justify-between items-start">
             <div>
@@ -260,17 +283,17 @@ const ShopOwnerDashboard = () => {
                 {activeTab === 'products' && 'Products'}
                 {activeTab === 'categories' && 'Categories'}
                 {activeTab === 'orders' && 'Orders'}
-                {activeTab === 'settings' && 'Shop Settings'}
+                {activeTab === 'settings' && 'Settings'}
               </h1>
               <p className="text-[#64748B] mt-1">Welcome back, {user?.name}</p>
             </div>
             {activeTab === 'products' && (
-              <Button onClick={() => { resetProductForm(); setShowProductModal(true); }} className="bg-[#0055FF] hover:bg-[#0040CC]" data-testid="add-product-btn">
+              <Button onClick={() => { resetProductForm(); setShowProductModal(true); }} style={{ backgroundColor: themeColor }} className="hover:opacity-90" data-testid="add-product-btn">
                 <Plus className="w-4 h-4 mr-2" /> Add Product
               </Button>
             )}
             {activeTab === 'categories' && (
-              <Button onClick={() => { resetCategoryForm(); setShowCategoryModal(true); }} className="bg-[#0055FF] hover:bg-[#0040CC]" data-testid="add-category-btn">
+              <Button onClick={() => { resetCategoryForm(); setShowCategoryModal(true); }} style={{ backgroundColor: themeColor }} className="hover:opacity-90" data-testid="add-category-btn">
                 <Plus className="w-4 h-4 mr-2" /> Add Category
               </Button>
             )}
@@ -283,7 +306,7 @@ const ShopOwnerDashboard = () => {
                 <Card className="border-0 shadow-sm">
                   <CardHeader className="flex flex-row items-center justify-between pb-2">
                     <CardTitle className="text-sm font-medium text-[#64748B]">Total Products</CardTitle>
-                    <Package className="w-5 h-5 text-[#0055FF]" />
+                    <Package className="w-5 h-5" style={{ color: themeColor }} />
                   </CardHeader>
                   <CardContent>
                     <div className="text-3xl font-bold text-[#0F172A]">{stats.total_products}</div>
@@ -293,7 +316,7 @@ const ShopOwnerDashboard = () => {
                 <Card className="border-0 shadow-sm">
                   <CardHeader className="flex flex-row items-center justify-between pb-2">
                     <CardTitle className="text-sm font-medium text-[#64748B]">Total Orders</CardTitle>
-                    <ShoppingCart className="w-5 h-5 text-[#0055FF]" />
+                    <ShoppingCart className="w-5 h-5" style={{ color: themeColor }} />
                   </CardHeader>
                   <CardContent>
                     <div className="text-3xl font-bold text-[#0F172A]">{stats.total_orders}</div>
@@ -332,13 +355,13 @@ const ShopOwnerDashboard = () => {
                   ) : (
                     <div className="space-y-4">
                       {orders.slice(0, 5).map((order) => (
-                        <div key={order.id} className="flex items-center justify-between p-4 bg-[#F8FAFC] rounded-lg">
+                        <div key={order.id} className="flex items-center justify-between p-4 bg-[#F8FAFC] rounded-lg cursor-pointer hover:bg-[#EFF6FF]" onClick={() => openOrderDetail(order)}>
                           <div>
                             <p className="font-medium text-[#0F172A]">{order.id}</p>
                             <p className="text-sm text-[#64748B]">{order.customer_name}</p>
                           </div>
                           <div className="text-right">
-                            <p className="font-bold text-[#0055FF]">{formatVND(order.total_amount)}</p>
+                            <p className="font-bold" style={{ color: themeColor }}>{formatVND(order.total_amount)}</p>
                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[order.status]}`}>
                               {order.status}
                             </span>
@@ -352,7 +375,7 @@ const ShopOwnerDashboard = () => {
             </div>
           )}
 
-          {/* Products Tab */}
+          {/* Products Tab - 5 columns desktop, 2 mobile */}
           {activeTab === 'products' && (
             <Card className="border-0 shadow-sm">
               <CardContent className="pt-6">
@@ -362,22 +385,22 @@ const ShopOwnerDashboard = () => {
                     <p className="text-[#64748B]">No products yet. Add your first product!</p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="products-grid">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4" data-testid="products-grid">
                     {products.map((product) => (
                       <div key={product.id} className="border rounded-xl overflow-hidden bg-white hover:shadow-lg transition-shadow">
                         <div className="aspect-square bg-[#F8FAFC]">
                           <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
                         </div>
-                        <div className="p-4">
-                          <h3 className="font-semibold text-[#0F172A] truncate">{product.name}</h3>
-                          <p className="text-[#0055FF] font-bold mt-1">{formatVND(product.price)}</p>
-                          <p className="text-sm text-[#64748B] mt-1">Stock: {product.stock || 0}</p>
-                          <div className="flex gap-2 mt-4">
-                            <Button variant="outline" size="sm" className="flex-1" onClick={() => openEditProduct(product)} data-testid={`edit-product-${product.id}`}>
-                              <Pencil className="w-4 h-4 mr-1" /> Edit
+                        <div className="p-3">
+                          <h3 className="font-semibold text-[#0F172A] text-sm truncate">{product.name}</h3>
+                          <p className="font-bold mt-1 text-sm" style={{ color: themeColor }}>{formatVND(product.price)}</p>
+                          <p className="text-xs text-[#64748B]">Stock: {product.stock || 0}</p>
+                          <div className="flex gap-2 mt-3">
+                            <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={() => openEditProduct(product)} data-testid={`edit-product-${product.id}`}>
+                              <Pencil className="w-3 h-3 mr-1" /> Edit
                             </Button>
-                            <Button variant="destructive" size="sm" onClick={() => handleDeleteProduct(product.id)} data-testid={`delete-product-${product.id}`}>
-                              <Trash2 className="w-4 h-4" />
+                            <Button variant="destructive" size="sm" className="px-2" onClick={() => handleDeleteProduct(product.id)} data-testid={`delete-product-${product.id}`}>
+                              <Trash2 className="w-3 h-3" />
                             </Button>
                           </div>
                         </div>
@@ -455,26 +478,31 @@ const ShopOwnerDashboard = () => {
                               </div>
                             </td>
                             <td className="py-3 px-4 text-[#64748B]">{order.items?.length || 0} items</td>
-                            <td className="py-3 px-4 font-bold text-[#0055FF]">{formatVND(order.total_amount)}</td>
+                            <td className="py-3 px-4 font-bold" style={{ color: themeColor }}>{formatVND(order.total_amount)}</td>
                             <td className="py-3 px-4">
                               <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[order.status]}`}>
                                 {order.status}
                               </span>
                             </td>
                             <td className="py-3 px-4">
-                              <Select value={order.status} onValueChange={(val) => handleOrderStatus(order.id, val)}>
-                                <SelectTrigger className="w-32">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="pending">Pending</SelectItem>
-                                  <SelectItem value="confirmed">Confirmed</SelectItem>
-                                  <SelectItem value="processing">Processing</SelectItem>
-                                  <SelectItem value="shipped">Shipped</SelectItem>
-                                  <SelectItem value="completed">Completed</SelectItem>
-                                  <SelectItem value="cancelled">Cancelled</SelectItem>
-                                </SelectContent>
-                              </Select>
+                              <div className="flex gap-2">
+                                <Button variant="outline" size="sm" onClick={() => openOrderDetail(order)} data-testid={`view-order-${order.id}`}>
+                                  <Eye className="w-4 h-4" />
+                                </Button>
+                                <Select value={order.status} onValueChange={(val) => handleOrderStatus(order.id, val)}>
+                                  <SelectTrigger className="w-28 h-8 text-xs">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent className="bg-white">
+                                    <SelectItem value="pending">Pending</SelectItem>
+                                    <SelectItem value="confirmed">Confirmed</SelectItem>
+                                    <SelectItem value="processing">Processing</SelectItem>
+                                    <SelectItem value="shipped">Shipped</SelectItem>
+                                    <SelectItem value="completed">Completed</SelectItem>
+                                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
                             </td>
                           </tr>
                         ))}
@@ -488,78 +516,103 @@ const ShopOwnerDashboard = () => {
 
           {/* Settings Tab */}
           {activeTab === 'settings' && shop && (
-            <Card className="border-0 shadow-sm">
-              <CardHeader>
-                <CardTitle>Shop Profile</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleSaveShop} className="space-y-6 max-w-2xl">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Shop Name</label>
-                      <Input value={shopForm.name || ''} onChange={(e) => setShopForm({ ...shopForm, name: e.target.value })} data-testid="shop-name-input" />
+            <div className="space-y-6">
+              {/* Theme Color Setting */}
+              <Card className="border-0 shadow-sm">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2"><Palette className="w-5 h-5" /> Theme Color</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-wrap gap-3">
+                    {themeColors.map((color) => (
+                      <button
+                        key={color.value}
+                        onClick={() => setThemeColor(color.value)}
+                        className={`w-12 h-12 rounded-full border-4 transition-all ${themeColor === color.value ? 'border-[#0F172A] scale-110' : 'border-transparent'}`}
+                        style={{ backgroundColor: color.value }}
+                        title={color.name}
+                        data-testid={`theme-${color.name.toLowerCase()}`}
+                      />
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Shop Profile */}
+              <Card className="border-0 shadow-sm">
+                <CardHeader>
+                  <CardTitle>Shop Profile</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleSaveShop} className="space-y-6 max-w-2xl">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Shop Name</label>
+                        <Input value={shopForm.name || ''} onChange={(e) => setShopForm({ ...shopForm, name: e.target.value })} data-testid="shop-name-input" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Shop URL</label>
+                        <Input value={`/${shop.slug}`} disabled className="bg-[#F8FAFC]" />
+                      </div>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-1">Shop URL</label>
-                      <Input value={`/${shop.slug}`} disabled className="bg-[#F8FAFC]" />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Description</label>
-                    <Textarea value={shopForm.description || ''} onChange={(e) => setShopForm({ ...shopForm, description: e.target.value })} rows={3} data-testid="shop-description-input" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Logo URL</label>
-                    <Input value={shopForm.logo_url || ''} onChange={(e) => setShopForm({ ...shopForm, logo_url: e.target.value })} placeholder="https://..." data-testid="shop-logo-input" />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Contact Phone</label>
-                      <Input value={shopForm.contact_phone || ''} onChange={(e) => setShopForm({ ...shopForm, contact_phone: e.target.value })} />
+                      <label className="block text-sm font-medium mb-1">Description</label>
+                      <Textarea value={shopForm.description || ''} onChange={(e) => setShopForm({ ...shopForm, description: e.target.value })} rows={3} data-testid="shop-description-input" />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-1">Contact Email</label>
-                      <Input value={shopForm.contact_email || ''} onChange={(e) => setShopForm({ ...shopForm, contact_email: e.target.value })} />
+                      <label className="block text-sm font-medium mb-1">Logo URL</label>
+                      <Input value={shopForm.logo_url || ''} onChange={(e) => setShopForm({ ...shopForm, logo_url: e.target.value })} placeholder="https://..." data-testid="shop-logo-input" />
                     </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Address</label>
-                    <Input value={shopForm.address || ''} onChange={(e) => setShopForm({ ...shopForm, address: e.target.value })} />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Contact Phone</label>
+                        <Input value={shopForm.contact_phone || ''} onChange={(e) => setShopForm({ ...shopForm, contact_phone: e.target.value })} />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Contact Email</label>
+                        <Input value={shopForm.contact_email || ''} onChange={(e) => setShopForm({ ...shopForm, contact_email: e.target.value })} />
+                      </div>
+                    </div>
                     <div>
-                      <label className="block text-sm font-medium mb-1">Facebook</label>
-                      <Input value={shopForm.social_facebook || ''} onChange={(e) => setShopForm({ ...shopForm, social_facebook: e.target.value })} placeholder="https://facebook.com/..." />
+                      <label className="block text-sm font-medium mb-1">Address</label>
+                      <Input value={shopForm.address || ''} onChange={(e) => setShopForm({ ...shopForm, address: e.target.value })} />
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Instagram</label>
-                      <Input value={shopForm.social_instagram || ''} onChange={(e) => setShopForm({ ...shopForm, social_instagram: e.target.value })} placeholder="https://instagram.com/..." />
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Facebook</label>
+                        <Input value={shopForm.social_facebook || ''} onChange={(e) => setShopForm({ ...shopForm, social_facebook: e.target.value })} placeholder="https://facebook.com/..." />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Instagram</label>
+                        <Input value={shopForm.social_instagram || ''} onChange={(e) => setShopForm({ ...shopForm, social_instagram: e.target.value })} placeholder="https://instagram.com/..." />
+                      </div>
                     </div>
-                  </div>
-                  <Button type="submit" className="bg-[#0055FF] hover:bg-[#0040CC]" data-testid="save-shop-btn">
-                    Save Changes
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
+                    <Button type="submit" style={{ backgroundColor: themeColor }} className="hover:opacity-90" data-testid="save-shop-btn">
+                      Save Changes
+                    </Button>
+                  </form>
+                </CardContent>
+              </Card>
+            </div>
           )}
         </div>
       </main>
 
       {/* Product Modal */}
       <Dialog open={showProductModal} onOpenChange={setShowProductModal}>
-        <DialogContent className="sm:max-w-lg" data-testid="product-modal">
+        <DialogContent className="sm:max-w-lg bg-white" data-testid="product-modal">
           <DialogHeader>
             <DialogTitle>{editingProduct ? 'Edit Product' : 'Add Product'}</DialogTitle>
+            <DialogDescription>Fill in the product details below</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSaveProduct} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-1">Name</label>
+              <label className="block text-sm font-medium mb-1">Name *</label>
               <Input value={productForm.name} onChange={(e) => setProductForm({ ...productForm, name: e.target.value })} required data-testid="product-name-input" />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Price (VND)</label>
+                <label className="block text-sm font-medium mb-1">Price (VND) *</label>
                 <Input type="number" value={productForm.price} onChange={(e) => setProductForm({ ...productForm, price: e.target.value })} required data-testid="product-price-input" />
               </div>
               <div>
@@ -573,7 +626,7 @@ const ShopOwnerDashboard = () => {
                 <SelectTrigger data-testid="product-category-select">
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-white">
                   <SelectItem value="">None</SelectItem>
                   {categories.map((cat) => (
                     <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
@@ -582,8 +635,8 @@ const ShopOwnerDashboard = () => {
               </Select>
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Image URL</label>
-              <Input value={productForm.image_url} onChange={(e) => setProductForm({ ...productForm, image_url: e.target.value })} required data-testid="product-image-input" />
+              <label className="block text-sm font-medium mb-1">Image URL *</label>
+              <Input value={productForm.image_url} onChange={(e) => setProductForm({ ...productForm, image_url: e.target.value })} required data-testid="product-image-input" placeholder="https://..." />
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Description</label>
@@ -591,7 +644,7 @@ const ShopOwnerDashboard = () => {
             </div>
             <div className="flex gap-4 pt-4">
               <Button type="button" variant="outline" className="flex-1" onClick={() => setShowProductModal(false)}>Cancel</Button>
-              <Button type="submit" className="flex-1 bg-[#0055FF] hover:bg-[#0040CC]" data-testid="save-product-btn">Save</Button>
+              <Button type="submit" className="flex-1 hover:opacity-90" style={{ backgroundColor: themeColor }} data-testid="save-product-btn">Save</Button>
             </div>
           </form>
         </DialogContent>
@@ -599,13 +652,14 @@ const ShopOwnerDashboard = () => {
 
       {/* Category Modal */}
       <Dialog open={showCategoryModal} onOpenChange={setShowCategoryModal}>
-        <DialogContent className="sm:max-w-md" data-testid="category-modal">
+        <DialogContent className="sm:max-w-md bg-white" data-testid="category-modal">
           <DialogHeader>
             <DialogTitle>{editingCategory ? 'Edit Category' : 'Add Category'}</DialogTitle>
+            <DialogDescription>Enter category details</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSaveCategory} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-1">Name</label>
+              <label className="block text-sm font-medium mb-1">Name *</label>
               <Input value={categoryForm.name} onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })} required data-testid="category-name-input" />
             </div>
             <div>
@@ -614,9 +668,90 @@ const ShopOwnerDashboard = () => {
             </div>
             <div className="flex gap-4 pt-4">
               <Button type="button" variant="outline" className="flex-1" onClick={() => setShowCategoryModal(false)}>Cancel</Button>
-              <Button type="submit" className="flex-1 bg-[#0055FF] hover:bg-[#0040CC]" data-testid="save-category-btn">Save</Button>
+              <Button type="submit" className="flex-1 hover:opacity-90" style={{ backgroundColor: themeColor }} data-testid="save-category-btn">Save</Button>
             </div>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Order Detail Modal */}
+      <Dialog open={showOrderModal} onOpenChange={setShowOrderModal}>
+        <DialogContent className="sm:max-w-2xl bg-white" data-testid="order-modal">
+          <DialogHeader>
+            <DialogTitle>Order Details</DialogTitle>
+            <DialogDescription>Order ID: {selectedOrder?.id}</DialogDescription>
+          </DialogHeader>
+          {selectedOrder && (
+            <div className="space-y-6">
+              {/* Customer Info */}
+              <div className="grid grid-cols-2 gap-4 p-4 bg-[#F8FAFC] rounded-lg">
+                <div>
+                  <p className="text-sm text-[#64748B]">Customer Name</p>
+                  <p className="font-medium">{selectedOrder.customer_name}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-[#64748B]">Phone</p>
+                  <p className="font-medium">{selectedOrder.customer_phone}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-[#64748B]">Email</p>
+                  <p className="font-medium">{selectedOrder.customer_email || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-[#64748B]">Address</p>
+                  <p className="font-medium">{selectedOrder.customer_address}</p>
+                </div>
+              </div>
+
+              {/* Order Items */}
+              <div>
+                <h4 className="font-medium mb-3">Order Items</h4>
+                <div className="space-y-2">
+                  {selectedOrder.items?.map((item, idx) => (
+                    <div key={idx} className="flex justify-between items-center p-3 border rounded-lg">
+                      <div>
+                        <p className="font-medium">{item.name}</p>
+                        <p className="text-sm text-[#64748B]">Qty: {item.quantity} × {formatVND(item.price)}</p>
+                      </div>
+                      <p className="font-bold" style={{ color: themeColor }}>{formatVND(item.subtotal)}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Total */}
+              <div className="flex justify-between items-center p-4 bg-[#F8FAFC] rounded-lg">
+                <span className="font-medium">Total</span>
+                <span className="text-2xl font-bold" style={{ color: themeColor }}>{formatVND(selectedOrder.total_amount)}</span>
+              </div>
+
+              {/* Note */}
+              {selectedOrder.note && (
+                <div className="p-4 border rounded-lg">
+                  <p className="text-sm text-[#64748B]">Note</p>
+                  <p>{selectedOrder.note}</p>
+                </div>
+              )}
+
+              {/* Status Update */}
+              <div className="flex items-center gap-4">
+                <span className="text-sm text-[#64748B]">Status:</span>
+                <Select value={selectedOrder.status} onValueChange={(val) => { handleOrderStatus(selectedOrder.id, val); setSelectedOrder({ ...selectedOrder, status: val }); }}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white">
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="confirmed">Confirmed</SelectItem>
+                    <SelectItem value="processing">Processing</SelectItem>
+                    <SelectItem value="shipped">Shipped</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

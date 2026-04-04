@@ -1,6 +1,6 @@
 import { useCart } from '../context/CartContext';
 import { formatVND } from '../utils/format';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '../components/ui/sheet';
 import { Button } from '../components/ui/button';
 import { ScrollArea } from '../components/ui/scroll-area';
 import { Minus, Plus, Trash2, ShoppingBag } from 'lucide-react';
@@ -10,9 +10,10 @@ const CartDrawer = ({ open, onOpenChange }) => {
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-lg flex flex-col" data-testid="cart-drawer">
+      <SheetContent className="w-full sm:max-w-lg flex flex-col bg-white" data-testid="cart-drawer">
         <SheetHeader>
           <SheetTitle className="text-xl font-bold">Giỏ hàng ({cart.length})</SheetTitle>
+          <SheetDescription>Các sản phẩm trong giỏ hàng của bạn</SheetDescription>
         </SheetHeader>
 
         {cart.length === 0 ? (
