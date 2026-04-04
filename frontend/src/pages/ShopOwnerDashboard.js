@@ -327,14 +327,15 @@ const ShopOwnerDashboard = () => {
         {/* Shop Preview Link */}
         {sidebarOpen && shop && (
           <div className="px-4 mt-4">
-            <Link 
-              to={`/shop/${shop.slug}`} 
+            <a 
+              href={`${window.location.origin}/shop/${shop.slug}`}
               target="_blank"
+              rel="noopener noreferrer"
               className="flex items-center gap-2 px-4 py-2 bg-white/10 rounded-lg text-sm hover:bg-white/20 transition-colors"
             >
               <ExternalLink className="w-4 h-4" />
               Preview Shop
-            </Link>
+            </a>
           </div>
         )}
         
@@ -568,11 +569,11 @@ const ShopOwnerDashboard = () => {
                       <p className="text-sm text-[#64748B]">Your shop is live at:</p>
                       <p className="font-medium text-[#0F172A]">{window.location.origin}/shop/{shop.slug}</p>
                     </div>
-                    <Link to={`/shop/${shop.slug}`} target="_blank">
+                    <a href={`${window.location.origin}/shop/${shop.slug}`} target="_blank" rel="noopener noreferrer">
                       <Button style={{ backgroundColor: themeColor }} className="hover:opacity-90 text-sm">
                         <ExternalLink className="w-4 h-4 mr-2" /> Open Shop
                       </Button>
-                    </Link>
+                    </a>
                   </div>
                 </CardContent>
               </Card>
@@ -863,10 +864,19 @@ const ShopOwnerDashboard = () => {
                 <p className="text-2xl font-bold mb-4" style={{ color: themeColor }}>{formatVND(selectedProduct.price)}</p>
                 <p className="text-sm text-[#64748B] mb-2">Stock: {selectedProduct.stock || 0}</p>
                 {selectedProduct.description && (
-                  <div className="text-sm text-[#64748B] mb-4 flex-1 prose prose-sm" dangerouslySetInnerHTML={{ __html: selectedProduct.description }} />
+                  <div className="text-sm text-[#64748B] mb-4 flex-1 whitespace-pre-wrap">{selectedProduct.description}</div>
                 )}
-                <div className="flex gap-3 mt-auto">
-                  <Button variant="outline" className="flex-1 text-sm" onClick={() => { setShowProductDetailModal(false); openEditProduct(selectedProduct); }}>
+                <div className="flex gap-3 mt-auto pt-4">
+                  <Button 
+                    variant="outline" 
+                    className="flex-1 text-sm" 
+                    onClick={(e) => { 
+                      e.stopPropagation();
+                      setShowProductDetailModal(false); 
+                      setTimeout(() => openEditProduct(selectedProduct), 100);
+                    }}
+                    data-testid="product-detail-edit-btn"
+                  >
                     <Pencil className="w-4 h-4 mr-2" /> Edit
                   </Button>
                   <Button className="flex-1 text-sm hover:opacity-90" style={{ backgroundColor: themeColor }} onClick={() => setShowProductDetailModal(false)}>

@@ -5,6 +5,16 @@ A multi-tenant e-commerce platform that allows individuals and small businesses 
 
 ## Date: 2026-04-04
 
+## Latest Updates
+- Mobile responsive: 2 columns with proper text/button sizing
+- Product image upload via object storage
+- Rich text editor toolbar for product descriptions (bold, italic, list)
+- Click product in dashboard to view details
+- Product detail modal with Edit button
+- Shop preview links (sidebar + settings)
+- Admin can reset any user password to "iLoveProID@"
+- Removed hero section and footer from homepage
+
 ## What's Been Implemented
 
 ### User Roles & Permissions
