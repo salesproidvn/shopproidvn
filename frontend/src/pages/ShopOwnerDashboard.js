@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { formatVND } from '../utils/format';
@@ -11,7 +11,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { 
   LayoutDashboard, Package, FolderOpen, ShoppingCart, Settings, 
-  LogOut, Menu, X, Plus, Pencil, Trash2, TrendingUp, Clock, Eye, Palette
+  LogOut, Menu, X, Plus, Pencil, Trash2, TrendingUp, Clock, Eye, Palette, Upload, ExternalLink,
+  Bold, Italic, List
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -20,6 +21,7 @@ const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const ShopOwnerDashboard = () => {
   const { user, logout, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const fileInputRef = useRef(null);
   const [stats, setStats] = useState(null);
   const [shop, setShop] = useState(null);
   const [products, setProducts] = useState([]);
@@ -28,6 +30,7 @@ const ShopOwnerDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
   
   // Theme color
   const [themeColor, setThemeColor] = useState('#0055FF');
@@ -36,9 +39,11 @@ const ShopOwnerDashboard = () => {
   const [showProductModal, setShowProductModal] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showOrderModal, setShowOrderModal] = useState(false);
+  const [showProductDetailModal, setShowProductDetailModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [editingCategory, setEditingCategory] = useState(null);
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [selectedProduct, setSelectedProduct] = useState(null);
 
   // Form states
   const [productForm, setProductForm] = useState({ name: '', price: '', category_id: '', description: '', image_url: '', stock: '' });
@@ -77,6 +82,29 @@ const ShopOwnerDashboard = () => {
     }
   };
 
+  // Image upload handler
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      setUploading(true);
+      const { data } = await axios.post(`${API}/upload/image`, formData, {
+        withCredentials: true,
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      setProductForm({ ...productForm, image_url: `${API}/files/${data.id}` });
+      toast.success('Image uploaded successfully');
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Upload failed');
+    } finally {
+      setUploading(false);
+    }
+  };
+
   // Product handlers
   const handleSaveProduct = async (e) => {
     e.preventDefault();
@@ -85,7 +113,7 @@ const ShopOwnerDashboard = () => {
         ...productForm, 
         price: parseInt(productForm.price), 
         stock: parseInt(productForm.stock) || 0,
-        category_id: productForm.category_id || null
+        category_id: productForm.category_id === "none" ? null : productForm.category_id || null
       };
       if (editingProduct) {
         await axios.put(`${API}/dashboard/products/${editingProduct.id}`, data, { withCredentials: true });
@@ -118,12 +146,17 @@ const ShopOwnerDashboard = () => {
     setProductForm({
       name: product.name,
       price: product.price.toString(),
-      category_id: product.category_id || '',
+      category_id: product.category_id || 'none',
       description: product.description || '',
       image_url: product.image_url,
       stock: (product.stock || 0).toString()
     });
     setShowProductModal(true);
+  };
+
+  const openProductDetail = (product) => {
+    setSelectedProduct(product);
+    setShowProductDetailModal(true);
   };
 
   const resetProductForm = () => {
@@ -225,6 +258,33 @@ const ShopOwnerDashboard = () => {
     { name: 'Pink', value: '#EC4899' },
   ];
 
+  // Simple formatting functions
+  const insertFormatting = (format) => {
+    const textarea = document.querySelector('[data-testid="product-description-input"]');
+    if (!textarea) return;
+    
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = productForm.description;
+    const selectedText = text.substring(start, end);
+    
+    let newText = '';
+    switch (format) {
+      case 'bold':
+        newText = text.substring(0, start) + `**${selectedText}**` + text.substring(end);
+        break;
+      case 'italic':
+        newText = text.substring(0, start) + `*${selectedText}*` + text.substring(end);
+        break;
+      case 'list':
+        newText = text.substring(0, start) + `\n- ${selectedText}` + text.substring(end);
+        break;
+      default:
+        return;
+    }
+    setProductForm({ ...productForm, description: newText });
+  };
+
   if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC]">
@@ -236,25 +296,25 @@ const ShopOwnerDashboard = () => {
   return (
     <div className="min-h-screen bg-[#F8FAFC]" data-testid="shop-owner-dashboard" style={{ '--theme-color': themeColor }}>
       {/* Sidebar */}
-      <aside className={`fixed top-0 left-0 h-full bg-[#0F172A] text-white transition-all z-50 ${sidebarOpen ? 'w-64' : 'w-20'}`}>
-        <div className="p-6 flex items-center justify-between">
+      <aside className={`fixed top-0 left-0 h-full bg-[#0F172A] text-white transition-all z-50 ${sidebarOpen ? 'w-64' : 'w-16'}`}>
+        <div className="p-4 flex items-center justify-between">
           {sidebarOpen && (
-            <div>
-              <span className="font-bold text-lg">{shop?.name || 'Dashboard'}</span>
-              <p className="text-xs text-[#94A3B8]">/{shop?.slug}</p>
+            <div className="min-w-0">
+              <span className="font-bold text-base truncate block">{shop?.name || 'Dashboard'}</span>
+              <p className="text-xs text-[#94A3B8] truncate">/{shop?.slug}</p>
             </div>
           )}
-          <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(!sidebarOpen)} className="text-white hover:bg-white/10">
+          <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(!sidebarOpen)} className="text-white hover:bg-white/10 flex-shrink-0">
             {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </Button>
         </div>
         
-        <nav className="mt-6">
+        <nav className="mt-4">
           {menuItems.map((item) => (
             <button
               key={item.id}
               onClick={() => setActiveTab(item.id)}
-              className={`w-full flex items-center gap-4 px-6 py-3 hover:bg-white/10 transition-colors`}
+              className={`w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-white/10 transition-colors`}
               style={{ backgroundColor: activeTab === item.id ? themeColor : 'transparent' }}
               data-testid={`nav-${item.id}`}
             >
@@ -263,9 +323,23 @@ const ShopOwnerDashboard = () => {
             </button>
           ))}
         </nav>
+
+        {/* Shop Preview Link */}
+        {sidebarOpen && shop && (
+          <div className="px-4 mt-4">
+            <Link 
+              to={`/shop/${shop.slug}`} 
+              target="_blank"
+              className="flex items-center gap-2 px-4 py-2 bg-white/10 rounded-lg text-sm hover:bg-white/20 transition-colors"
+            >
+              <ExternalLink className="w-4 h-4" />
+              Preview Shop
+            </Link>
+          </div>
+        )}
         
         <div className="absolute bottom-0 left-0 right-0 p-4">
-          <button onClick={handleLogout} className="w-full flex items-center gap-4 px-6 py-3 hover:bg-white/10 text-red-400" data-testid="logout-btn">
+          <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/10 text-red-400 text-sm" data-testid="logout-btn">
             <LogOut className="w-5 h-5" />
             {sidebarOpen && <span>Logout</span>}
           </button>
@@ -273,27 +347,27 @@ const ShopOwnerDashboard = () => {
       </aside>
 
       {/* Main Content */}
-      <main className={`transition-all ${sidebarOpen ? 'ml-64' : 'ml-20'} p-8`}>
+      <main className={`transition-all ${sidebarOpen ? 'ml-64' : 'ml-16'} p-4 lg:p-6`}>
         <div className="max-w-[1600px] mx-auto">
           {/* Header */}
-          <div className="mb-8 flex justify-between items-start">
+          <div className="mb-6 flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-[#0F172A]">
+              <h1 className="text-xl lg:text-2xl font-bold text-[#0F172A]">
                 {activeTab === 'overview' && 'Dashboard'}
                 {activeTab === 'products' && 'Products'}
                 {activeTab === 'categories' && 'Categories'}
                 {activeTab === 'orders' && 'Orders'}
                 {activeTab === 'settings' && 'Settings'}
               </h1>
-              <p className="text-[#64748B] mt-1">Welcome back, {user?.name}</p>
+              <p className="text-sm text-[#64748B] mt-1">Welcome back, {user?.name}</p>
             </div>
             {activeTab === 'products' && (
-              <Button onClick={() => { resetProductForm(); setShowProductModal(true); }} style={{ backgroundColor: themeColor }} className="hover:opacity-90" data-testid="add-product-btn">
+              <Button onClick={() => { resetProductForm(); setShowProductModal(true); }} style={{ backgroundColor: themeColor }} className="hover:opacity-90 text-sm" data-testid="add-product-btn">
                 <Plus className="w-4 h-4 mr-2" /> Add Product
               </Button>
             )}
             {activeTab === 'categories' && (
-              <Button onClick={() => { resetCategoryForm(); setShowCategoryModal(true); }} style={{ backgroundColor: themeColor }} className="hover:opacity-90" data-testid="add-category-btn">
+              <Button onClick={() => { resetCategoryForm(); setShowCategoryModal(true); }} style={{ backgroundColor: themeColor }} className="hover:opacity-90 text-sm" data-testid="add-category-btn">
                 <Plus className="w-4 h-4 mr-2" /> Add Category
               </Button>
             )}
@@ -302,67 +376,67 @@ const ShopOwnerDashboard = () => {
           {/* Overview Tab */}
           {activeTab === 'overview' && stats && (
             <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <Card className="border-0 shadow-sm">
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-sm font-medium text-[#64748B]">Total Products</CardTitle>
-                    <Package className="w-5 h-5" style={{ color: themeColor }} />
+                  <CardHeader className="flex flex-row items-center justify-between pb-2 p-4">
+                    <CardTitle className="text-xs font-medium text-[#64748B]">Products</CardTitle>
+                    <Package className="w-4 h-4" style={{ color: themeColor }} />
                   </CardHeader>
-                  <CardContent>
-                    <div className="text-3xl font-bold text-[#0F172A]">{stats.total_products}</div>
+                  <CardContent className="p-4 pt-0">
+                    <div className="text-2xl font-bold text-[#0F172A]">{stats.total_products}</div>
                   </CardContent>
                 </Card>
 
                 <Card className="border-0 shadow-sm">
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-sm font-medium text-[#64748B]">Total Orders</CardTitle>
-                    <ShoppingCart className="w-5 h-5" style={{ color: themeColor }} />
+                  <CardHeader className="flex flex-row items-center justify-between pb-2 p-4">
+                    <CardTitle className="text-xs font-medium text-[#64748B]">Orders</CardTitle>
+                    <ShoppingCart className="w-4 h-4" style={{ color: themeColor }} />
                   </CardHeader>
-                  <CardContent>
-                    <div className="text-3xl font-bold text-[#0F172A]">{stats.total_orders}</div>
+                  <CardContent className="p-4 pt-0">
+                    <div className="text-2xl font-bold text-[#0F172A]">{stats.total_orders}</div>
                   </CardContent>
                 </Card>
 
                 <Card className="border-0 shadow-sm">
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-sm font-medium text-[#64748B]">Pending Orders</CardTitle>
-                    <Clock className="w-5 h-5 text-yellow-500" />
+                  <CardHeader className="flex flex-row items-center justify-between pb-2 p-4">
+                    <CardTitle className="text-xs font-medium text-[#64748B]">Pending</CardTitle>
+                    <Clock className="w-4 h-4 text-yellow-500" />
                   </CardHeader>
-                  <CardContent>
-                    <div className="text-3xl font-bold text-[#0F172A]">{stats.pending_orders}</div>
+                  <CardContent className="p-4 pt-0">
+                    <div className="text-2xl font-bold text-[#0F172A]">{stats.pending_orders}</div>
                   </CardContent>
                 </Card>
 
                 <Card className="border-0 shadow-sm">
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-sm font-medium text-[#64748B]">Total Revenue</CardTitle>
-                    <TrendingUp className="w-5 h-5 text-green-500" />
+                  <CardHeader className="flex flex-row items-center justify-between pb-2 p-4">
+                    <CardTitle className="text-xs font-medium text-[#64748B]">Revenue</CardTitle>
+                    <TrendingUp className="w-4 h-4 text-green-500" />
                   </CardHeader>
-                  <CardContent>
-                    <div className="text-3xl font-bold text-[#0F172A]">{formatVND(stats.total_revenue)}</div>
+                  <CardContent className="p-4 pt-0">
+                    <div className="text-lg lg:text-2xl font-bold text-[#0F172A]">{formatVND(stats.total_revenue)}</div>
                   </CardContent>
                 </Card>
               </div>
 
               {/* Recent Orders */}
               <Card className="border-0 shadow-sm">
-                <CardHeader>
-                  <CardTitle>Recent Orders</CardTitle>
+                <CardHeader className="p-4">
+                  <CardTitle className="text-base">Recent Orders</CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-4 pt-0">
                   {orders.length === 0 ? (
-                    <p className="text-[#64748B] text-center py-8">No orders yet</p>
+                    <p className="text-[#64748B] text-center py-8 text-sm">No orders yet</p>
                   ) : (
-                    <div className="space-y-4">
+                    <div className="space-y-3">
                       {orders.slice(0, 5).map((order) => (
-                        <div key={order.id} className="flex items-center justify-between p-4 bg-[#F8FAFC] rounded-lg cursor-pointer hover:bg-[#EFF6FF]" onClick={() => openOrderDetail(order)}>
+                        <div key={order.id} className="flex items-center justify-between p-3 bg-[#F8FAFC] rounded-lg cursor-pointer hover:bg-[#EFF6FF]" onClick={() => openOrderDetail(order)}>
                           <div>
-                            <p className="font-medium text-[#0F172A]">{order.id}</p>
-                            <p className="text-sm text-[#64748B]">{order.customer_name}</p>
+                            <p className="font-medium text-[#0F172A] text-sm">{order.id}</p>
+                            <p className="text-xs text-[#64748B]">{order.customer_name}</p>
                           </div>
                           <div className="text-right">
-                            <p className="font-bold" style={{ color: themeColor }}>{formatVND(order.total_amount)}</p>
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[order.status]}`}>
+                            <p className="font-bold text-sm" style={{ color: themeColor }}>{formatVND(order.total_amount)}</p>
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusColors[order.status]}`}>
                               {order.status}
                             </span>
                           </div>
@@ -378,28 +452,28 @@ const ShopOwnerDashboard = () => {
           {/* Products Tab - 5 columns desktop, 2 mobile */}
           {activeTab === 'products' && (
             <Card className="border-0 shadow-sm">
-              <CardContent className="pt-6">
+              <CardContent className="p-4">
                 {products.length === 0 ? (
                   <div className="text-center py-12">
                     <Package className="w-12 h-12 text-[#E2E8F0] mx-auto mb-4" />
-                    <p className="text-[#64748B]">No products yet. Add your first product!</p>
+                    <p className="text-[#64748B] text-sm">No products yet. Add your first product!</p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4" data-testid="products-grid">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 lg:gap-4" data-testid="products-grid">
                     {products.map((product) => (
-                      <div key={product.id} className="border rounded-xl overflow-hidden bg-white hover:shadow-lg transition-shadow">
-                        <div className="aspect-square bg-[#F8FAFC]">
+                      <div key={product.id} className="border rounded-lg overflow-hidden bg-white hover:shadow-lg transition-shadow">
+                        <div className="aspect-square bg-[#F8FAFC] cursor-pointer" onClick={() => openProductDetail(product)}>
                           <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
                         </div>
-                        <div className="p-3">
-                          <h3 className="font-semibold text-[#0F172A] text-sm truncate">{product.name}</h3>
-                          <p className="font-bold mt-1 text-sm" style={{ color: themeColor }}>{formatVND(product.price)}</p>
-                          <p className="text-xs text-[#64748B]">Stock: {product.stock || 0}</p>
-                          <div className="flex gap-2 mt-3">
-                            <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={() => openEditProduct(product)} data-testid={`edit-product-${product.id}`}>
+                        <div className="p-2 lg:p-3">
+                          <h3 className="font-medium text-[#0F172A] text-xs lg:text-sm truncate cursor-pointer hover:text-[#0055FF]" onClick={() => openProductDetail(product)}>{product.name}</h3>
+                          <p className="font-bold mt-1 text-xs lg:text-sm" style={{ color: themeColor }}>{formatVND(product.price)}</p>
+                          <p className="text-[10px] lg:text-xs text-[#64748B]">Stock: {product.stock || 0}</p>
+                          <div className="flex gap-1 lg:gap-2 mt-2">
+                            <Button variant="outline" size="sm" className="flex-1 text-[10px] lg:text-xs h-7 lg:h-8 px-1 lg:px-2" onClick={() => openEditProduct(product)} data-testid={`edit-product-${product.id}`}>
                               <Pencil className="w-3 h-3 mr-1" /> Edit
                             </Button>
-                            <Button variant="destructive" size="sm" className="px-2" onClick={() => handleDeleteProduct(product.id)} data-testid={`delete-product-${product.id}`}>
+                            <Button variant="destructive" size="sm" className="h-7 lg:h-8 px-1 lg:px-2" onClick={() => handleDeleteProduct(product.id)} data-testid={`delete-product-${product.id}`}>
                               <Trash2 className="w-3 h-3" />
                             </Button>
                           </div>
@@ -415,25 +489,25 @@ const ShopOwnerDashboard = () => {
           {/* Categories Tab */}
           {activeTab === 'categories' && (
             <Card className="border-0 shadow-sm">
-              <CardContent className="pt-6">
+              <CardContent className="p-4">
                 {categories.length === 0 ? (
                   <div className="text-center py-12">
                     <FolderOpen className="w-12 h-12 text-[#E2E8F0] mx-auto mb-4" />
-                    <p className="text-[#64748B]">No categories yet. Create your first category!</p>
+                    <p className="text-[#64748B] text-sm">No categories yet. Create your first category!</p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" data-testid="categories-grid">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3" data-testid="categories-grid">
                     {categories.map((cat) => (
-                      <div key={cat.id} className="p-4 border rounded-xl bg-white flex justify-between items-center">
+                      <div key={cat.id} className="p-3 border rounded-lg bg-white flex justify-between items-center">
                         <div>
-                          <h3 className="font-semibold text-[#0F172A]">{cat.name}</h3>
-                          <p className="text-sm text-[#64748B]">{cat.description || 'No description'}</p>
+                          <h3 className="font-medium text-[#0F172A] text-sm">{cat.name}</h3>
+                          <p className="text-xs text-[#64748B]">{cat.description || 'No description'}</p>
                         </div>
-                        <div className="flex gap-2">
-                          <Button variant="ghost" size="icon" onClick={() => { setEditingCategory(cat); setCategoryForm({ name: cat.name, description: cat.description || '' }); setShowCategoryModal(true); }}>
+                        <div className="flex gap-1">
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditingCategory(cat); setCategoryForm({ name: cat.name, description: cat.description || '' }); setShowCategoryModal(true); }}>
                             <Pencil className="w-4 h-4" />
                           </Button>
-                          <Button variant="ghost" size="icon" className="text-red-500" onClick={() => handleDeleteCategory(cat.id)}>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500" onClick={() => handleDeleteCategory(cat.id)}>
                             <Trash2 className="w-4 h-4" />
                           </Button>
                         </div>
@@ -448,66 +522,32 @@ const ShopOwnerDashboard = () => {
           {/* Orders Tab */}
           {activeTab === 'orders' && (
             <Card className="border-0 shadow-sm">
-              <CardContent className="pt-6">
+              <CardContent className="p-4">
                 {orders.length === 0 ? (
                   <div className="text-center py-12">
                     <ShoppingCart className="w-12 h-12 text-[#E2E8F0] mx-auto mb-4" />
-                    <p className="text-[#64748B]">No orders yet</p>
+                    <p className="text-[#64748B] text-sm">No orders yet</p>
                   </div>
                 ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full" data-testid="orders-table">
-                      <thead>
-                        <tr className="border-b">
-                          <th className="text-left py-3 px-4 font-medium text-[#64748B]">Order ID</th>
-                          <th className="text-left py-3 px-4 font-medium text-[#64748B]">Customer</th>
-                          <th className="text-left py-3 px-4 font-medium text-[#64748B]">Items</th>
-                          <th className="text-left py-3 px-4 font-medium text-[#64748B]">Total</th>
-                          <th className="text-left py-3 px-4 font-medium text-[#64748B]">Status</th>
-                          <th className="text-left py-3 px-4 font-medium text-[#64748B]">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {orders.map((order) => (
-                          <tr key={order.id} className="border-b hover:bg-[#F8FAFC]">
-                            <td className="py-3 px-4 font-medium text-[#0F172A]">{order.id}</td>
-                            <td className="py-3 px-4">
-                              <div>
-                                <p className="text-[#0F172A]">{order.customer_name}</p>
-                                <p className="text-sm text-[#64748B]">{order.customer_phone}</p>
-                              </div>
-                            </td>
-                            <td className="py-3 px-4 text-[#64748B]">{order.items?.length || 0} items</td>
-                            <td className="py-3 px-4 font-bold" style={{ color: themeColor }}>{formatVND(order.total_amount)}</td>
-                            <td className="py-3 px-4">
-                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[order.status]}`}>
-                                {order.status}
-                              </span>
-                            </td>
-                            <td className="py-3 px-4">
-                              <div className="flex gap-2">
-                                <Button variant="outline" size="sm" onClick={() => openOrderDetail(order)} data-testid={`view-order-${order.id}`}>
-                                  <Eye className="w-4 h-4" />
-                                </Button>
-                                <Select value={order.status} onValueChange={(val) => handleOrderStatus(order.id, val)}>
-                                  <SelectTrigger className="w-28 h-8 text-xs">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent className="bg-white">
-                                    <SelectItem value="pending">Pending</SelectItem>
-                                    <SelectItem value="confirmed">Confirmed</SelectItem>
-                                    <SelectItem value="processing">Processing</SelectItem>
-                                    <SelectItem value="shipped">Shipped</SelectItem>
-                                    <SelectItem value="completed">Completed</SelectItem>
-                                    <SelectItem value="cancelled">Cancelled</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                  <div className="space-y-3">
+                    {orders.map((order) => (
+                      <div key={order.id} className="p-3 border rounded-lg bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-[#0F172A] text-sm">{order.id}</p>
+                          <p className="text-xs text-[#64748B]">{order.customer_name} • {order.customer_phone}</p>
+                          <p className="text-xs text-[#64748B]">{order.items?.length || 0} items</p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <p className="font-bold text-sm" style={{ color: themeColor }}>{formatVND(order.total_amount)}</p>
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[order.status]}`}>
+                            {order.status}
+                          </span>
+                          <Button variant="outline" size="sm" className="h-8" onClick={() => openOrderDetail(order)} data-testid={`view-order-${order.id}`}>
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
               </CardContent>
@@ -517,18 +557,38 @@ const ShopOwnerDashboard = () => {
           {/* Settings Tab */}
           {activeTab === 'settings' && shop && (
             <div className="space-y-6">
+              {/* Shop Preview */}
+              <Card className="border-0 shadow-sm">
+                <CardHeader className="p-4">
+                  <CardTitle className="text-base flex items-center gap-2"><ExternalLink className="w-4 h-4" /> Shop Preview</CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 pt-0">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                    <div className="flex-1">
+                      <p className="text-sm text-[#64748B]">Your shop is live at:</p>
+                      <p className="font-medium text-[#0F172A]">{window.location.origin}/shop/{shop.slug}</p>
+                    </div>
+                    <Link to={`/shop/${shop.slug}`} target="_blank">
+                      <Button style={{ backgroundColor: themeColor }} className="hover:opacity-90 text-sm">
+                        <ExternalLink className="w-4 h-4 mr-2" /> Open Shop
+                      </Button>
+                    </Link>
+                  </div>
+                </CardContent>
+              </Card>
+
               {/* Theme Color Setting */}
               <Card className="border-0 shadow-sm">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2"><Palette className="w-5 h-5" /> Theme Color</CardTitle>
+                <CardHeader className="p-4">
+                  <CardTitle className="text-base flex items-center gap-2"><Palette className="w-4 h-4" /> Theme Color</CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-4 pt-0">
                   <div className="flex flex-wrap gap-3">
                     {themeColors.map((color) => (
                       <button
                         key={color.value}
                         onClick={() => setThemeColor(color.value)}
-                        className={`w-12 h-12 rounded-full border-4 transition-all ${themeColor === color.value ? 'border-[#0F172A] scale-110' : 'border-transparent'}`}
+                        className={`w-10 h-10 rounded-full border-4 transition-all ${themeColor === color.value ? 'border-[#0F172A] scale-110' : 'border-transparent'}`}
                         style={{ backgroundColor: color.value }}
                         title={color.name}
                         data-testid={`theme-${color.name.toLowerCase()}`}
@@ -540,54 +600,44 @@ const ShopOwnerDashboard = () => {
 
               {/* Shop Profile */}
               <Card className="border-0 shadow-sm">
-                <CardHeader>
-                  <CardTitle>Shop Profile</CardTitle>
+                <CardHeader className="p-4">
+                  <CardTitle className="text-base">Shop Profile</CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <form onSubmit={handleSaveShop} className="space-y-6 max-w-2xl">
-                    <div className="grid grid-cols-2 gap-4">
+                <CardContent className="p-4 pt-0">
+                  <form onSubmit={handleSaveShop} className="space-y-4 max-w-2xl">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium mb-1">Shop Name</label>
-                        <Input value={shopForm.name || ''} onChange={(e) => setShopForm({ ...shopForm, name: e.target.value })} data-testid="shop-name-input" />
+                        <label className="block text-xs font-medium mb-1">Shop Name</label>
+                        <Input value={shopForm.name || ''} onChange={(e) => setShopForm({ ...shopForm, name: e.target.value })} className="text-sm" data-testid="shop-name-input" />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium mb-1">Shop URL</label>
-                        <Input value={`/${shop.slug}`} disabled className="bg-[#F8FAFC]" />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Description</label>
-                      <Textarea value={shopForm.description || ''} onChange={(e) => setShopForm({ ...shopForm, description: e.target.value })} rows={3} data-testid="shop-description-input" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Logo URL</label>
-                      <Input value={shopForm.logo_url || ''} onChange={(e) => setShopForm({ ...shopForm, logo_url: e.target.value })} placeholder="https://..." data-testid="shop-logo-input" />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium mb-1">Contact Phone</label>
-                        <Input value={shopForm.contact_phone || ''} onChange={(e) => setShopForm({ ...shopForm, contact_phone: e.target.value })} />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-1">Contact Email</label>
-                        <Input value={shopForm.contact_email || ''} onChange={(e) => setShopForm({ ...shopForm, contact_email: e.target.value })} />
+                        <label className="block text-xs font-medium mb-1">Shop URL</label>
+                        <Input value={`/${shop.slug}`} disabled className="bg-[#F8FAFC] text-sm" />
                       </div>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-1">Address</label>
-                      <Input value={shopForm.address || ''} onChange={(e) => setShopForm({ ...shopForm, address: e.target.value })} />
+                      <label className="block text-xs font-medium mb-1">Description</label>
+                      <Textarea value={shopForm.description || ''} onChange={(e) => setShopForm({ ...shopForm, description: e.target.value })} rows={3} className="text-sm" data-testid="shop-description-input" />
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-medium mb-1">Logo URL</label>
+                      <Input value={shopForm.logo_url || ''} onChange={(e) => setShopForm({ ...shopForm, logo_url: e.target.value })} placeholder="https://..." className="text-sm" data-testid="shop-logo-input" />
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium mb-1">Facebook</label>
-                        <Input value={shopForm.social_facebook || ''} onChange={(e) => setShopForm({ ...shopForm, social_facebook: e.target.value })} placeholder="https://facebook.com/..." />
+                        <label className="block text-xs font-medium mb-1">Contact Phone</label>
+                        <Input value={shopForm.contact_phone || ''} onChange={(e) => setShopForm({ ...shopForm, contact_phone: e.target.value })} className="text-sm" />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium mb-1">Instagram</label>
-                        <Input value={shopForm.social_instagram || ''} onChange={(e) => setShopForm({ ...shopForm, social_instagram: e.target.value })} placeholder="https://instagram.com/..." />
+                        <label className="block text-xs font-medium mb-1">Contact Email</label>
+                        <Input value={shopForm.contact_email || ''} onChange={(e) => setShopForm({ ...shopForm, contact_email: e.target.value })} className="text-sm" />
                       </div>
                     </div>
-                    <Button type="submit" style={{ backgroundColor: themeColor }} className="hover:opacity-90" data-testid="save-shop-btn">
+                    <div>
+                      <label className="block text-xs font-medium mb-1">Address</label>
+                      <Input value={shopForm.address || ''} onChange={(e) => setShopForm({ ...shopForm, address: e.target.value })} className="text-sm" />
+                    </div>
+                    <Button type="submit" style={{ backgroundColor: themeColor }} className="hover:opacity-90 text-sm" data-testid="save-shop-btn">
                       Save Changes
                     </Button>
                   </form>
@@ -598,32 +648,32 @@ const ShopOwnerDashboard = () => {
         </div>
       </main>
 
-      {/* Product Modal */}
+      {/* Product Modal with Image Upload and Rich Text */}
       <Dialog open={showProductModal} onOpenChange={setShowProductModal}>
-        <DialogContent className="sm:max-w-lg bg-white" data-testid="product-modal">
+        <DialogContent className="sm:max-w-lg bg-white max-h-[90vh] overflow-y-auto" data-testid="product-modal">
           <DialogHeader>
-            <DialogTitle>{editingProduct ? 'Edit Product' : 'Add Product'}</DialogTitle>
-            <DialogDescription>Fill in the product details below</DialogDescription>
+            <DialogTitle className="text-lg">{editingProduct ? 'Edit Product' : 'Add Product'}</DialogTitle>
+            <DialogDescription className="text-sm">Fill in the product details below</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSaveProduct} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-1">Name *</label>
-              <Input value={productForm.name} onChange={(e) => setProductForm({ ...productForm, name: e.target.value })} required data-testid="product-name-input" />
+              <label className="block text-xs font-medium mb-1">Name *</label>
+              <Input value={productForm.name} onChange={(e) => setProductForm({ ...productForm, name: e.target.value })} required className="text-sm" data-testid="product-name-input" />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Price (VND) *</label>
-                <Input type="number" value={productForm.price} onChange={(e) => setProductForm({ ...productForm, price: e.target.value })} required data-testid="product-price-input" />
+                <label className="block text-xs font-medium mb-1">Price (VND) *</label>
+                <Input type="number" value={productForm.price} onChange={(e) => setProductForm({ ...productForm, price: e.target.value })} required className="text-sm" data-testid="product-price-input" />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Stock</label>
-                <Input type="number" value={productForm.stock} onChange={(e) => setProductForm({ ...productForm, stock: e.target.value })} data-testid="product-stock-input" />
+                <label className="block text-xs font-medium mb-1">Stock</label>
+                <Input type="number" value={productForm.stock} onChange={(e) => setProductForm({ ...productForm, stock: e.target.value })} className="text-sm" data-testid="product-stock-input" />
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Category</label>
-              <Select value={productForm.category_id || "none"} onValueChange={(val) => setProductForm({ ...productForm, category_id: val === "none" ? "" : val })}>
-                <SelectTrigger data-testid="product-category-select">
+              <label className="block text-xs font-medium mb-1">Category</label>
+              <Select value={productForm.category_id || "none"} onValueChange={(val) => setProductForm({ ...productForm, category_id: val })}>
+                <SelectTrigger className="text-sm" data-testid="product-category-select">
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent className="bg-white">
@@ -635,16 +685,60 @@ const ShopOwnerDashboard = () => {
               </Select>
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Image URL *</label>
-              <Input value={productForm.image_url} onChange={(e) => setProductForm({ ...productForm, image_url: e.target.value })} required data-testid="product-image-input" placeholder="https://..." />
+              <label className="block text-xs font-medium mb-1">Product Image *</label>
+              <div className="space-y-2">
+                {productForm.image_url && (
+                  <div className="w-24 h-24 rounded-lg overflow-hidden bg-[#F8FAFC]">
+                    <img src={productForm.image_url} alt="Preview" className="w-full h-full object-cover" />
+                  </div>
+                )}
+                <div className="flex gap-2">
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleImageUpload}
+                    accept="image/*"
+                    className="hidden"
+                  />
+                  <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={uploading} className="text-xs">
+                    <Upload className="w-4 h-4 mr-1" /> {uploading ? 'Uploading...' : 'Upload Image'}
+                  </Button>
+                </div>
+                <Input 
+                  value={productForm.image_url} 
+                  onChange={(e) => setProductForm({ ...productForm, image_url: e.target.value })} 
+                  placeholder="Or paste image URL..." 
+                  className="text-sm"
+                  data-testid="product-image-input" 
+                />
+              </div>
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Description</label>
-              <Textarea value={productForm.description} onChange={(e) => setProductForm({ ...productForm, description: e.target.value })} rows={3} data-testid="product-description-input" />
+              <label className="block text-xs font-medium mb-1">Description</label>
+              <div className="border rounded-lg overflow-hidden bg-white">
+                <div className="flex gap-1 p-2 border-b bg-[#F8FAFC]">
+                  <Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => insertFormatting('bold')} title="Bold">
+                    <Bold className="w-4 h-4" />
+                  </Button>
+                  <Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => insertFormatting('italic')} title="Italic">
+                    <Italic className="w-4 h-4" />
+                  </Button>
+                  <Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => insertFormatting('list')} title="List">
+                    <List className="w-4 h-4" />
+                  </Button>
+                </div>
+                <Textarea
+                  value={productForm.description}
+                  onChange={(e) => setProductForm({ ...productForm, description: e.target.value })}
+                  placeholder="Enter product description... (supports **bold**, *italic*, - lists)"
+                  className="text-sm border-0 rounded-none min-h-[120px] focus-visible:ring-0"
+                  data-testid="product-description-input"
+                />
+              </div>
             </div>
-            <div className="flex gap-4 pt-4">
-              <Button type="button" variant="outline" className="flex-1" onClick={() => setShowProductModal(false)}>Cancel</Button>
-              <Button type="submit" className="flex-1 hover:opacity-90" style={{ backgroundColor: themeColor }} data-testid="save-product-btn">Save</Button>
+            <div className="flex gap-3 pt-4">
+              <Button type="button" variant="outline" className="flex-1 text-sm" onClick={() => setShowProductModal(false)}>Cancel</Button>
+              <Button type="submit" className="flex-1 hover:opacity-90 text-sm" style={{ backgroundColor: themeColor }} data-testid="save-product-btn">Save</Button>
             </div>
           </form>
         </DialogContent>
@@ -654,21 +748,21 @@ const ShopOwnerDashboard = () => {
       <Dialog open={showCategoryModal} onOpenChange={setShowCategoryModal}>
         <DialogContent className="sm:max-w-md bg-white" data-testid="category-modal">
           <DialogHeader>
-            <DialogTitle>{editingCategory ? 'Edit Category' : 'Add Category'}</DialogTitle>
-            <DialogDescription>Enter category details</DialogDescription>
+            <DialogTitle className="text-lg">{editingCategory ? 'Edit Category' : 'Add Category'}</DialogTitle>
+            <DialogDescription className="text-sm">Enter category details</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSaveCategory} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-1">Name *</label>
-              <Input value={categoryForm.name} onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })} required data-testid="category-name-input" />
+              <label className="block text-xs font-medium mb-1">Name *</label>
+              <Input value={categoryForm.name} onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })} required className="text-sm" data-testid="category-name-input" />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Description</label>
-              <Textarea value={categoryForm.description} onChange={(e) => setCategoryForm({ ...categoryForm, description: e.target.value })} rows={2} data-testid="category-description-input" />
+              <label className="block text-xs font-medium mb-1">Description</label>
+              <Textarea value={categoryForm.description} onChange={(e) => setCategoryForm({ ...categoryForm, description: e.target.value })} rows={2} className="text-sm" data-testid="category-description-input" />
             </div>
-            <div className="flex gap-4 pt-4">
-              <Button type="button" variant="outline" className="flex-1" onClick={() => setShowCategoryModal(false)}>Cancel</Button>
-              <Button type="submit" className="flex-1 hover:opacity-90" style={{ backgroundColor: themeColor }} data-testid="save-category-btn">Save</Button>
+            <div className="flex gap-3 pt-4">
+              <Button type="button" variant="outline" className="flex-1 text-sm" onClick={() => setShowCategoryModal(false)}>Cancel</Button>
+              <Button type="submit" className="flex-1 hover:opacity-90 text-sm" style={{ backgroundColor: themeColor }} data-testid="save-category-btn">Save</Button>
             </div>
           </form>
         </DialogContent>
@@ -676,42 +770,42 @@ const ShopOwnerDashboard = () => {
 
       {/* Order Detail Modal */}
       <Dialog open={showOrderModal} onOpenChange={setShowOrderModal}>
-        <DialogContent className="sm:max-w-2xl bg-white" data-testid="order-modal">
+        <DialogContent className="sm:max-w-2xl bg-white max-h-[90vh] overflow-y-auto" data-testid="order-modal">
           <DialogHeader>
-            <DialogTitle>Order Details</DialogTitle>
-            <DialogDescription>Order ID: {selectedOrder?.id}</DialogDescription>
+            <DialogTitle className="text-lg">Order Details</DialogTitle>
+            <DialogDescription className="text-sm">Order ID: {selectedOrder?.id}</DialogDescription>
           </DialogHeader>
           {selectedOrder && (
-            <div className="space-y-6">
+            <div className="space-y-4">
               {/* Customer Info */}
-              <div className="grid grid-cols-2 gap-4 p-4 bg-[#F8FAFC] rounded-lg">
+              <div className="grid grid-cols-2 gap-3 p-3 bg-[#F8FAFC] rounded-lg text-sm">
                 <div>
-                  <p className="text-sm text-[#64748B]">Customer Name</p>
+                  <p className="text-xs text-[#64748B]">Customer Name</p>
                   <p className="font-medium">{selectedOrder.customer_name}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-[#64748B]">Phone</p>
+                  <p className="text-xs text-[#64748B]">Phone</p>
                   <p className="font-medium">{selectedOrder.customer_phone}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-[#64748B]">Email</p>
+                  <p className="text-xs text-[#64748B]">Email</p>
                   <p className="font-medium">{selectedOrder.customer_email || '-'}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-[#64748B]">Address</p>
+                  <p className="text-xs text-[#64748B]">Address</p>
                   <p className="font-medium">{selectedOrder.customer_address}</p>
                 </div>
               </div>
 
               {/* Order Items */}
               <div>
-                <h4 className="font-medium mb-3">Order Items</h4>
+                <h4 className="font-medium mb-2 text-sm">Order Items</h4>
                 <div className="space-y-2">
                   {selectedOrder.items?.map((item, idx) => (
-                    <div key={idx} className="flex justify-between items-center p-3 border rounded-lg">
+                    <div key={idx} className="flex justify-between items-center p-2 border rounded-lg text-sm">
                       <div>
                         <p className="font-medium">{item.name}</p>
-                        <p className="text-sm text-[#64748B]">Qty: {item.quantity} × {formatVND(item.price)}</p>
+                        <p className="text-xs text-[#64748B]">Qty: {item.quantity} × {formatVND(item.price)}</p>
                       </div>
                       <p className="font-bold" style={{ color: themeColor }}>{formatVND(item.subtotal)}</p>
                     </div>
@@ -720,24 +814,24 @@ const ShopOwnerDashboard = () => {
               </div>
 
               {/* Total */}
-              <div className="flex justify-between items-center p-4 bg-[#F8FAFC] rounded-lg">
-                <span className="font-medium">Total</span>
-                <span className="text-2xl font-bold" style={{ color: themeColor }}>{formatVND(selectedOrder.total_amount)}</span>
+              <div className="flex justify-between items-center p-3 bg-[#F8FAFC] rounded-lg">
+                <span className="font-medium text-sm">Total</span>
+                <span className="text-xl font-bold" style={{ color: themeColor }}>{formatVND(selectedOrder.total_amount)}</span>
               </div>
 
               {/* Note */}
               {selectedOrder.note && (
-                <div className="p-4 border rounded-lg">
-                  <p className="text-sm text-[#64748B]">Note</p>
+                <div className="p-3 border rounded-lg text-sm">
+                  <p className="text-xs text-[#64748B]">Note</p>
                   <p>{selectedOrder.note}</p>
                 </div>
               )}
 
               {/* Status Update */}
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3">
                 <span className="text-sm text-[#64748B]">Status:</span>
                 <Select value={selectedOrder.status} onValueChange={(val) => { handleOrderStatus(selectedOrder.id, val); setSelectedOrder({ ...selectedOrder, status: val }); }}>
-                  <SelectTrigger className="w-40">
+                  <SelectTrigger className="w-36 text-sm">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-white">
@@ -749,6 +843,36 @@ const ShopOwnerDashboard = () => {
                     <SelectItem value="cancelled">Cancelled</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Product Detail Modal */}
+      <Dialog open={showProductDetailModal} onOpenChange={setShowProductDetailModal}>
+        <DialogContent className="sm:max-w-2xl bg-white p-0 overflow-hidden" data-testid="product-detail-modal">
+          <DialogDescription className="sr-only">Product details</DialogDescription>
+          {selectedProduct && (
+            <div className="grid md:grid-cols-2">
+              <div className="aspect-square bg-[#F8FAFC]">
+                <img src={selectedProduct.image_url} alt={selectedProduct.name} className="w-full h-full object-cover" />
+              </div>
+              <div className="p-6 flex flex-col">
+                <h2 className="text-xl font-bold text-[#0F172A] mb-2">{selectedProduct.name}</h2>
+                <p className="text-2xl font-bold mb-4" style={{ color: themeColor }}>{formatVND(selectedProduct.price)}</p>
+                <p className="text-sm text-[#64748B] mb-2">Stock: {selectedProduct.stock || 0}</p>
+                {selectedProduct.description && (
+                  <div className="text-sm text-[#64748B] mb-4 flex-1 prose prose-sm" dangerouslySetInnerHTML={{ __html: selectedProduct.description }} />
+                )}
+                <div className="flex gap-3 mt-auto">
+                  <Button variant="outline" className="flex-1 text-sm" onClick={() => { setShowProductDetailModal(false); openEditProduct(selectedProduct); }}>
+                    <Pencil className="w-4 h-4 mr-2" /> Edit
+                  </Button>
+                  <Button className="flex-1 text-sm hover:opacity-90" style={{ backgroundColor: themeColor }} onClick={() => setShowProductDetailModal(false)}>
+                    Close
+                  </Button>
+                </div>
               </div>
             </div>
           )}

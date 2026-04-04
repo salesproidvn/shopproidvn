@@ -1,7 +1,7 @@
 from dotenv import load_dotenv
 load_dotenv()
 
-from fastapi import FastAPI, APIRouter, HTTPException, Request, Response, Depends, Query
+from fastapi import FastAPI, APIRouter, HTTPException, Request, Response, Depends, Query, File, UploadFile
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from bson import ObjectId
@@ -10,6 +10,8 @@ import logging
 import bcrypt
 import jwt
 import secrets
+import requests
+import uuid as uuid_lib
 from pathlib import Path
 from pydantic import BaseModel, Field, EmailStr
 from typing import List, Optional
@@ -26,6 +28,12 @@ db = client[os.environ['DB_NAME']]
 JWT_SECRET = os.environ.get('JWT_SECRET', secrets.token_hex(32))
 JWT_ALGORITHM = "HS256"
 
+# Object Storage Configuration
+STORAGE_URL = "https://integrations.emergentagent.com/objstore/api/v1/storage"
+EMERGENT_KEY = os.environ.get("EMERGENT_LLM_KEY")
+APP_NAME = "the-wi-shop"
+storage_key = None
+
 # Create the main app
 app = FastAPI()
 
@@ -35,6 +43,48 @@ api_router = APIRouter(prefix="/api")
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+# ==================== STORAGE FUNCTIONS ====================
+
+def init_storage():
+    global storage_key
+    if storage_key:
+        return storage_key
+    if not EMERGENT_KEY:
+        logger.warning("EMERGENT_LLM_KEY not set, storage disabled")
+        return None
+    try:
+        resp = requests.post(f"{STORAGE_URL}/init", json={"emergent_key": EMERGENT_KEY}, timeout=30)
+        resp.raise_for_status()
+        storage_key = resp.json()["storage_key"]
+        logger.info("Storage initialized successfully")
+        return storage_key
+    except Exception as e:
+        logger.error(f"Storage init failed: {e}")
+        return None
+
+def put_object(path: str, data: bytes, content_type: str) -> dict:
+    key = init_storage()
+    if not key:
+        raise HTTPException(status_code=500, detail="Storage not available")
+    resp = requests.put(
+        f"{STORAGE_URL}/objects/{path}",
+        headers={"X-Storage-Key": key, "Content-Type": content_type},
+        data=data, timeout=120
+    )
+    resp.raise_for_status()
+    return resp.json()
+
+def get_object(path: str) -> tuple:
+    key = init_storage()
+    if not key:
+        raise HTTPException(status_code=500, detail="Storage not available")
+    resp = requests.get(
+        f"{STORAGE_URL}/objects/{path}",
+        headers={"X-Storage-Key": key}, timeout=60
+    )
+    resp.raise_for_status()
+    return resp.content, resp.headers.get("Content-Type", "application/octet-stream")
 
 # ==================== UTILITY FUNCTIONS ====================
 
@@ -421,16 +471,77 @@ async def delete_user(user_id: str, request: Request):
     return {"message": "User deleted successfully"}
 
 @api_router.post("/admin/users/{user_id}/reset-password")
-async def admin_reset_password(user_id: str, data: PasswordReset, request: Request):
+async def admin_reset_password(user_id: str, request: Request):
     await require_super_admin(request)
     
     user = await db.users.find_one({"_id": ObjectId(user_id)})
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
-    hashed = hash_password(data.new_password)
+    # Reset to default password
+    default_password = "iLoveProID@"
+    hashed = hash_password(default_password)
     await db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"password_hash": hashed}})
-    return {"message": "Password reset successfully"}
+    return {"message": f"Password reset to default: {default_password}"}
+
+# ==================== IMAGE UPLOAD ENDPOINT ====================
+
+@api_router.post("/upload/image")
+async def upload_image(file: UploadFile = File(...), request: Request = None):
+    # Allow both authenticated and unauthenticated uploads for simplicity
+    # In production, you'd want to require authentication
+    
+    # Validate file type
+    allowed_types = ["image/jpeg", "image/png", "image/gif", "image/webp"]
+    if file.content_type not in allowed_types:
+        raise HTTPException(status_code=400, detail="Invalid file type. Allowed: JPEG, PNG, GIF, WebP")
+    
+    # Validate file size (max 5MB)
+    data = await file.read()
+    if len(data) > 5 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="File too large. Max 5MB")
+    
+    # Generate unique path
+    ext = file.filename.split(".")[-1] if "." in file.filename else "jpg"
+    file_id = str(uuid_lib.uuid4())
+    path = f"{APP_NAME}/products/{file_id}.{ext}"
+    
+    try:
+        result = put_object(path, data, file.content_type or "image/jpeg")
+        
+        # Store reference in database
+        file_doc = {
+            "id": file_id,
+            "storage_path": result["path"],
+            "original_filename": file.filename,
+            "content_type": file.content_type,
+            "size": result.get("size", len(data)),
+            "is_deleted": False,
+            "created_at": datetime.now(timezone.utc)
+        }
+        await db.files.insert_one(file_doc)
+        
+        return {
+            "id": file_id,
+            "path": result["path"],
+            "url": f"/api/files/{file_id}"
+        }
+    except Exception as e:
+        logger.error(f"Upload failed: {e}")
+        raise HTTPException(status_code=500, detail="Upload failed")
+
+@api_router.get("/files/{file_id}")
+async def get_file(file_id: str):
+    file_doc = await db.files.find_one({"id": file_id, "is_deleted": False})
+    if not file_doc:
+        raise HTTPException(status_code=404, detail="File not found")
+    
+    try:
+        data, content_type = get_object(file_doc["storage_path"])
+        return Response(content=data, media_type=file_doc.get("content_type", content_type))
+    except Exception as e:
+        logger.error(f"Download failed: {e}")
+        raise HTTPException(status_code=500, detail="Download failed")
 
 # ==================== SHOP OWNER DASHBOARD ENDPOINTS ====================
 

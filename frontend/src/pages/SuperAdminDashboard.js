@@ -75,6 +75,16 @@ const SuperAdminDashboard = () => {
     }
   };
 
+  const handleResetPassword = async (userId) => {
+    if (!window.confirm('Reset password to default: iLoveProID@ ?')) return;
+    try {
+      await axios.post(`${API}/admin/users/${userId}/reset-password`, {}, { withCredentials: true });
+      toast.success('Password reset to: iLoveProID@');
+    } catch (err) {
+      toast.error('Failed to reset password');
+    }
+  };
+
   const handleCreateOwner = async (e) => {
     e.preventDefault();
     try {
@@ -314,9 +324,12 @@ const SuperAdminDashboard = () => {
                             </td>
                             <td className="py-3 px-4">
                               {u.role !== 'super_admin' && (
-                                <div className="flex gap-2">
+                                <div className="flex gap-2 flex-wrap">
                                   <Button variant="outline" size="sm" onClick={() => handleBlockUser(u.id)} data-testid={`block-user-${u.id}`}>
                                     {u.status === 'blocked' ? 'Unblock' : 'Block'}
+                                  </Button>
+                                  <Button variant="secondary" size="sm" onClick={() => handleResetPassword(u.id)} data-testid={`reset-pwd-${u.id}`}>
+                                    Reset Pwd
                                   </Button>
                                   <Button variant="destructive" size="sm" onClick={() => handleDeleteUser(u.id)} data-testid={`delete-user-${u.id}`}>
                                     Delete
