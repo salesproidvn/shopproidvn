@@ -1,34 +1,49 @@
-.App-logo {
-    height: 40vmin;
-    pointer-events: none;
+/* Custom utility classes for the shop */
+
+.product-card {
+  @apply bg-white border border-[#E2E8F0]/60 hover:border-[#0055FF]/30 transition-all rounded-2xl overflow-hidden;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-    .App-logo {
-        animation: App-logo-spin infinite 20s linear;
-    }
+.product-card:hover {
+  box-shadow: 0 8px 30px rgb(0, 0, 0, 0.04);
+  transform: translateY(-4px);
 }
 
-.App-header {
-    background-color: #0f0f10;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    font-size: calc(10px + 2vmin);
-    color: white;
+.btn-primary {
+  @apply bg-[#0055FF] text-white hover:bg-[#0040CC] font-semibold rounded-full px-6 py-3 transition-all shadow-sm hover:shadow-md;
 }
 
-.App-link {
-    color: #61dafb;
+.btn-secondary {
+  @apply bg-[#F8FAFC] text-[#0F172A] hover:bg-[#E2E8F0] font-semibold rounded-full px-6 py-3 transition-all;
 }
 
-@keyframes App-logo-spin {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
+.input-field {
+  @apply border border-[#E2E8F0] rounded-lg bg-[#F8FAFC] px-4 py-2 focus:ring-2 focus:ring-[#0055FF]/20 focus:border-[#0055FF] outline-none transition-all;
+}
+
+.header-sticky {
+  @apply sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-[#E2E8F0]/40;
+}
+
+.badge-category {
+  @apply uppercase text-[10px] font-bold tracking-wider px-3 py-1 rounded-full bg-[#0055FF]/10 text-[#0055FF];
+}
+
+/* Animation classes */
+.hover-lift {
+  @apply hover:-translate-y-1 transition-transform duration-300 ease-out;
+}
+
+.image-zoom {
+  @apply hover:scale-105 transition-transform duration-500 ease-out;
+}
+
+/* Hero gradient overlay */
+.hero-overlay {
+  background: linear-gradient(135deg, rgba(0, 85, 255, 0.1) 0%, rgba(255, 255, 255, 0.9) 50%, rgba(255, 255, 255, 1) 100%);
+}
+
+/* Price formatting */
+.price-vnd {
+  font-variant-numeric: tabular-nums;
 }
