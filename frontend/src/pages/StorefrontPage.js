@@ -133,7 +133,6 @@ const StorefrontPage = () => {
   const cartTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
   const themeColor = shop?.theme_color || '#0055FF';
-  const postPosition = shop?.post_carousel_position || 'top';
 
   const handleCheckout = async (e) => {
     e.preventDefault();
@@ -407,7 +406,13 @@ const StorefrontPage = () => {
 
       {/* Products */}
       <main className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Mobile search */}
+        {/* 1. Banner */}
+        <BannerSlider />
+
+        {/* 2. Blog post carousel */}
+        <PostCarousel />
+
+        {/* 3. Mobile search */}
         <div className="md:hidden mb-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#64748B]" />
@@ -415,6 +420,7 @@ const StorefrontPage = () => {
           </div>
         </div>
 
+        {/* 4. Filters */}
         <div className="flex flex-col gap-3 mb-6">
           <div className="flex flex-col sm:flex-row gap-3">
             <Select value={selectedCategory} onValueChange={setSelectedCategory}>
@@ -430,14 +436,7 @@ const StorefrontPage = () => {
           <PriceFilter onFilter={setPriceFilter} activeFilter={priceFilter} />
         </div>
 
-        {/* Banner + Post carousel at top */}
-        {postPosition === 'top' && (
-          <>
-            <BannerSlider />
-            <PostCarousel />
-          </>
-        )}
-
+        {/* 5. Products */}
         {filteredProducts.length === 0 ? (
           <div className="text-center py-24"><p className="text-[#64748B] text-lg">{t.noProducts}</p></div>
         ) : selectedCategory === 'all' && !searchQuery && priceFilter.id === 'all' ? (
@@ -471,14 +470,6 @@ const StorefrontPage = () => {
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 lg:gap-5" data-testid="product-grid">
             {filteredProducts.map((product) => (<ProductCard key={product.id} product={product} />))}
-          </div>
-        )}
-
-        {/* Banner + Post carousel at bottom */}
-        {postPosition === 'bottom' && (
-          <div className="mt-12">
-            <BannerSlider />
-            <PostCarousel />
           </div>
         )}
       </main>
