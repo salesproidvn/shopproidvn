@@ -93,7 +93,7 @@ const ShopOwnerDashboard = () => {
         withCredentials: true,
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-      setProductForm({ ...productForm, image_url: `${API}/files/${data.id}` });
+      setProductForm({ ...productForm, image_url: data.url || `${API}/files/${data.id}` });
       toast.success(t.uploadSuccess);
     } catch (err) {
       toast.error(err.response?.data?.detail || t.uploadFailed);
