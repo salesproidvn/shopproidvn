@@ -73,6 +73,19 @@ Create a desktop UI for a Micro-SaaS E-commerce Platform with multi-tenant setup
 - Social links, contact message form
 - Linked from floating action Info button
 
+### Banner Slider (DONE — Feb 2026)
+- Full-width banner slider on Storefront page, positioned above product sections
+- Left/right arrow navigation + dot indicators at bottom
+- Smooth opacity crossfade transitions between slides
+- Wraps around at first/last slide
+- 3 mock banners with 16:5 aspect ratio
+
+### Banner Management in Dashboard (DONE — Feb 2026)
+- "Manage Banners" section in Shop Owner Dashboard Settings tab
+- Banner thumbnail grid with delete-on-hover overlay
+- Upload button to add new banners (mocked image upload)
+- Vietnamese i18n for all banner labels
+
 ## DB Schema (Mocked in mockData.js)
 - **users:** email, password, role, shop_id, name, status
 - **shops:** owner_id, name, slug, theme_color, is_active, expiry_date, contact_*, address
@@ -87,6 +100,7 @@ Create a desktop UI for a Micro-SaaS E-commerce Platform with multi-tenant setup
 - Categories: GET /api/categories (returns objects with positions), /api/shop/{slug}/categories
 - Dashboard: GET/POST/PUT/DELETE /api/dashboard/products, /api/dashboard/categories, /api/dashboard/orders
 - Category positions: PUT /api/dashboard/categories/positions
+- Banners: GET /api/shop/{slug}/banners, GET/POST/DELETE /api/dashboard/banners
 - Admin: GET /api/admin/stats, /api/admin/shops, /api/admin/users
 
 ## Backlog
