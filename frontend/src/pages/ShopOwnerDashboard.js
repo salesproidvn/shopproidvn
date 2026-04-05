@@ -759,6 +759,11 @@ const ShopOwnerDashboard = () => {
                           </div>
                         </div>
                         <div className="flex gap-1 flex-shrink-0">
+                          <Link to={`/shop/${shop?.slug}/posts/${post.id}`} target="_blank">
+                            <Button variant="outline" size="sm" className="h-8 text-xs" data-testid={`view-post-${post.id}`}>
+                              <Eye className="w-3 h-3 mr-1" /> {t.view || 'View'}
+                            </Button>
+                          </Link>
                           <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => openEditPost(post)} data-testid={`edit-post-${post.id}`}>
                             <Pencil className="w-3 h-3 mr-1" /> {t.edit}
                           </Button>

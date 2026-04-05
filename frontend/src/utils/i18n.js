@@ -334,6 +334,7 @@ export const vi = {
   messageSent: 'Tin nhắn đã được gửi',
   send: 'Gửi',
   close: 'Đóng',
+  view: 'Xem',
 };
 
 export const en = {
@@ -650,6 +651,7 @@ export const en = {
   messageSent: 'Message sent!',
   send: 'Send',
   close: 'Close',
+  view: 'View',
 };
 
 export const translations = { vi, en };
