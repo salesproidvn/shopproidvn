@@ -89,7 +89,7 @@ Create a desktop UI for a Micro-SaaS E-commerce Platform with multi-tenant setup
 ## DB Schema (Mocked in mockData.js)
 - **users:** email, password, role, shop_id, name, status
 - **shops:** owner_id, name, slug, theme_color, is_active, expiry_date, contact_*, address
-- **products:** shop_id, name, price, image_url, category, category_id, stock, position, is_active
+- **products:** shop_id, name, price, image_url, images[], video_url, category, category_id, stock, position, is_active, description
 - **categories:** id, shop_id, name, description, position
 - **orders:** id, shop_id, customer_name, customer_phone, items, status, total_amount
 
@@ -102,6 +102,17 @@ Create a desktop UI for a Micro-SaaS E-commerce Platform with multi-tenant setup
 - Category positions: PUT /api/dashboard/categories/positions
 - Banners: GET /api/shop/{slug}/banners, GET/POST/DELETE /api/dashboard/banners
 - Admin: GET /api/admin/stats, /api/admin/shops, /api/admin/users
+
+### Product Image Gallery & Video (DONE — Feb 2026)
+- Products support multiple images (`images[]` array) with thumbnail gallery in product modals
+- Click thumbnails to switch displayed image
+- Products support video URL (YouTube embed) with play button thumbnail
+- Video plays inline in the product modal via iframe embed
+- All product modals (Storefront, Homepage, Dashboard detail) support gallery + video
+
+### Clickable Order Titles (DONE — Feb 2026)
+- Order ID/customer name in the Orders tab is clickable
+- Clicking opens the order detail modal (same as Eye icon button)
 
 ## Backlog
 - P2: Sales analytics charts in dashboards
