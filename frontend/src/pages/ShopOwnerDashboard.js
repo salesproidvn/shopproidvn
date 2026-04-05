@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { 
   LayoutDashboard, Package, FolderOpen, ShoppingCart, Settings, 
   LogOut, Menu, X, Plus, Pencil, Trash2, TrendingUp, Clock, Eye, Palette, Upload, ExternalLink,
-  Bold, Italic, List, ChevronUp, ChevronDown
+  Bold, Italic, List, ChevronUp, ChevronDown, Image
 } from 'lucide-react';
 import { toast } from 'sonner';
 import NotificationBell from '../components/NotificationBell';
@@ -25,11 +25,13 @@ const ShopOwnerDashboard = () => {
   const { t } = useLanguage();
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
+  const bannerInputRef = useRef(null);
   const [stats, setStats] = useState(null);
   const [shop, setShop] = useState(null);
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [orders, setOrders] = useState([]);
+  const [banners, setBanners] = useState([]);
   const [activeTab, setActiveTab] = useState('overview');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -63,12 +65,13 @@ const ShopOwnerDashboard = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [statsRes, shopRes, productsRes, categoriesRes, ordersRes] = await Promise.all([
+      const [statsRes, shopRes, productsRes, categoriesRes, ordersRes, bannersRes] = await Promise.all([
         axios.get(`${API}/dashboard/stats`, { withCredentials: true }),
         axios.get(`${API}/dashboard/shop`, { withCredentials: true }),
         axios.get(`${API}/dashboard/products`, { withCredentials: true }),
         axios.get(`${API}/dashboard/categories`, { withCredentials: true }),
-        axios.get(`${API}/dashboard/orders`, { withCredentials: true })
+        axios.get(`${API}/dashboard/orders`, { withCredentials: true }),
+        axios.get(`${API}/dashboard/banners`, { withCredentials: true })
       ]);
       setStats(statsRes.data);
       setShop(shopRes.data);
@@ -76,6 +79,7 @@ const ShopOwnerDashboard = () => {
       setProducts(productsRes.data);
       setCategories(categoriesRes.data);
       setOrders(ordersRes.data);
+      setBanners(bannersRes.data || []);
     } catch (err) {
       toast.error(t.failedToLoad);
     } finally {
@@ -221,6 +225,36 @@ const ShopOwnerDashboard = () => {
   const openOrderDetail = (order) => {
     setSelectedOrder(order);
     setShowOrderModal(true);
+  };
+
+  const handleBannerUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+      const { data: imgData } = await axios.post(`${API}/upload/image`, formData, {
+        withCredentials: true,
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      const imageUrl = imgData.url || `${API}/files/${imgData.id}`;
+      await axios.post(`${API}/dashboard/banners`, { image_url: imageUrl }, { withCredentials: true });
+      toast.success(t.bannerUploaded);
+      fetchData();
+    } catch (err) {
+      toast.error(t.uploadFailed);
+    }
+    if (bannerInputRef.current) bannerInputRef.current.value = '';
+  };
+
+  const handleDeleteBanner = async (bannerId) => {
+    try {
+      await axios.delete(`${API}/dashboard/banners/${bannerId}`, { withCredentials: true });
+      toast.success(t.bannerDeleted);
+      fetchData();
+    } catch (err) {
+      toast.error(t.failedToDelete);
+    }
   };
 
   const handleLogout = async () => {
@@ -627,6 +661,38 @@ const ShopOwnerDashboard = () => {
                       </Button>
                     </a>
                   </div>
+                </CardContent>
+              </Card>
+              <Card className="border-0 shadow-sm">
+                <CardHeader className="p-4">
+                  <CardTitle className="text-base flex items-center gap-2"><Image className="w-4 h-4" /> {t.manageBanners}</CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 pt-0">
+                  <p className="text-xs text-[#94A3B8] mb-4">{t.bannerHint}</p>
+                  {banners.length === 0 ? (
+                    <p className="text-sm text-[#64748B] text-center py-6">{t.noBannersYet}</p>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-4" data-testid="banner-list">
+                      {banners.map((banner) => (
+                        <div key={banner.id} className="relative group rounded-lg overflow-hidden border" data-testid={`banner-item-${banner.id}`}>
+                          <div style={{ aspectRatio: '16 / 5' }} className="bg-[#F8FAFC]">
+                            <img src={banner.image_url} alt="" className="w-full h-full object-cover" />
+                          </div>
+                          <button
+                            onClick={() => handleDeleteBanner(banner.id)}
+                            className="absolute top-2 right-2 w-7 h-7 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                            data-testid={`delete-banner-${banner.id}`}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <input type="file" ref={bannerInputRef} onChange={handleBannerUpload} accept="image/*" className="hidden" />
+                  <Button variant="outline" onClick={() => bannerInputRef.current?.click()} className="text-sm" data-testid="add-banner-btn">
+                    <Upload className="w-4 h-4 mr-2" /> {t.addBanner}
+                  </Button>
                 </CardContent>
               </Card>
               <Card className="border-0 shadow-sm">

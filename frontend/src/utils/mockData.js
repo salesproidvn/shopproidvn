@@ -46,6 +46,13 @@ export let mockProducts = [
   { id: 'prod-12', shop_id: 'shop-1', name: 'Japanese Kitchen Knife Set', price: 2100000, category: 'Kitchen', category_id: 'cat-4', stock: 12, position: 2, is_active: true, image_url: 'https://images.unsplash.com/photo-1593618998160-e34014e67546?w=400&h=400&fit=crop', description: 'Professional-grade Japanese steel knife set with wooden block.' },
 ];
 
+// ── Banners ────────────────────────────────────────────
+export let mockBanners = [
+  { id: 'banner-1', shop_id: 'shop-1', image_url: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1600&h=500&fit=crop', position: 1 },
+  { id: 'banner-2', shop_id: 'shop-1', image_url: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=1600&h=500&fit=crop', position: 2 },
+  { id: 'banner-3', shop_id: 'shop-1', image_url: 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=1600&h=500&fit=crop', position: 3 },
+];
+
 // ── Orders ─────────────────────────────────────────────
 let orderCounter = 4;
 export let mockOrders = [
@@ -233,6 +240,25 @@ export const handleMockRequest = (method, path, body) => {
     return { data: { id: `mock-img-${Date.now()}`, url: imgUrl } };
   }
 
+  // ─ BANNERS (dashboard) ─
+  if (m === 'get' && path === '/dashboard/banners') {
+    return { data: mockBanners.filter(b => b.shop_id === 'shop-1').sort((a, b) => a.position - b.position).map(b => ({ ...b })) };
+  }
+
+  if (m === 'post' && path === '/dashboard/banners') {
+    const maxPos = mockBanners.filter(b => b.shop_id === 'shop-1').reduce((m, b) => Math.max(m, b.position || 0), 0);
+    const newBanner = { id: genId('banner'), shop_id: 'shop-1', image_url: body.image_url, position: maxPos + 1 };
+    mockBanners.push(newBanner);
+    return { data: newBanner };
+  }
+
+  const bannerDeleteMatch = path.match(/^\/dashboard\/banners\/(.+)$/);
+  if (bannerDeleteMatch && m === 'delete') {
+    const bid = bannerDeleteMatch[1];
+    mockBanners = mockBanners.filter(b => b.id !== bid);
+    return { data: { ok: true } };
+  }
+
   // ─ ADMIN ─
   if (m === 'get' && path === '/admin/stats') {
     return { data: {
@@ -330,6 +356,13 @@ export const handleMockRequest = (method, path, body) => {
     const shop = mockShops.find(s => s.slug === shopCatsMatch[1]);
     if (!shop) return { error: 'Shop not found', status: 404 };
     return { data: mockCategories.filter(c => c.shop_id === shop.id).sort((a, b) => (a.position || 0) - (b.position || 0)) };
+  }
+
+  const shopBannersMatch = path.match(/^\/shop\/([^/]+)\/banners$/);
+  if (shopBannersMatch && m === 'get') {
+    const shop = mockShops.find(s => s.slug === shopBannersMatch[1]);
+    if (!shop) return { error: 'Shop not found', status: 404 };
+    return { data: mockBanners.filter(b => b.shop_id === shop.id).sort((a, b) => a.position - b.position) };
   }
 
   const shopOrderMatch = path.match(/^\/shop\/([^/]+)\/orders$/);

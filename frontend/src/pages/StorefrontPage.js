@@ -13,7 +13,8 @@ import { ScrollArea } from '../components/ui/scroll-area';
 import PriceFilter from '../components/PriceFilter';
 import { 
   Search, ShoppingCart, Phone, Mail, MapPin, Facebook, Instagram, 
-  Plus, Minus, Trash2, ArrowLeft, LayoutDashboard, X, AlertTriangle
+  Plus, Minus, Trash2, ArrowLeft, LayoutDashboard, X, AlertTriangle,
+  ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { emitNotification } from '../context/NotificationContext';
@@ -44,6 +45,8 @@ const StorefrontPage = () => {
   });
 
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [banners, setBanners] = useState([]);
+  const [currentSlide, setCurrentSlide] = useState(0);
 
   useEffect(() => {
     fetchShopData();
@@ -52,15 +55,17 @@ const StorefrontPage = () => {
   const fetchShopData = async () => {
     try {
       setLoading(true);
-      const [shopRes, productsRes, categoriesRes] = await Promise.all([
+      const [shopRes, productsRes, categoriesRes, bannersRes] = await Promise.all([
         axios.get(`${API}/shop/${slug}`),
         axios.get(`${API}/shop/${slug}/products`),
-        axios.get(`${API}/shop/${slug}/categories`)
+        axios.get(`${API}/shop/${slug}/categories`),
+        axios.get(`${API}/shop/${slug}/banners`)
       ]);
       setShop(shopRes.data);
       setProducts(productsRes.data);
       setFilteredProducts(productsRes.data);
       setCategories(categoriesRes.data);
+      setBanners(bannersRes.data || []);
 
       // Check expiry
       if (shopRes.data.expiry_date) {
@@ -116,6 +121,10 @@ const StorefrontPage = () => {
 
   const cartTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+
+  const goToSlide = (idx) => setCurrentSlide(idx);
+  const prevSlide = () => setCurrentSlide((prev) => (prev === 0 ? banners.length - 1 : prev - 1));
+  const nextSlide = () => setCurrentSlide((prev) => (prev === banners.length - 1 ? 0 : prev + 1));
 
   const handleCheckout = async (e) => {
     e.preventDefault();
@@ -227,6 +236,51 @@ const StorefrontPage = () => {
           </div>
         </div>
       </header>
+
+      {/* Banner Slider */}
+      {banners.length > 0 && (
+        <div className="relative w-full bg-[#0F172A]" data-testid="banner-slider">
+          <div className="relative overflow-hidden" style={{ aspectRatio: '16 / 5' }}>
+            {banners.map((banner, idx) => (
+              <div
+                key={banner.id}
+                className={`absolute inset-0 transition-opacity duration-500 ease-in-out ${idx === currentSlide ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}
+                data-testid={`banner-slide-${idx}`}
+              >
+                <img src={banner.image_url} alt="" className="w-full h-full object-cover" />
+              </div>
+            ))}
+          </div>
+          {banners.length > 1 && (
+            <>
+              <button
+                onClick={prevSlide}
+                className="absolute left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 bg-black/40 hover:bg-black/60 text-white rounded-full flex items-center justify-center backdrop-blur-sm transition-colors"
+                data-testid="banner-prev"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              <button
+                onClick={nextSlide}
+                className="absolute right-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 bg-black/40 hover:bg-black/60 text-white rounded-full flex items-center justify-center backdrop-blur-sm transition-colors"
+                data-testid="banner-next"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex gap-2">
+                {banners.map((_, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => goToSlide(idx)}
+                    className={`w-2.5 h-2.5 rounded-full transition-all ${idx === currentSlide ? 'bg-white w-6' : 'bg-white/50 hover:bg-white/75'}`}
+                    data-testid={`banner-dot-${idx}`}
+                  />
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
       {/* Hero */}
       <section className="bg-gradient-to-br from-[#0055FF]/5 to-white py-12">
