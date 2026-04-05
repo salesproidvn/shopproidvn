@@ -16,6 +16,7 @@ import {
   Bold, Italic, List
 } from 'lucide-react';
 import { toast } from 'sonner';
+import NotificationBell from '../components/NotificationBell';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -361,6 +362,7 @@ const ShopOwnerDashboard = () => {
                 </h1>
                 <p className="text-sm text-[#64748B] mt-1">{t.welcomeBack}, {user?.name}</p>
               </div>
+              <NotificationBell className="text-[#64748B] ml-2" />
             </div>
             {activeTab === 'products' && (
               <Button onClick={() => { resetProductForm(); setShowProductModal(true); }} style={{ backgroundColor: themeColor }} className="hover:opacity-90 text-sm" data-testid="add-product-btn">

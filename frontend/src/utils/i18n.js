@@ -255,6 +255,17 @@ export const vi = {
   yourMessage: 'Nội dung tin nhắn',
   messageSent: 'Tin nhắn đã được gửi!',
   quickLinks: 'Liên kết nhanh',
+  
+  // Notifications
+  notifications: 'Thông báo',
+  noNotifications: 'Chưa có thông báo',
+  markAllRead: 'Đọc tất cả',
+  newOrder: 'Đơn hàng mới',
+  justNow: 'Vừa xong',
+  minutesAgo: 'phút trước',
+  hoursAgo: 'giờ trước',
+  daysAgo: 'ngày trước',
+  
   businessHours: 'Giờ làm việc',
   businessHoursValue: 'T2 - T7: 8:00 - 18:00',
 };
@@ -498,6 +509,17 @@ export const en = {
   yourMessage: 'Your Message',
   messageSent: 'Message sent!',
   quickLinks: 'Quick Links',
+  
+  // Notifications
+  notifications: 'Notifications',
+  noNotifications: 'No notifications yet',
+  markAllRead: 'Mark all read',
+  newOrder: 'New Order',
+  justNow: 'Just now',
+  minutesAgo: 'min ago',
+  hoursAgo: 'hours ago',
+  daysAgo: 'days ago',
+  
   businessHours: 'Business Hours',
   businessHoursValue: 'Mon - Sat: 8:00 AM - 6:00 PM',
 };

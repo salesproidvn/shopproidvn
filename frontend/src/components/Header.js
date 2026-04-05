@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ShoppingCart, Heart, User, Search, Menu, X, LogOut, Globe, LayoutDashboard } from 'lucide-react';
+import { ShoppingCart, Heart, User, Search, Menu, X, LogOut, Globe, LayoutDashboard, Bell } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
 import { useLanguage } from '../context/LanguageContext';
+import { useNotifications } from '../context/NotificationContext';
+import NotificationBell from './NotificationBell';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import {
@@ -112,13 +114,16 @@ const Header = ({ searchQuery, setSearchQuery, onSearch }) => {
               {user ? (
                 <div className="flex items-center gap-2">
                   {(user.role === 'shop_owner' || user.role === 'super_admin') && (
-                    <Link to={user.role === 'super_admin' ? '/admin' : '/dashboard'} data-testid="header-dashboard-btn">
-                      <Button variant="outline" className="rounded-full px-4 text-sm border-[#0055FF] text-[#0055FF] hover:bg-[#0055FF] hover:text-white">
-                        <LayoutDashboard className="w-4 h-4 mr-2" />
-                        {t.dashboard}
-                      </Button>
-                    </Link>
-                  )}
+                    <>
+                      <NotificationBell className="text-[#64748B]" />
+                      <Link to={user.role === 'super_admin' ? '/admin' : '/dashboard'} data-testid="header-dashboard-btn">
+                        <Button variant="outline" className="rounded-full px-4 text-sm border-[#0055FF] text-[#0055FF] hover:bg-[#0055FF] hover:text-white">
+                          <LayoutDashboard className="w-4 h-4 mr-2" />
+                          {t.dashboard}
+                        </Button>
+                      </Link>
+                    </>
+                  )}}
                   <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="p-2 hover:bg-[#F8FAFC] rounded-full" data-testid="user-menu-button">

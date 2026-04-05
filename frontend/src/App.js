@@ -5,6 +5,7 @@ import { AuthProvider } from "./context/AuthContext";
 import { CartProvider } from "./context/CartContext";
 import { WishlistProvider } from "./context/WishlistContext";
 import { LanguageProvider } from "./context/LanguageContext";
+import { NotificationProvider } from "./context/NotificationContext";
 import HomePage from "./pages/HomePage";
 import WishlistPage from "./pages/WishlistPage";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
@@ -18,6 +19,7 @@ import FloatingActions from "./components/FloatingActions";
 function App() {
   return (
     <LanguageProvider>
+      <NotificationProvider>
       <AuthProvider>
         <CartProvider>
           <WishlistProvider>
@@ -47,6 +49,7 @@ function App() {
           </WishlistProvider>
         </CartProvider>
       </AuthProvider>
+      </NotificationProvider>
     </LanguageProvider>
   );
 }

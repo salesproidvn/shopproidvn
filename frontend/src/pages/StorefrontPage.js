@@ -16,6 +16,7 @@ import {
   Plus, Minus, Trash2, ArrowLeft, LayoutDashboard, X, AlertTriangle
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { emitNotification } from '../context/NotificationContext';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -124,6 +125,16 @@ const StorefrontPage = () => {
         items: cart.map(item => ({ product_id: item.product_id, quantity: item.quantity }))
       };
       const { data } = await axios.post(`${API}/shop/${slug}/orders`, orderData);
+      
+      // Emit notification for shop owner
+      emitNotification({
+        type: 'new_order',
+        title: t.newOrder,
+        message: `${checkoutForm.customer_name} - ${formatVND(data.total_amount)}`,
+        order_id: data.id,
+        shop_slug: slug,
+      });
+      
       setCart([]);
       setShowCheckout(false);
       setShowCart(false);

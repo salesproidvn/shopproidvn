@@ -62,6 +62,12 @@ Create a desktop UI for a Micro-SaaS E-commerce Platform with multi-tenant setup
 - Admin: GET /api/admin/stats, /api/admin/shops, /api/admin/users
 - Upload: POST /api/upload/image
 
+### In-App Notifications (DONE — Feb 2026)
+- Toast popup on new order: "Đơn hàng mới - Customer Name - Amount"
+- Notification bell with unread badge count in Header and ShopOwnerDashboard
+- Notification dropdown with history, mark-all-read, and clear
+- Persisted in localStorage
+
 ### Checkout & Orders (DONE — Feb 2026)
 - Full-screen checkout overlay with shipping form and order summary
 - Thank you page with order confirmation, order ID, and item details
