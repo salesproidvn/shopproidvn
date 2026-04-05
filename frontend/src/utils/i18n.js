@@ -275,16 +275,6 @@ export const vi = {
   
   businessHours: 'Giờ làm việc',
   businessHoursValue: 'T2 - T7: 8:00 - 18:00',
-
-  // Banners
-  banners: 'Banner',
-  manageBanners: 'Quản lý Banner',
-  addBanner: 'Thêm banner',
-  noBannersYet: 'Chưa có banner nào',
-  bannerUploaded: 'Đã tải lên banner',
-  bannerDeleted: 'Đã xóa banner',
-  uploadBannerImage: 'Tải ảnh banner',
-  bannerHint: 'Khuyến nghị kích thước 1600x500px',
 };
 
 export const en = {
@@ -546,16 +536,6 @@ export const en = {
   
   businessHours: 'Business Hours',
   businessHoursValue: 'Mon - Sat: 8:00 AM - 6:00 PM',
-
-  // Banners
-  banners: 'Banners',
-  manageBanners: 'Manage Banners',
-  addBanner: 'Add Banner',
-  noBannersYet: 'No banners yet',
-  bannerUploaded: 'Banner uploaded',
-  bannerDeleted: 'Banner deleted',
-  uploadBannerImage: 'Upload banner image',
-  bannerHint: 'Recommended size 1600x500px',
 };
 
 export const translations = { vi, en };
