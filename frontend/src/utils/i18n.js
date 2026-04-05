@@ -175,6 +175,9 @@ export const vi = {
   
   // Shop not found
   shopNotFound: 'Cửa hàng không tồn tại',
+  call: 'Gọi điện',
+  message: 'Nhắn tin',
+  info: 'Thông tin',
   backToHome: 'Về trang chủ',
   edit: 'Sửa',
   productDetail: 'Chi tiết sản phẩm',

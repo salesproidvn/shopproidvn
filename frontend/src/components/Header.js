@@ -110,7 +110,16 @@ const Header = ({ searchQuery, setSearchQuery, onSearch }) => {
               </Button>
 
               {user ? (
-                <DropdownMenu>
+                <div className="flex items-center gap-2">
+                  {(user.role === 'shop_owner' || user.role === 'super_admin') && (
+                    <Link to={user.role === 'super_admin' ? '/admin' : '/dashboard'} data-testid="header-dashboard-btn">
+                      <Button variant="outline" className="rounded-full px-4 text-sm border-[#0055FF] text-[#0055FF] hover:bg-[#0055FF] hover:text-white">
+                        <LayoutDashboard className="w-4 h-4 mr-2" />
+                        {t.dashboard}
+                      </Button>
+                    </Link>
+                  )}
+                  <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="p-2 hover:bg-[#F8FAFC] rounded-full" data-testid="user-menu-button">
                       <User className="w-5 h-5 lg:w-6 lg:h-6 text-[#64748B]" />
@@ -143,6 +152,7 @@ const Header = ({ searchQuery, setSearchQuery, onSearch }) => {
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
+                </div>
               ) : (
                 <Button
                   onClick={() => setShowAuthModal(true)}

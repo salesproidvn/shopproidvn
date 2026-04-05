@@ -11,15 +11,17 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '
 import { ScrollArea } from '../components/ui/scroll-area';
 import { 
   Search, ShoppingCart, Phone, Mail, MapPin, Facebook, Instagram, 
-  Plus, Minus, Trash2, ArrowLeft
+  Plus, Minus, Trash2, ArrowLeft, LayoutDashboard
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAuth } from '../context/AuthContext';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 const StorefrontPage = () => {
   const { slug } = useParams();
   const { t } = useLanguage();
+  const { user } = useAuth();
   const [shop, setShop] = useState(null);
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -166,12 +168,22 @@ const StorefrontPage = () => {
                   className="pl-10 rounded-full bg-[#F8FAFC]" data-testid="search-input" />
               </div>
             </div>
-            <Button variant="outline" className="relative rounded-full" onClick={() => setShowCart(true)} data-testid="cart-button">
-              <ShoppingCart className="w-5 h-5" />
-              {cartCount > 0 && (
-                <span className="absolute -top-2 -right-2 w-5 h-5 bg-[#0055FF] text-white text-xs rounded-full flex items-center justify-center">{cartCount}</span>
+            <div className="flex items-center gap-3">
+              {user && (user.role === 'shop_owner' || user.role === 'super_admin') && (
+                <Link to={user.role === 'super_admin' ? '/admin' : '/dashboard'} data-testid="storefront-dashboard-btn">
+                  <Button variant="outline" className="rounded-full px-4 text-sm border-[#0055FF] text-[#0055FF] hover:bg-[#0055FF] hover:text-white">
+                    <LayoutDashboard className="w-4 h-4 mr-2" />
+                    {t.dashboard}
+                  </Button>
+                </Link>
               )}
-            </Button>
+              <Button variant="outline" className="relative rounded-full" onClick={() => setShowCart(true)} data-testid="cart-button">
+                <ShoppingCart className="w-5 h-5" />
+                {cartCount > 0 && (
+                  <span className="absolute -top-2 -right-2 w-5 h-5 bg-[#0055FF] text-white text-xs rounded-full flex items-center justify-center">{cartCount}</span>
+                )}
+              </Button>
+            </div>
           </div>
         </div>
       </header>

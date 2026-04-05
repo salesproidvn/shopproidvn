@@ -43,7 +43,9 @@ Create a desktop UI for a Micro-SaaS E-commerce Platform with multi-tenant setup
 - Language switcher (globe icon in Header) toggles VI/EN
 - Translations applied to: HomePage, StorefrontPage, AuthModal, CartDrawer, ProductModal, WishlistPage, ShopOwnerDashboard, SuperAdminDashboard
 
-### Mobile UI (DONE — Feb 2026)
+### UI Navigation (DONE — Feb 2026)
+- Visible "Dashboard" button in header when logged in (on both Homepage and Storefront)
+- Floating action buttons (Call, Message, Info) at bottom-right on all pages
 - "Add to Cart" as full-width text button below price on mobile
 - Mobile-responsive sidebars on both dashboards (hamburger menu, overlay, backdrop, auto-close on nav click)
 - 2-column product grids on mobile

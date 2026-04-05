@@ -11,6 +11,8 @@ import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import ShopOwnerDashboard from "./pages/ShopOwnerDashboard";
 import StorefrontPage from "./pages/StorefrontPage";
 
+import FloatingActions from "./components/FloatingActions";
+
 function App() {
   return (
     <LanguageProvider>
@@ -25,6 +27,7 @@ function App() {
                 <Route path="/dashboard" element={<ShopOwnerDashboard />} />
                 <Route path="/shop/:slug" element={<StorefrontPage />} />
               </Routes>
+              <FloatingActions />
             </BrowserRouter>
             <Toaster 
               position="top-right" 
