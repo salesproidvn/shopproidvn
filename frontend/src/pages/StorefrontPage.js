@@ -13,7 +13,7 @@ import { ScrollArea } from '../components/ui/scroll-area';
 import PriceFilter from '../components/PriceFilter';
 import { 
   Search, ShoppingCart, Phone, Mail, MapPin, Facebook, Instagram, 
-  Plus, Minus, Trash2, ArrowLeft, LayoutDashboard, X, AlertTriangle
+  Plus, Minus, Trash2, ArrowLeft, LayoutDashboard, X, AlertTriangle, Play
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { emitNotification } from '../context/NotificationContext';
@@ -44,6 +44,8 @@ const StorefrontPage = () => {
   });
 
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [activeImage, setActiveImage] = useState(0);
+  const [showVideo, setShowVideo] = useState(false);
 
   useEffect(() => {
     fetchShopData();
@@ -344,25 +346,54 @@ const StorefrontPage = () => {
       </footer>
 
       {/* Product Modal */}
-      <Dialog open={!!selectedProduct} onOpenChange={() => setSelectedProduct(null)}>
-        <DialogContent className="sm:max-w-2xl p-0 overflow-hidden bg-white" data-testid="product-modal">
+      <Dialog open={!!selectedProduct} onOpenChange={(v) => { if (!v) { setSelectedProduct(null); setActiveImage(0); setShowVideo(false); } }}>
+        <DialogContent className="sm:max-w-4xl p-0 overflow-hidden bg-white max-h-[90vh] overflow-y-auto" data-testid="product-modal">
           <DialogDescription className="sr-only">{t.productDetail}</DialogDescription>
-          {selectedProduct && (
-            <div className="grid md:grid-cols-2">
-              <div className="aspect-square bg-[#F8FAFC]">
-                <img src={selectedProduct.image_url} alt={selectedProduct.name} className="w-full h-full object-cover" />
+          {selectedProduct && (() => {
+            const images = selectedProduct.images?.length > 0 ? selectedProduct.images : [selectedProduct.image_url];
+            const ytMatch = selectedProduct.video_url?.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+            const embedUrl = ytMatch ? `https://www.youtube.com/embed/${ytMatch[1]}` : (selectedProduct.video_url || null);
+            return (
+              <div className="grid md:grid-cols-2">
+                <div className="flex flex-col">
+                  <div className="aspect-square bg-[#F8FAFC] relative overflow-hidden" data-testid="storefront-product-main-image">
+                    {showVideo && embedUrl ? (
+                      <iframe src={embedUrl} title="Product video" className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
+                    ) : (
+                      <img src={images[activeImage]} alt={selectedProduct.name} className="w-full h-full object-cover" />
+                    )}
+                  </div>
+                  {(images.length > 1 || embedUrl) && (
+                    <div className="flex gap-2 p-3 overflow-x-auto" data-testid="storefront-product-thumbnails">
+                      {images.map((img, idx) => (
+                        <button key={idx} onClick={() => { setActiveImage(idx); setShowVideo(false); }}
+                          className={`w-14 h-14 rounded-lg overflow-hidden flex-shrink-0 border-2 transition-all ${!showVideo && activeImage === idx ? 'border-[#0055FF] ring-1 ring-[#0055FF]' : 'border-transparent hover:border-[#E2E8F0]'}`}
+                          data-testid={`storefront-thumb-${idx}`}>
+                          <img src={img} alt="" className="w-full h-full object-cover" />
+                        </button>
+                      ))}
+                      {embedUrl && (
+                        <button onClick={() => setShowVideo(true)}
+                          className={`w-14 h-14 rounded-lg flex-shrink-0 border-2 transition-all flex items-center justify-center bg-[#0F172A] ${showVideo ? 'border-[#0055FF] ring-1 ring-[#0055FF]' : 'border-transparent hover:border-[#E2E8F0]'}`}
+                          data-testid="storefront-thumb-video">
+                          <Play className="w-5 h-5 text-white fill-white" />
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <div className="p-6 flex flex-col">
+                  <h2 className="text-xl font-bold text-[#0F172A] mb-2">{selectedProduct.name}</h2>
+                  <p className="text-2xl font-bold text-[#0055FF] mb-4">{formatVND(selectedProduct.price)}</p>
+                  {selectedProduct.description && <p className="text-[#64748B] mb-6 flex-1">{selectedProduct.description}</p>}
+                  <Button className="w-full bg-[#0055FF] hover:bg-[#0040CC] py-6"
+                    onClick={() => { addToCart(selectedProduct); setSelectedProduct(null); setActiveImage(0); setShowVideo(false); }} data-testid="modal-add-cart">
+                    <ShoppingCart className="w-5 h-5 mr-2" /> {t.addToCart}
+                  </Button>
+                </div>
               </div>
-              <div className="p-6 flex flex-col">
-                <h2 className="text-xl font-bold text-[#0F172A] mb-2">{selectedProduct.name}</h2>
-                <p className="text-2xl font-bold text-[#0055FF] mb-4">{formatVND(selectedProduct.price)}</p>
-                {selectedProduct.description && <p className="text-[#64748B] mb-6 flex-1">{selectedProduct.description}</p>}
-                <Button className="w-full bg-[#0055FF] hover:bg-[#0040CC] py-6"
-                  onClick={() => { addToCart(selectedProduct); setSelectedProduct(null); }} data-testid="modal-add-cart">
-                  <ShoppingCart className="w-5 h-5 mr-2" /> {t.addToCart}
-                </Button>
-              </div>
-            </div>
-          )}
+            );
+          })()}
         </DialogContent>
       </Dialog>
 

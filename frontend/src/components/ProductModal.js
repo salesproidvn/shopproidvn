@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Heart, ShoppingCart, Minus, Plus } from 'lucide-react';
+import { Heart, ShoppingCart, Minus, Plus, Play } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -8,15 +8,26 @@ import { Dialog, DialogContent, DialogDescription } from '../components/ui/dialo
 import { Button } from '../components/ui/button';
 import { toast } from 'sonner';
 
+const getEmbedUrl = (url) => {
+  if (!url) return null;
+  const ytMatch = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+  if (ytMatch) return `https://www.youtube.com/embed/${ytMatch[1]}`;
+  return url;
+};
+
 const ProductModal = ({ product, open, onOpenChange }) => {
   const { addToCart } = useCart();
   const { isInWishlist, toggleWishlist } = useWishlist();
   const { t } = useLanguage();
   const [quantity, setQuantity] = useState(1);
+  const [activeImage, setActiveImage] = useState(0);
+  const [showVideo, setShowVideo] = useState(false);
 
   if (!product) return null;
 
   const inWishlist = isInWishlist(product.id);
+  const images = product.images?.length > 0 ? product.images : [product.image_url];
+  const embedUrl = getEmbedUrl(product.video_url);
 
   const handleAddToCart = async () => {
     try {
@@ -38,13 +49,55 @@ const ProductModal = ({ product, open, onOpenChange }) => {
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-4xl p-0 overflow-hidden bg-white" data-testid="product-modal">
+    <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) { setActiveImage(0); setShowVideo(false); } }}>
+      <DialogContent className="sm:max-w-4xl p-0 overflow-hidden bg-white max-h-[90vh] overflow-y-auto" data-testid="product-modal">
         <DialogDescription className="sr-only">{t.productDetail} {product.name}</DialogDescription>
         <div className="grid md:grid-cols-2">
-          <div className="aspect-square bg-[#F8FAFC]">
-            <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
+          {/* Image Gallery */}
+          <div className="flex flex-col">
+            <div className="aspect-square bg-[#F8FAFC] relative overflow-hidden" data-testid="product-main-image">
+              {showVideo && embedUrl ? (
+                <iframe
+                  src={embedUrl}
+                  title="Product video"
+                  className="w-full h-full"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              ) : (
+                <img src={images[activeImage]} alt={product.name} className="w-full h-full object-cover" />
+              )}
+            </div>
+            {/* Thumbnails */}
+            {(images.length > 1 || embedUrl) && (
+              <div className="flex gap-2 p-3 overflow-x-auto" data-testid="product-thumbnails">
+                {images.map((img, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => { setActiveImage(idx); setShowVideo(false); }}
+                    className={`w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 border-2 transition-all ${
+                      !showVideo && activeImage === idx ? 'border-[#0055FF] ring-1 ring-[#0055FF]' : 'border-transparent hover:border-[#E2E8F0]'
+                    }`}
+                    data-testid={`thumbnail-${idx}`}
+                  >
+                    <img src={img} alt="" className="w-full h-full object-cover" />
+                  </button>
+                ))}
+                {embedUrl && (
+                  <button
+                    onClick={() => setShowVideo(true)}
+                    className={`w-16 h-16 rounded-lg flex-shrink-0 border-2 transition-all flex items-center justify-center bg-[#0F172A] ${
+                      showVideo ? 'border-[#0055FF] ring-1 ring-[#0055FF]' : 'border-transparent hover:border-[#E2E8F0]'
+                    }`}
+                    data-testid="thumbnail-video"
+                  >
+                    <Play className="w-6 h-6 text-white fill-white" />
+                  </button>
+                )}
+              </div>
+            )}
           </div>
+          {/* Product Info */}
           <div className="p-8 flex flex-col">
             <span className="badge-category w-fit mb-4">{product.category}</span>
             <h2 className="text-2xl font-bold text-[#0F172A] mb-4">{product.name}</h2>

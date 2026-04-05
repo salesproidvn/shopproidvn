@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { 
   LayoutDashboard, Package, FolderOpen, ShoppingCart, Settings, 
   LogOut, Menu, X, Plus, Pencil, Trash2, TrendingUp, Clock, Eye, Palette, Upload, ExternalLink,
-  Bold, Italic, List, ChevronUp, ChevronDown
+  Bold, Italic, List, ChevronUp, ChevronDown, Play
 } from 'lucide-react';
 import { toast } from 'sonner';
 import NotificationBell from '../components/NotificationBell';
@@ -46,8 +46,10 @@ const ShopOwnerDashboard = () => {
   const [editingCategory, setEditingCategory] = useState(null);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [detailActiveImage, setDetailActiveImage] = useState(0);
+  const [detailShowVideo, setDetailShowVideo] = useState(false);
 
-  const [productForm, setProductForm] = useState({ name: '', price: '', category_id: '', description: '', image_url: '', stock: '', position: '' });
+  const [productForm, setProductForm] = useState({ name: '', price: '', category_id: '', description: '', image_url: '', images: [], stock: '', position: '', video_url: '' });
   const [categoryForm, setCategoryForm] = useState({ name: '', description: '' });
   const [shopForm, setShopForm] = useState({});
 
@@ -94,13 +96,21 @@ const ShopOwnerDashboard = () => {
         withCredentials: true,
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-      setProductForm({ ...productForm, image_url: data.url || `${API}/files/${data.id}` });
+      const url = data.url || `${API}/files/${data.id}`;
+      const newImages = [...(productForm.images || []), url];
+      setProductForm({ ...productForm, images: newImages, image_url: newImages[0] });
       toast.success(t.uploadSuccess);
     } catch (err) {
       toast.error(err.response?.data?.detail || t.uploadFailed);
     } finally {
       setUploading(false);
     }
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const removeProductImage = (idx) => {
+    const newImages = productForm.images.filter((_, i) => i !== idx);
+    setProductForm({ ...productForm, images: newImages, image_url: newImages[0] || '' });
   };
 
   const handleSaveProduct = async (e) => {
@@ -111,7 +121,10 @@ const ShopOwnerDashboard = () => {
         price: parseInt(productForm.price), 
         stock: parseInt(productForm.stock) || 0,
         position: parseInt(productForm.position) || 0,
-        category_id: productForm.category_id === "none" ? null : productForm.category_id || null
+        category_id: productForm.category_id === "none" ? null : productForm.category_id || null,
+        images: productForm.images || [],
+        video_url: productForm.video_url || '',
+        image_url: productForm.images?.length > 0 ? productForm.images[0] : productForm.image_url
       };
       if (editingProduct) {
         await axios.put(`${API}/dashboard/products/${editingProduct.id}`, data, { withCredentials: true });
@@ -147,20 +160,24 @@ const ShopOwnerDashboard = () => {
       category_id: product.category_id || 'none',
       description: product.description || '',
       image_url: product.image_url,
+      images: product.images || (product.image_url ? [product.image_url] : []),
       stock: (product.stock || 0).toString(),
-      position: (product.position || 0).toString()
+      position: (product.position || 0).toString(),
+      video_url: product.video_url || ''
     });
     setShowProductModal(true);
   };
 
   const openProductDetail = (product) => {
     setSelectedProduct(product);
+    setDetailActiveImage(0);
+    setDetailShowVideo(false);
     setShowProductDetailModal(true);
   };
 
   const resetProductForm = () => {
     setEditingProduct(null);
-    setProductForm({ name: '', price: '', category_id: '', description: '', image_url: '', stock: '' });
+    setProductForm({ name: '', price: '', category_id: '', description: '', image_url: '', images: [], stock: '', position: '', video_url: '' });
   };
 
   const handleSaveCategory = async (e) => {
@@ -586,8 +603,8 @@ const ShopOwnerDashboard = () => {
                   <div className="space-y-3">
                     {orders.map((order) => (
                       <div key={order.id} className="p-3 border rounded-lg bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-[#0F172A] text-sm">{order.id}</p>
+                        <div className="flex-1 min-w-0 cursor-pointer" onClick={() => openOrderDetail(order)} data-testid={`order-row-${order.id}`}>
+                          <p className="font-medium text-[#0F172A] text-sm hover:text-[#0055FF] transition-colors">{order.id}</p>
                           <p className="text-xs text-[#64748B]">{order.customer_name} - {order.customer_phone}</p>
                           <p className="text-xs text-[#64748B]">{order.items?.length || 0} {t.items}</p>
                         </div>
@@ -733,21 +750,50 @@ const ShopOwnerDashboard = () => {
               </Select>
             </div>
             <div>
-              <label className="block text-xs font-medium mb-1">{t.productImage} *</label>
+              <label className="block text-xs font-medium mb-1">{t.productImages}</label>
               <div className="space-y-2">
-                {productForm.image_url && (
-                  <div className="w-24 h-24 rounded-lg overflow-hidden bg-[#F8FAFC]">
-                    <img src={productForm.image_url} alt="Preview" className="w-full h-full object-cover" />
+                {productForm.images?.length > 0 && (
+                  <div className="flex flex-wrap gap-2" data-testid="product-images-preview">
+                    {productForm.images.map((img, idx) => (
+                      <div key={idx} className="relative w-20 h-20 rounded-lg overflow-hidden bg-[#F8FAFC] group">
+                        <img src={img} alt={`Preview ${idx + 1}`} className="w-full h-full object-cover" />
+                        <button type="button" onClick={() => removeProductImage(idx)}
+                          className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-xs"
+                          data-testid={`remove-image-${idx}`}>
+                          <X className="w-3 h-3" />
+                        </button>
+                        {idx === 0 && <span className="absolute bottom-0 left-0 right-0 bg-[#0055FF]/80 text-white text-[9px] text-center py-0.5">Main</span>}
+                      </div>
+                    ))}
                   </div>
                 )}
                 <div className="flex gap-2">
                   <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden" />
-                  <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={uploading} className="text-xs">
-                    <Upload className="w-4 h-4 mr-1" /> {uploading ? '...' : t.uploadImage}
+                  <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={uploading} className="text-xs" data-testid="upload-image-btn">
+                    <Upload className="w-4 h-4 mr-1" /> {uploading ? '...' : t.addMoreImages}
                   </Button>
                 </div>
-                <Input value={productForm.image_url} onChange={(e) => setProductForm({ ...productForm, image_url: e.target.value })} placeholder={t.orPasteUrl} className="text-sm" data-testid="product-image-input" />
+                <Input
+                  placeholder={t.orPasteUrl}
+                  className="text-sm"
+                  data-testid="product-image-input"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      const url = e.target.value.trim();
+                      if (url) {
+                        const newImages = [...(productForm.images || []), url];
+                        setProductForm({ ...productForm, images: newImages, image_url: newImages[0] });
+                        e.target.value = '';
+                      }
+                    }
+                  }}
+                />
               </div>
+            </div>
+            <div>
+              <label className="block text-xs font-medium mb-1">{t.videoUrl}</label>
+              <Input value={productForm.video_url} onChange={(e) => setProductForm({ ...productForm, video_url: e.target.value })} placeholder={t.videoUrlPlaceholder} className="text-sm" data-testid="product-video-input" />
             </div>
             <div>
               <label className="block text-xs font-medium mb-1">{t.description}</label>
@@ -864,32 +910,59 @@ const ShopOwnerDashboard = () => {
       </Dialog>
 
       {/* Product Detail Modal */}
-      <Dialog open={showProductDetailModal} onOpenChange={setShowProductDetailModal}>
-        <DialogContent className="sm:max-w-2xl bg-white p-0 overflow-hidden" data-testid="product-detail-modal">
+      <Dialog open={showProductDetailModal} onOpenChange={(v) => { setShowProductDetailModal(v); if (!v) { setDetailActiveImage(0); setDetailShowVideo(false); } }}>
+        <DialogContent className="sm:max-w-3xl bg-white p-0 overflow-hidden max-h-[90vh] overflow-y-auto" data-testid="product-detail-modal">
           <DialogDescription className="sr-only">{t.productDetail}</DialogDescription>
-          {selectedProduct && (
-            <div className="grid md:grid-cols-2">
-              <div className="aspect-square bg-[#F8FAFC]">
-                <img src={selectedProduct.image_url} alt={selectedProduct.name} className="w-full h-full object-cover" />
-              </div>
-              <div className="p-6 flex flex-col">
-                <h2 className="text-xl font-bold text-[#0F172A] mb-2">{selectedProduct.name}</h2>
-                <p className="text-2xl font-bold mb-4" style={{ color: themeColor }}>{formatVND(selectedProduct.price)}</p>
-                <p className="text-sm text-[#64748B] mb-2">{t.stock}: {selectedProduct.stock || 0}</p>
-                {selectedProduct.description && (
-                  <div className="text-sm text-[#64748B] mb-4 flex-1 whitespace-pre-wrap">{selectedProduct.description}</div>
-                )}
-                <div className="flex gap-3 mt-auto pt-4">
-                  <Button variant="outline" className="flex-1 text-sm" onClick={(e) => { e.stopPropagation(); setShowProductDetailModal(false); setTimeout(() => openEditProduct(selectedProduct), 100); }} data-testid="product-detail-edit-btn">
-                    <Pencil className="w-4 h-4 mr-2" /> {t.editProduct}
-                  </Button>
-                  <Button className="flex-1 text-sm hover:opacity-90" style={{ backgroundColor: themeColor }} onClick={() => setShowProductDetailModal(false)}>
-                    {t.close}
-                  </Button>
+          {selectedProduct && (() => {
+            const images = selectedProduct.images?.length > 0 ? selectedProduct.images : [selectedProduct.image_url];
+            const ytMatch = selectedProduct.video_url?.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+            const embedUrl = ytMatch ? `https://www.youtube.com/embed/${ytMatch[1]}` : (selectedProduct.video_url || null);
+            return (
+              <div className="grid md:grid-cols-2">
+                <div className="flex flex-col">
+                  <div className="aspect-square bg-[#F8FAFC] relative overflow-hidden">
+                    {detailShowVideo && embedUrl ? (
+                      <iframe src={embedUrl} title="Product video" className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
+                    ) : (
+                      <img src={images[detailActiveImage]} alt={selectedProduct.name} className="w-full h-full object-cover" />
+                    )}
+                  </div>
+                  {(images.length > 1 || embedUrl) && (
+                    <div className="flex gap-2 p-3 overflow-x-auto">
+                      {images.map((img, idx) => (
+                        <button key={idx} onClick={() => { setDetailActiveImage(idx); setDetailShowVideo(false); }}
+                          className={`w-14 h-14 rounded-lg overflow-hidden flex-shrink-0 border-2 transition-all ${!detailShowVideo && detailActiveImage === idx ? 'border-[#0055FF] ring-1 ring-[#0055FF]' : 'border-transparent hover:border-[#E2E8F0]'}`}>
+                          <img src={img} alt="" className="w-full h-full object-cover" />
+                        </button>
+                      ))}
+                      {embedUrl && (
+                        <button onClick={() => setDetailShowVideo(true)}
+                          className={`w-14 h-14 rounded-lg flex-shrink-0 border-2 transition-all flex items-center justify-center bg-[#0F172A] ${detailShowVideo ? 'border-[#0055FF] ring-1 ring-[#0055FF]' : 'border-transparent hover:border-[#E2E8F0]'}`}>
+                          <Play className="w-5 h-5 text-white fill-white" />
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <div className="p-6 flex flex-col">
+                  <h2 className="text-xl font-bold text-[#0F172A] mb-2">{selectedProduct.name}</h2>
+                  <p className="text-2xl font-bold mb-4" style={{ color: themeColor }}>{formatVND(selectedProduct.price)}</p>
+                  <p className="text-sm text-[#64748B] mb-2">{t.stock}: {selectedProduct.stock || 0}</p>
+                  {selectedProduct.description && (
+                    <div className="text-sm text-[#64748B] mb-4 flex-1 whitespace-pre-wrap">{selectedProduct.description}</div>
+                  )}
+                  <div className="flex gap-3 mt-auto pt-4">
+                    <Button variant="outline" className="flex-1 text-sm" onClick={(e) => { e.stopPropagation(); setShowProductDetailModal(false); setTimeout(() => openEditProduct(selectedProduct), 100); }} data-testid="product-detail-edit-btn">
+                      <Pencil className="w-4 h-4 mr-2" /> {t.editProduct}
+                    </Button>
+                    <Button className="flex-1 text-sm hover:opacity-90" style={{ backgroundColor: themeColor }} onClick={() => setShowProductDetailModal(false)}>
+                      {t.close}
+                    </Button>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
         </DialogContent>
       </Dialog>
     </div>

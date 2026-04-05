@@ -37,6 +37,12 @@ export const vi = {
   price: 'Giá',
   stock: 'Tồn kho',
   quantity: 'Số lượng',
+  productImages: 'Hình ảnh sản phẩm',
+  addMoreImages: 'Thêm ảnh',
+  videoUrl: 'Link video sản phẩm',
+  videoUrlPlaceholder: 'Dán link YouTube hoặc video...',
+  productVideo: 'Video sản phẩm',
+  watchVideo: 'Xem video',
   
   // Wishlist
   wishlist: 'Yêu thích',
@@ -314,6 +320,12 @@ export const en = {
   price: 'Price',
   stock: 'Stock',
   quantity: 'Quantity',
+  productImages: 'Product Images',
+  addMoreImages: 'Add more images',
+  videoUrl: 'Product Video URL',
+  videoUrlPlaceholder: 'Paste YouTube or video URL...',
+  productVideo: 'Product Video',
+  watchVideo: 'Watch video',
   
   wishlist: 'Wishlist',
   wishlistEmpty: 'Wishlist is empty',
