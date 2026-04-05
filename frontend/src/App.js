@@ -32,6 +32,7 @@ function App() {
                 <Route path="/shop/:slug" element={<StorefrontPage />} />
                 <Route path="/shop/:slug/contact" element={<ContactPage />} />
                 <Route path="/shop/:slug/thank-you" element={<ThankYouPage />} />
+                <Route path="/thank-you" element={<ThankYouPage />} />
                 <Route path="/contact" element={<ContactPage />} />
               </Routes>
               <FloatingActions />

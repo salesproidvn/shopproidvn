@@ -1,12 +1,14 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { ShoppingCart, Heart, User, Search, Menu, X, LogOut, Globe, LayoutDashboard, Bell } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { ShoppingCart, Heart, User, Search, Menu, X, LogOut, Globe, LayoutDashboard, Bell, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useNotifications } from '../context/NotificationContext';
+import { emitNotification } from '../context/NotificationContext';
 import NotificationBell from './NotificationBell';
+import { formatVND } from '../utils/format';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import {
@@ -22,12 +24,45 @@ import CartDrawer from './CartDrawer';
 
 const Header = ({ searchQuery, setSearchQuery, onSearch }) => {
   const { user, logout } = useAuth();
-  const { cartCount } = useCart();
+  const { cart, cartCount, cartTotal, clearCart } = useCart();
   const { wishlist } = useWishlist();
   const { lang, t, switchLanguage } = useLanguage();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showCartDrawer, setShowCartDrawer] = useState(false);
+  const [showCheckout, setShowCheckout] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [checkoutForm, setCheckoutForm] = useState({
+    customer_name: '', customer_phone: '', customer_email: '', customer_address: '', note: ''
+  });
+  const navigate = useNavigate();
+
+  const handleCheckout = async (e) => {
+    e.preventDefault();
+    const items = cart.map(item => ({
+      product_id: item.product_id, name: item.name, price: item.price,
+      quantity: item.quantity, subtotal: item.price * item.quantity
+    }));
+    const order = {
+      id: `ORD-${Date.now().toString(16).toUpperCase()}`,
+      ...checkoutForm,
+      items,
+      total_amount: cartTotal,
+      status: 'pending',
+      created_at: new Date().toISOString()
+    };
+
+    emitNotification({
+      type: 'new_order',
+      title: t.newOrder,
+      message: `${checkoutForm.customer_name} - ${formatVND(cartTotal)}`,
+      order_id: order.id,
+    });
+
+    clearCart();
+    setShowCheckout(false);
+    setCheckoutForm({ customer_name: '', customer_phone: '', customer_email: '', customer_address: '', note: '' });
+    navigate('/thank-you', { state: { order } });
+  };
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -123,7 +158,7 @@ const Header = ({ searchQuery, setSearchQuery, onSearch }) => {
                         </Button>
                       </Link>
                     </>
-                  )}}
+                  )}
                   <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="p-2 hover:bg-[#F8FAFC] rounded-full" data-testid="user-menu-button">
@@ -259,7 +294,88 @@ const Header = ({ searchQuery, setSearchQuery, onSearch }) => {
       </header>
 
       <AuthModal open={showAuthModal} onOpenChange={setShowAuthModal} />
-      <CartDrawer open={showCartDrawer} onOpenChange={setShowCartDrawer} />
+      <CartDrawer open={showCartDrawer} onOpenChange={setShowCartDrawer} onCheckout={() => setShowCheckout(true)} />
+
+      {/* Checkout Full-Screen Overlay */}
+      {showCheckout && (
+        <div className="fixed inset-0 z-[60] bg-[#F8FAFC] overflow-y-auto" data-testid="homepage-checkout-overlay">
+          <div className="max-w-4xl mx-auto px-4 py-8">
+            <div className="flex items-center gap-4 mb-8">
+              <Button variant="ghost" size="icon" className="rounded-full" onClick={() => { setShowCheckout(false); setShowCartDrawer(true); }} data-testid="checkout-back-btn">
+                <ArrowLeft className="w-5 h-5" />
+              </Button>
+              <h1 className="text-2xl font-bold text-[#0F172A]">{t.checkoutTitle}</h1>
+            </div>
+
+            <div className="grid md:grid-cols-5 gap-8">
+              <div className="md:col-span-3">
+                <div className="bg-white rounded-2xl p-6 shadow-sm">
+                  <h2 className="font-semibold text-lg text-[#0F172A] mb-4">{t.shippingInfo}</h2>
+                  <form id="homepage-checkout-form" onSubmit={handleCheckout} className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-1.5">{t.customerName} *</label>
+                      <Input value={checkoutForm.customer_name} onChange={(e) => setCheckoutForm({ ...checkoutForm, customer_name: e.target.value })} required data-testid="hp-checkout-name" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium mb-1.5">{t.phone} *</label>
+                        <Input value={checkoutForm.customer_phone} onChange={(e) => setCheckoutForm({ ...checkoutForm, customer_phone: e.target.value })} required data-testid="hp-checkout-phone" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1.5">{t.email}</label>
+                        <Input type="email" value={checkoutForm.customer_email} onChange={(e) => setCheckoutForm({ ...checkoutForm, customer_email: e.target.value })} data-testid="hp-checkout-email" />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1.5">{t.address} *</label>
+                      <Input value={checkoutForm.customer_address} onChange={(e) => setCheckoutForm({ ...checkoutForm, customer_address: e.target.value })} required data-testid="hp-checkout-address" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1.5">{t.note}</label>
+                      <Input value={checkoutForm.note} onChange={(e) => setCheckoutForm({ ...checkoutForm, note: e.target.value })} data-testid="hp-checkout-note" />
+                    </div>
+                  </form>
+                </div>
+              </div>
+
+              <div className="md:col-span-2">
+                <div className="bg-white rounded-2xl p-6 shadow-sm sticky top-8">
+                  <h2 className="font-semibold text-lg text-[#0F172A] mb-4">{t.orderSummary}</h2>
+                  <div className="space-y-3 mb-4">
+                    {cart.map((item) => (
+                      <div key={item.product_id} className="flex gap-3">
+                        <img src={item.image_url} alt={item.name} className="w-12 h-12 rounded-lg object-cover" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-[#0F172A] truncate">{item.name}</p>
+                          <p className="text-xs text-[#64748B]">x{item.quantity}</p>
+                        </div>
+                        <p className="text-sm font-semibold text-[#0F172A]">{formatVND(item.price * item.quantity)}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="border-t pt-4 space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-[#64748B]">{t.subtotal}</span>
+                      <span className="text-[#0F172A]">{formatVND(cartTotal)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-[#64748B]">{t.shipping}</span>
+                      <span className="text-green-500 font-medium">{t.freeShipping}</span>
+                    </div>
+                    <div className="flex justify-between text-lg font-bold pt-2 border-t">
+                      <span className="text-[#0F172A]">{t.total}</span>
+                      <span className="text-[#0055FF]">{formatVND(cartTotal)}</span>
+                    </div>
+                  </div>
+                  <Button form="homepage-checkout-form" type="submit" className="w-full bg-[#0055FF] hover:bg-[#0040CC] rounded-xl py-6 mt-6 text-base" data-testid="hp-place-order-btn">
+                    {t.placeOrder}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };

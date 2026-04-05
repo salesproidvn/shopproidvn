@@ -6,7 +6,7 @@ import { Button } from '../components/ui/button';
 import { ScrollArea } from '../components/ui/scroll-area';
 import { Minus, Plus, Trash2, ShoppingBag } from 'lucide-react';
 
-const CartDrawer = ({ open, onOpenChange }) => {
+const CartDrawer = ({ open, onOpenChange, onCheckout }) => {
   const { cart, cartTotal, updateQuantity, removeFromCart, clearCart } = useCart();
   const { t } = useLanguage();
 
@@ -59,7 +59,9 @@ const CartDrawer = ({ open, onOpenChange }) => {
                 <span className="text-[#64748B]">{t.total}:</span>
                 <span className="text-2xl font-bold text-[#0055FF]" data-testid="cart-total">{formatVND(cartTotal)}</span>
               </div>
-              <Button className="w-full bg-[#0055FF] hover:bg-[#0040CC] rounded-full py-6 text-lg" data-testid="checkout-button">
+              <Button className="w-full bg-[#0055FF] hover:bg-[#0040CC] rounded-full py-6 text-lg" 
+                onClick={() => { onOpenChange(false); onCheckout?.(); }}
+                data-testid="checkout-button">
                 {t.checkout}
               </Button>
               <Button variant="outline" className="w-full rounded-full" onClick={clearCart} data-testid="clear-cart-button">
