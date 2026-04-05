@@ -77,13 +77,13 @@ const Header = ({ searchQuery, setSearchQuery, onSearch }) => {
     <>
       <header className="header-sticky" data-testid="header">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12">
-          <div className="flex items-center justify-between h-14 sm:h-16 lg:h-20">
+          <div className="flex items-center justify-between h-16 sm:h-16 lg:h-20">
             {/* Logo */}
-            <Link to="/" className="flex items-center gap-2" data-testid="logo-link">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-[#0055FF] rounded-xl flex items-center justify-center">
-                <span className="text-white font-bold text-sm sm:text-lg">W</span>
+            <Link to="/" className="flex items-center gap-2.5" data-testid="logo-link">
+              <div className="w-10 h-10 sm:w-10 sm:h-10 bg-[#0055FF] rounded-xl flex items-center justify-center">
+                <span className="text-white font-bold text-lg sm:text-lg">W</span>
               </div>
-              <span className="text-base sm:text-xl font-bold text-[#0F172A] hidden sm:block">The Wi Shop</span>
+              <span className="text-base sm:text-xl font-bold text-[#0F172A]">The Wi Shop</span>
             </Link>
 
             {/* Search Bar - Desktop */}
@@ -205,21 +205,21 @@ const Header = ({ searchQuery, setSearchQuery, onSearch }) => {
             </div>
 
             {/* Mobile Menu */}
-            <div className="flex md:hidden items-center gap-1">
+            <div className="flex md:hidden items-center gap-2">
               {/* Language - Mobile */}
-              <Button variant="ghost" size="icon" className="w-9 h-9" onClick={() => switchLanguage(lang === 'vi' ? 'en' : 'vi')}>
-                <Globe className="w-5 h-5 text-[#64748B]" />
+              <Button variant="ghost" size="icon" className="w-10 h-10" onClick={() => switchLanguage(lang === 'vi' ? 'en' : 'vi')}>
+                <Globe className="w-6 h-6 text-[#64748B]" />
               </Button>
 
               <Button
                 variant="ghost"
-                className="relative p-2"
+                className="relative p-2 w-10 h-10"
                 onClick={() => setShowCartDrawer(true)}
                 data-testid="mobile-cart-button"
               >
-                <ShoppingCart className="w-5 h-5 text-[#64748B]" />
+                <ShoppingCart className="w-6 h-6 text-[#64748B]" />
                 {cartCount > 0 && (
-                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#0055FF] text-white text-[10px] rounded-full flex items-center justify-center">
+                  <span className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-[#0055FF] text-white text-[10px] rounded-full flex items-center justify-center font-medium">
                     {cartCount}
                   </span>
                 )}
@@ -227,8 +227,8 @@ const Header = ({ searchQuery, setSearchQuery, onSearch }) => {
 
               <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
                 <SheetTrigger asChild>
-                  <Button variant="ghost" className="p-2" data-testid="mobile-menu-button">
-                    <Menu className="w-5 h-5 text-[#64748B]" />
+                  <Button variant="ghost" className="p-2 w-10 h-10" data-testid="mobile-menu-button">
+                    <Menu className="w-6 h-6 text-[#64748B]" />
                   </Button>
                 </SheetTrigger>
                 <SheetContent side="right" className="w-[280px] bg-white">

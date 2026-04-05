@@ -117,7 +117,7 @@ export const handleMockRequest = (method, path, body) => {
     if (!user) return { error: 'Invalid email or password', status: 401 };
     const safe = { id: user.id, email: user.email, name: user.name, role: user.role, shop_id: user.shop_id };
     setCurrentUser(safe);
-    return { data: safe };
+    return { data: { ...safe, token: `mock-token-${user.id}` } };
   }
 
   if (m === 'post' && path === '/auth/register') {
@@ -126,7 +126,7 @@ export const handleMockRequest = (method, path, body) => {
     mockUsers.push(newUser);
     const safe = { id: newUser.id, email: newUser.email, name: newUser.name, role: newUser.role };
     setCurrentUser(safe);
-    return { data: safe };
+    return { data: { ...safe, token: `mock-token-${newUser.id}` } };
   }
 
   if (m === 'get' && path === '/auth/me') {
