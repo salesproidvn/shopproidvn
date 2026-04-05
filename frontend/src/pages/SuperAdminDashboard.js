@@ -44,9 +44,9 @@ const SuperAdminDashboard = () => {
     try {
       setLoading(true);
       const [statsRes, shopsRes, usersRes] = await Promise.all([
-        axios.get(`${API}/admin/stats`, { withCredentials: true }),
-        axios.get(`${API}/admin/shops`, { withCredentials: true }),
-        axios.get(`${API}/admin/users`, { withCredentials: true })
+        axios.get(`${API}/admin/stats`),
+        axios.get(`${API}/admin/shops`),
+        axios.get(`${API}/admin/users`)
       ]);
       setStats(statsRes.data);
       setShops(shopsRes.data);
@@ -60,7 +60,7 @@ const SuperAdminDashboard = () => {
 
   const handleBlockUser = async (userId) => {
     try {
-      await axios.post(`${API}/admin/users/${userId}/block`, {}, { withCredentials: true });
+      await axios.post(`${API}/admin/users/${userId}/block`, {});
       toast.success(t.userStatusUpdated);
       fetchData();
     } catch (err) {
@@ -71,7 +71,7 @@ const SuperAdminDashboard = () => {
   const handleDeleteUser = async (userId) => {
     if (!window.confirm(t.deleteConfirmUser)) return;
     try {
-      await axios.delete(`${API}/admin/users/${userId}`, { withCredentials: true });
+      await axios.delete(`${API}/admin/users/${userId}`);
       toast.success(t.userDeleted);
       fetchData();
     } catch (err) {
@@ -82,7 +82,7 @@ const SuperAdminDashboard = () => {
   const handleResetPassword = async (userId) => {
     if (!window.confirm(t.resetPasswordConfirm)) return;
     try {
-      await axios.post(`${API}/admin/users/${userId}/reset-password`, {}, { withCredentials: true });
+      await axios.post(`${API}/admin/users/${userId}/reset-password`, {});
       toast.success(t.passwordResetSuccess);
     } catch (err) {
       toast.error(t.failedToUpdate);
@@ -92,7 +92,7 @@ const SuperAdminDashboard = () => {
   const handleCreateOwner = async (e) => {
     e.preventDefault();
     try {
-      await axios.post(`${API}/admin/users`, newOwner, { withCredentials: true });
+      await axios.post(`${API}/admin/users`, newOwner);
       toast.success(t.shopOwnerCreated);
       setShowCreateModal(false);
       setNewOwner({ email: '', password: '', name: '', shop_name: '' });
@@ -104,7 +104,7 @@ const SuperAdminDashboard = () => {
 
   const handleShopStatus = async (shopId, status) => {
     try {
-      await axios.post(`${API}/admin/shops/${shopId}/status?status=${status}`, {}, { withCredentials: true });
+      await axios.post(`${API}/admin/shops/${shopId}/status?status=${status}`, {});
       toast.success(t.shopStatusUpdated);
       fetchData();
     } catch (err) {
@@ -114,7 +114,7 @@ const SuperAdminDashboard = () => {
 
   const handleSetExpiry = async (shopId, expiryDate) => {
     try {
-      await axios.post(`${API}/admin/shops/${shopId}/expiry`, { expiry_date: expiryDate || null }, { withCredentials: true });
+      await axios.post(`${API}/admin/shops/${shopId}/expiry`, { expiry_date: expiryDate || null });
       toast.success(t.expiryUpdated);
       fetchData();
     } catch (err) {

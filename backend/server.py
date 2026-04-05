@@ -226,8 +226,9 @@ async def register(user_data: UserRegister, response: Response):
     user_doc = {"email": email, "password_hash": hashed, "name": user_data.name, "role": "customer", "status": "active", "created_at": datetime.now(timezone.utc)}
     result = await db.users.insert_one(user_doc)
     user_id = str(result.inserted_id)
-    set_auth_cookies(response, create_access_token(user_id, email, "customer"), create_refresh_token(user_id))
-    return {"id": user_id, "email": email, "name": user_data.name, "role": "customer"}
+    access_token = create_access_token(user_id, email, "customer")
+    set_auth_cookies(response, access_token, create_refresh_token(user_id))
+    return {"id": user_id, "email": email, "name": user_data.name, "role": "customer", "token": access_token}
 
 @api_router.post("/auth/login")
 async def login(user_data: UserLogin, response: Response):
@@ -241,13 +242,14 @@ async def login(user_data: UserLogin, response: Response):
         raise HTTPException(status_code=401, detail="Invalid email or password")
     user_id = str(user["_id"])
     role = user.get("role", "customer")
-    set_auth_cookies(response, create_access_token(user_id, email, role), create_refresh_token(user_id))
-    return {"id": user_id, "email": user["email"], "name": user["name"], "role": role, "shop_id": user.get("shop_id")}
+    access_token = create_access_token(user_id, email, role)
+    set_auth_cookies(response, access_token, create_refresh_token(user_id))
+    return {"id": user_id, "email": user["email"], "name": user["name"], "role": role, "shop_id": user.get("shop_id"), "token": access_token}
 
 @api_router.post("/auth/logout")
 async def logout(response: Response):
-    response.delete_cookie(key="access_token", path="/")
-    response.delete_cookie(key="refresh_token", path="/")
+    response.delete_cookie(key="access_token", path="/", samesite="lax")
+    response.delete_cookie(key="refresh_token", path="/", samesite="lax")
     return {"message": "Logged out"}
 
 @api_router.get("/auth/me")
@@ -677,13 +679,42 @@ app.include_router(api_router)
 # ==================== CORS ====================
 
 frontend_url = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[frontend_url, "http://localhost:3000"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+cors_origins_env = os.environ.get('CORS_ORIGINS', '')
+
+if cors_origins_env == "*":
+    # Wildcard mode: dynamically reflect the request Origin header
+    from starlette.middleware.base import BaseHTTPMiddleware
+    from starlette.responses import Response as StarletteResponse
+
+    class DynamicCORSMiddleware(BaseHTTPMiddleware):
+        async def dispatch(self, request, call_next):
+            origin = request.headers.get("origin", "")
+            if request.method == "OPTIONS":
+                resp = StarletteResponse(status_code=200)
+                resp.headers["Access-Control-Allow-Origin"] = origin or "*"
+                resp.headers["Access-Control-Allow-Credentials"] = "true"
+                resp.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+                resp.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With"
+                resp.headers["Access-Control-Max-Age"] = "86400"
+                return resp
+            response = await call_next(request)
+            if origin:
+                response.headers["Access-Control-Allow-Origin"] = origin
+                response.headers["Access-Control-Allow-Credentials"] = "true"
+            return response
+
+    app.add_middleware(DynamicCORSMiddleware)
+else:
+    allowed_origins = [frontend_url, "http://localhost:3000"]
+    if cors_origins_env:
+        allowed_origins.extend([o.strip() for o in cors_origins_env.split(",") if o.strip()])
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=allowed_origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
 # ==================== STARTUP - SEED DATA ====================
 

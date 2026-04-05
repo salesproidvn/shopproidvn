@@ -66,11 +66,11 @@ const ShopOwnerDashboard = () => {
     try {
       setLoading(true);
       const [statsRes, shopRes, productsRes, categoriesRes, ordersRes] = await Promise.all([
-        axios.get(`${API}/dashboard/stats`, { withCredentials: true }),
-        axios.get(`${API}/dashboard/shop`, { withCredentials: true }),
-        axios.get(`${API}/dashboard/products`, { withCredentials: true }),
-        axios.get(`${API}/dashboard/categories`, { withCredentials: true }),
-        axios.get(`${API}/dashboard/orders`, { withCredentials: true })
+        axios.get(`${API}/dashboard/stats`),
+        axios.get(`${API}/dashboard/shop`),
+        axios.get(`${API}/dashboard/products`),
+        axios.get(`${API}/dashboard/categories`),
+        axios.get(`${API}/dashboard/orders`)
       ]);
       setStats(statsRes.data);
       setShop(shopRes.data);
@@ -94,7 +94,6 @@ const ShopOwnerDashboard = () => {
     try {
       setUploading(true);
       const { data } = await axios.post(`${API}/upload/image`, formData, {
-        withCredentials: true,
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       const url = data.url || `${API}/files/${data.id}`;
@@ -136,10 +135,10 @@ const ShopOwnerDashboard = () => {
         image_url: productForm.images?.length > 0 ? productForm.images[0] : productForm.image_url
       };
       if (editingProduct) {
-        await axios.put(`${API}/dashboard/products/${editingProduct.id}`, data, { withCredentials: true });
+        await axios.put(`${API}/dashboard/products/${editingProduct.id}`, data);
         toast.success(t.productUpdated);
       } else {
-        await axios.post(`${API}/dashboard/products`, data, { withCredentials: true });
+        await axios.post(`${API}/dashboard/products`, data);
         toast.success(t.productCreated);
       }
       setShowProductModal(false);
@@ -153,7 +152,7 @@ const ShopOwnerDashboard = () => {
   const handleDeleteProduct = async (prodId) => {
     if (!window.confirm(t.deleteConfirmProduct)) return;
     try {
-      await axios.delete(`${API}/dashboard/products/${prodId}`, { withCredentials: true });
+      await axios.delete(`${API}/dashboard/products/${prodId}`);
       toast.success(t.productDeleted);
       fetchData();
     } catch (err) {
@@ -193,10 +192,10 @@ const ShopOwnerDashboard = () => {
     e.preventDefault();
     try {
       if (editingCategory) {
-        await axios.put(`${API}/dashboard/categories/${editingCategory.id}`, categoryForm, { withCredentials: true });
+        await axios.put(`${API}/dashboard/categories/${editingCategory.id}`, categoryForm);
         toast.success(t.categoryUpdated);
       } else {
-        await axios.post(`${API}/dashboard/categories`, categoryForm, { withCredentials: true });
+        await axios.post(`${API}/dashboard/categories`, categoryForm);
         toast.success(t.categoryCreated);
       }
       setShowCategoryModal(false);
@@ -210,7 +209,7 @@ const ShopOwnerDashboard = () => {
   const handleDeleteCategory = async (catId) => {
     if (!window.confirm(t.deleteConfirmCategory)) return;
     try {
-      await axios.delete(`${API}/dashboard/categories/${catId}`, { withCredentials: true });
+      await axios.delete(`${API}/dashboard/categories/${catId}`);
       toast.success(t.categoryDeleted);
       fetchData();
     } catch (err) {
@@ -226,7 +225,7 @@ const ShopOwnerDashboard = () => {
   const handleSaveShop = async (e) => {
     e.preventDefault();
     try {
-      await axios.put(`${API}/dashboard/shop`, shopForm, { withCredentials: true });
+      await axios.put(`${API}/dashboard/shop`, shopForm);
       toast.success(t.shopUpdated);
       fetchData();
     } catch (err) {
@@ -236,7 +235,7 @@ const ShopOwnerDashboard = () => {
 
   const handleOrderStatus = async (orderId, status) => {
     try {
-      await axios.put(`${API}/dashboard/orders/${orderId}/status`, { status }, { withCredentials: true });
+      await axios.put(`${API}/dashboard/orders/${orderId}/status`, { status });
       toast.success(t.orderStatusUpdated);
       fetchData();
     } catch (err) {
@@ -265,7 +264,7 @@ const ShopOwnerDashboard = () => {
     try {
       await axios.put(`${API}/dashboard/categories/positions`, {
         positions: sorted.map(c => ({ id: c.id, position: c.position }))
-      }, { withCredentials: true });
+      });
       toast.success(t.positionSaved);
       fetchData();
     } catch (err) {
@@ -665,7 +664,7 @@ const ShopOwnerDashboard = () => {
                     <Input value={shopForm.custom_domain || ''} onChange={(e) => setShopForm({ ...shopForm, custom_domain: e.target.value })} placeholder={t.customDomainPlaceholder} className="text-sm flex-1" data-testid="custom-domain-input" />
                     <Button onClick={async () => {
                       try {
-                        await axios.put(`${API}/dashboard/shop`, { custom_domain: shopForm.custom_domain || '' }, { withCredentials: true });
+                        await axios.put(`${API}/dashboard/shop`, { custom_domain: shopForm.custom_domain || '' });
                         toast.success(t.shopUpdated);
                         fetchData();
                       } catch (err) { toast.error(t.failedToSave); }
@@ -690,7 +689,7 @@ const ShopOwnerDashboard = () => {
                       <button key={color.value} onClick={async () => {
                         setThemeColor(color.value);
                         try {
-                          await axios.put(`${API}/dashboard/shop`, { theme_color: color.value }, { withCredentials: true });
+                          await axios.put(`${API}/dashboard/shop`, { theme_color: color.value });
                           toast.success(t.shopUpdated);
                         } catch (err) { toast.error(t.failedToSave); }
                       }}
