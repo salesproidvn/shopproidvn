@@ -21,6 +21,12 @@ export let mockShops = [
     post_carousel_position: 'top',
     max_products: 100,
     max_posts: 50,
+    banners: [
+      'https://images.unsplash.com/photo-1607082349566-187342175e2f?w=1200&h=400&fit=crop',
+      'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=1200&h=400&fit=crop'
+    ],
+    banner_enabled: true,
+    blog_enabled: true,
     created_at: '2025-12-01T00:00:00Z'
   }
 ];

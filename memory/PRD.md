@@ -40,15 +40,19 @@ Create an admin dashboard for a Micro-SaaS E-commerce Platform. Multi-tenant set
 - **Blog Posts**: Shop owner can create/edit/delete posts with:
   - Title, WYSIWYG rich text editor (react-quill-new), max 2000 words
   - Thumbnail image + up to 3 additional images
-  - Attach existing products (shown as cards at bottom of post)
-- **Post Carousel**: Shown on storefront, position configurable (top/bottom) in settings
+  - Attach existing products via search-and-select (shown as cards at bottom of post)
+- **Post Slider Carousel**: Single-post-at-a-time slider with arrows/dots, position configurable (top/bottom) in settings
+- **Banner Slider**: Up to 3 banners, auto-slide, with arrows/dots navigation, configurable on/off in settings
+- **Blog toggle**: Can enable/disable blog section from settings
 - **Full-page Product View**: Replaces modal, with red close button (X)
+- **Product Description**: Uses WYSIWYG rich text editor (same as blog posts)
 - **Bottom Bar**: Fixed narrow bar with Call, Message, Map, Categories
 - **Category Pagination**: Max 10 products per category, "Load More" button
 - **Contact Page**: Shop info display + contact form
 - **Menu**: Posts and Contact links added to storefront header
 - **Floating Icons Removed**: FloatingActions component removed
 - **Super Admin Limits**: Max products and max posts per shop controls
+- **Back Navigation**: All back buttons use browser history (navigate(-1)) for correct return
 
 ## Credentials
 - Admin: admin@thewishop.com / admin123

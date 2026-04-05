@@ -58,6 +58,14 @@ const BlogPostPage = () => {
     return post.attached_products.map(pid => products.find(p => p.id === pid)).filter(Boolean);
   };
 
+  const goBack = () => {
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate(`/shop/${slug}`);
+    }
+  };
+
   // Single post detail view
   if (selectedPost) {
     const attachedProds = getAttachedProducts(selectedPost);
@@ -66,8 +74,8 @@ const BlogPostPage = () => {
         <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-lg border-b border-[#E2E8F0]">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between h-14">
-              <Button variant="ghost" size="sm" className="gap-2 rounded-[5px]" onClick={() => navigate(`/shop/${slug}/posts`)} data-testid="post-back-btn">
-                <ArrowLeft className="w-4 h-4" /> {t.posts}
+              <Button variant="ghost" size="sm" className="gap-2 rounded-[5px]" onClick={goBack} data-testid="post-back-btn">
+                <ArrowLeft className="w-4 h-4" /> {t.back || 'Back'}
               </Button>
               <Link to={`/shop/${slug}`}>
                 <span className="font-semibold text-[#0F172A]">{shop?.name}</span>
@@ -121,8 +129,8 @@ const BlogPostPage = () => {
       <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-lg border-b border-[#E2E8F0]">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-14">
-            <Button variant="ghost" size="sm" className="gap-2 rounded-[5px]" onClick={() => navigate(`/shop/${slug}`)} data-testid="posts-back-btn">
-              <ArrowLeft className="w-4 h-4" /> {shop?.name}
+            <Button variant="ghost" size="sm" className="gap-2 rounded-[5px]" onClick={goBack} data-testid="posts-back-btn">
+              <ArrowLeft className="w-4 h-4" /> {t.back || 'Back'}
             </Button>
             <span className="font-bold text-[#0F172A]">{t.posts}</span>
             <div className="w-20" />

@@ -60,6 +60,7 @@ const ShopOwnerDashboard = () => {
   const [postForm, setPostForm] = useState({ title: '', description: '', thumbnail: '', images: [], attached_products: [] });
   const postFileInputRef = useRef(null);
   const postImagesInputRef = useRef(null);
+  const bannerInputRef = useRef(null);
 
   useEffect(() => {
     if (authLoading) return;
@@ -363,6 +364,42 @@ const ShopOwnerDashboard = () => {
   };
 
   const quillModules = { toolbar: [['bold', 'italic', 'underline'], [{ list: 'ordered' }, { list: 'bullet' }], ['link'], ['clean']] };
+
+  const handleBannerUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const currentBanners = shopForm.banners || [];
+    if (currentBanners.length >= 3) { toast.error(t.bannerMaxReached); return; }
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+      const { data } = await axios.post(`${API}/upload/image`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+      const url = data.url || `${API}/files/${data.id}`;
+      const newBanners = [...currentBanners, url];
+      setShopForm({ ...shopForm, banners: newBanners });
+      await axios.put(`${API}/dashboard/shop`, { banners: newBanners });
+      toast.success(t.bannerUploaded);
+    } catch { toast.error(t.uploadFailed); }
+    if (bannerInputRef.current) bannerInputRef.current.value = '';
+  };
+
+  const removeBanner = async (idx) => {
+    const newBanners = (shopForm.banners || []).filter((_, i) => i !== idx);
+    setShopForm({ ...shopForm, banners: newBanners });
+    try {
+      await axios.put(`${API}/dashboard/shop`, { banners: newBanners });
+      toast.success(t.shopUpdated);
+    } catch { toast.error(t.failedToSave); }
+  };
+
+  const toggleShopSetting = async (field) => {
+    const newVal = !shopForm[field];
+    setShopForm({ ...shopForm, [field]: newVal });
+    try {
+      await axios.put(`${API}/dashboard/shop`, { [field]: newVal });
+      toast.success(t.shopUpdated);
+    } catch { toast.error(t.failedToSave); }
+  };
 
   const menuItems = [
     { id: 'overview', label: t.overview, icon: LayoutDashboard },
@@ -744,7 +781,7 @@ const ShopOwnerDashboard = () => {
                           </div>
                         </div>
                         <div className="flex gap-1 flex-shrink-0">
-                          <Link to={`/shop/${shop?.slug}/posts/${post.id}`} target="_blank">
+                          <Link to={`/shop/${shop?.slug}/posts/${post.id}`}>
                             <Button variant="outline" size="sm" className="h-8 text-xs" data-testid={`view-post-${post.id}`}>
                               <Eye className="w-3 h-3 mr-1" /> {t.view || 'View'}
                             </Button>
@@ -851,6 +888,55 @@ const ShopOwnerDashboard = () => {
                         {pos === 'top' ? t.postPositionTop : t.postPositionBottom}
                       </Button>
                     ))}
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="border-0 shadow-sm">
+                <CardHeader className="p-4">
+                  <CardTitle className="text-base flex items-center gap-2"><Image className="w-4 h-4" /> {t.bannerSettings}</CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 pt-0 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-[#334155]">{t.enableBanner}</span>
+                    <button onClick={() => toggleShopSetting('banner_enabled')}
+                      className={`w-11 h-6 rounded-full transition-colors relative ${shopForm.banner_enabled ? '' : 'bg-[#E2E8F0]'}`}
+                      style={shopForm.banner_enabled ? { backgroundColor: themeColor } : {}}
+                      data-testid="toggle-banner">
+                      <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${shopForm.banner_enabled ? 'translate-x-[22px]' : 'translate-x-0.5'}`} />
+                    </button>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-[#334155]">{t.enableBlog}</span>
+                    <button onClick={() => toggleShopSetting('blog_enabled')}
+                      className={`w-11 h-6 rounded-full transition-colors relative ${shopForm.blog_enabled ? '' : 'bg-[#E2E8F0]'}`}
+                      style={shopForm.blog_enabled ? { backgroundColor: themeColor } : {}}
+                      data-testid="toggle-blog">
+                      <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${shopForm.blog_enabled ? 'translate-x-[22px]' : 'translate-x-0.5'}`} />
+                    </button>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium mb-2">{t.banners} ({(shopForm.banners || []).length}/3)</label>
+                    <div className="flex gap-3 flex-wrap">
+                      {(shopForm.banners || []).map((url, idx) => (
+                        <div key={idx} className="relative w-40 h-20 rounded-[5px] overflow-hidden bg-[#F8FAFC] border">
+                          <img src={url} alt="" className="w-full h-full object-cover" />
+                          <button onClick={() => removeBanner(idx)} className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs" data-testid={`remove-banner-${idx}`}>
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                      {(shopForm.banners || []).length < 3 && (
+                        <>
+                          <input type="file" ref={bannerInputRef} onChange={handleBannerUpload} accept="image/*" className="hidden" />
+                          <button onClick={() => bannerInputRef.current?.click()}
+                            className="w-40 h-20 rounded-[5px] border-2 border-dashed border-[#E2E8F0] flex flex-col items-center justify-center gap-1 text-[#94A3B8] hover:border-[#94A3B8] transition-colors"
+                            data-testid="add-banner-btn">
+                            <Upload className="w-5 h-5" />
+                            <span className="text-[10px]">{t.addBanner}</span>
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </CardContent>
               </Card>

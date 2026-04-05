@@ -52,8 +52,19 @@ const StorefrontPage = () => {
   const [showCategoryMenu, setShowCategoryMenu] = useState(false);
   const [expandedCategories, setExpandedCategories] = useState({});
   const [postCarouselIndex, setPostCarouselIndex] = useState(0);
+  const [bannerIndex, setBannerIndex] = useState(0);
 
   useEffect(() => { fetchShopData(); }, [slug]);
+
+  // Auto-slide banner
+  useEffect(() => {
+    const banners = shop?.banners || [];
+    if (banners.length <= 1 || !shop?.banner_enabled) return;
+    const interval = setInterval(() => {
+      setBannerIndex(prev => (prev + 1) % banners.length);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [shop]);
 
   // Auto-open product from query param (e.g., from blog attached product link)
   useEffect(() => {
@@ -167,9 +178,44 @@ const StorefrontPage = () => {
     );
   }
 
-  // Post Carousel Component
+  // Banner Slider Component
+  const BannerSlider = () => {
+    const banners = shop?.banners || [];
+    if (!banners.length || !shop?.banner_enabled) return null;
+    return (
+      <div className="mb-8" data-testid="banner-slider">
+        <div className="relative max-w-4xl mx-auto overflow-hidden rounded-[5px]">
+          <div className="relative aspect-[3/1] bg-[#F8FAFC]">
+            {banners.map((url, idx) => (
+              <img key={idx} src={url} alt="" className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ${idx === bannerIndex ? 'opacity-100' : 'opacity-0'}`} />
+            ))}
+          </div>
+          {banners.length > 1 && (
+            <>
+              <button onClick={() => setBannerIndex((bannerIndex - 1 + banners.length) % banners.length)}
+                className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/30 hover:bg-black/50 text-white rounded-full flex items-center justify-center transition-colors" data-testid="banner-prev">
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <button onClick={() => setBannerIndex((bannerIndex + 1) % banners.length)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/30 hover:bg-black/50 text-white rounded-full flex items-center justify-center transition-colors" data-testid="banner-next">
+                <ChevronRight className="w-4 h-4" />
+              </button>
+              <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5">
+                {banners.map((_, idx) => (
+                  <button key={idx} onClick={() => setBannerIndex(idx)}
+                    className={`w-2 h-2 rounded-full transition-all ${idx === bannerIndex ? 'bg-white w-4' : 'bg-white/50'}`} />
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // Post Slider Component (single post at a time with arrows)
   const PostCarousel = () => {
-    if (!posts.length) return null;
+    if (!posts.length || shop?.blog_enabled === false) return null;
     return (
       <div className="mb-8" data-testid="post-carousel">
         <div className="flex items-center justify-between mb-4">
@@ -177,27 +223,39 @@ const StorefrontPage = () => {
           <Link to={`/shop/${slug}/posts`}><Button variant="ghost" size="sm" className="text-sm rounded-[5px]" style={{ color: themeColor }}>{t.readMore} &rarr;</Button></Link>
         </div>
         <div className="relative">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {posts.slice(postCarouselIndex, postCarouselIndex + 3).map(post => (
-              <Link key={post.id} to={`/shop/${slug}/posts/${post.id}`} className="bg-white border border-[#E2E8F0] rounded-[5px] overflow-hidden hover:shadow-lg transition-all group" data-testid={`carousel-post-${post.id}`}>
-                {post.thumbnail && (
-                  <div className="aspect-video overflow-hidden">
-                    <img src={post.thumbnail} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
-                  </div>
-                )}
-                <div className="p-3">
-                  <p className="text-[10px] text-[#94A3B8] mb-1 flex items-center gap-1"><Calendar className="w-3 h-3" />{new Date(post.created_at).toLocaleDateString('vi-VN')}</p>
-                  <h4 className="font-semibold text-sm text-[#0F172A] line-clamp-2 group-hover:transition-colors" style={{ '--hover-color': themeColor }}>{post.title}</h4>
+          <div className="overflow-hidden">
+            <div className="flex transition-transform duration-500 ease-in-out" style={{ transform: `translateX(-${postCarouselIndex * 100}%)` }}>
+              {posts.map(post => (
+                <div key={post.id} className="w-full flex-shrink-0 px-1">
+                  <Link to={`/shop/${slug}/posts/${post.id}`} className="flex bg-white border border-[#E2E8F0] rounded-[5px] overflow-hidden hover:shadow-lg transition-all group" data-testid={`carousel-post-${post.id}`}>
+                    {post.thumbnail && (
+                      <div className="w-1/3 sm:w-1/4 flex-shrink-0 overflow-hidden">
+                        <img src={post.thumbnail} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform min-h-[120px]" />
+                      </div>
+                    )}
+                    <div className="flex-1 p-4 flex flex-col justify-center">
+                      <p className="text-[10px] text-[#94A3B8] mb-1 flex items-center gap-1"><Calendar className="w-3 h-3" />{new Date(post.created_at).toLocaleDateString('vi-VN')}</p>
+                      <h4 className="font-semibold text-sm sm:text-base text-[#0F172A] line-clamp-2 mb-1">{post.title}</h4>
+                      <p className="text-xs text-[#64748B] line-clamp-2 hidden sm:block" dangerouslySetInnerHTML={{ __html: post.description.replace(/<[^>]+>/g, '') }} />
+                    </div>
+                  </Link>
                 </div>
-              </Link>
-            ))}
+              ))}
+            </div>
           </div>
-          {posts.length > 3 && (
-            <div className="flex justify-center gap-2 mt-3">
-              <Button variant="outline" size="icon" className="w-8 h-8 rounded-[5px]" disabled={postCarouselIndex === 0} onClick={() => setPostCarouselIndex(Math.max(0, postCarouselIndex - 3))}>
+          {posts.length > 1 && (
+            <div className="flex items-center justify-center gap-3 mt-3">
+              <Button variant="outline" size="icon" className="w-8 h-8 rounded-[5px]" disabled={postCarouselIndex === 0} onClick={() => setPostCarouselIndex(prev => Math.max(0, prev - 1))}>
                 <ChevronLeft className="w-4 h-4" />
               </Button>
-              <Button variant="outline" size="icon" className="w-8 h-8 rounded-[5px]" disabled={postCarouselIndex + 3 >= posts.length} onClick={() => setPostCarouselIndex(Math.min(posts.length - 3, postCarouselIndex + 3))}>
+              <div className="flex gap-1">
+                {posts.map((_, idx) => (
+                  <button key={idx} onClick={() => setPostCarouselIndex(idx)}
+                    className={`w-2 h-2 rounded-full transition-all ${idx === postCarouselIndex ? 'w-4' : ''}`}
+                    style={{ backgroundColor: idx === postCarouselIndex ? themeColor : '#E2E8F0' }} />
+                ))}
+              </div>
+              <Button variant="outline" size="icon" className="w-8 h-8 rounded-[5px]" disabled={postCarouselIndex >= posts.length - 1} onClick={() => setPostCarouselIndex(prev => Math.min(posts.length - 1, prev + 1))}>
                 <ChevronRight className="w-4 h-4" />
               </Button>
             </div>
@@ -321,9 +379,11 @@ const StorefrontPage = () => {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Link to={`/shop/${slug}/posts`} className="hidden sm:block" data-testid="menu-posts">
-                <Button variant="ghost" size="sm" className="text-sm gap-1"><FileText className="w-4 h-4" /> {t.posts}</Button>
-              </Link>
+              {shop?.blog_enabled !== false && (
+                <Link to={`/shop/${slug}/posts`} className="hidden sm:block" data-testid="menu-posts">
+                  <Button variant="ghost" size="sm" className="text-sm gap-1"><FileText className="w-4 h-4" /> {t.posts}</Button>
+                </Link>
+              )}
               <Link to={`/shop/${slug}/contact`} className="hidden sm:block" data-testid="menu-contact">
                 <Button variant="ghost" size="sm" className="text-sm gap-1"><Mail className="w-4 h-4" /> {t.contact}</Button>
               </Link>
@@ -370,8 +430,13 @@ const StorefrontPage = () => {
           <PriceFilter onFilter={setPriceFilter} activeFilter={priceFilter} />
         </div>
 
-        {/* Post carousel at top */}
-        {postPosition === 'top' && <PostCarousel />}
+        {/* Banner + Post carousel at top */}
+        {postPosition === 'top' && (
+          <>
+            <BannerSlider />
+            <PostCarousel />
+          </>
+        )}
 
         {filteredProducts.length === 0 ? (
           <div className="text-center py-24"><p className="text-[#64748B] text-lg">{t.noProducts}</p></div>
@@ -409,8 +474,13 @@ const StorefrontPage = () => {
           </div>
         )}
 
-        {/* Post carousel at bottom */}
-        {postPosition === 'bottom' && <div className="mt-12"><PostCarousel /></div>}
+        {/* Banner + Post carousel at bottom */}
+        {postPosition === 'bottom' && (
+          <div className="mt-12">
+            <BannerSlider />
+            <PostCarousel />
+          </div>
+        )}
       </main>
 
       {/* Footer */}

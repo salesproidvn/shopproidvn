@@ -335,6 +335,17 @@ export const vi = {
   send: 'Gửi',
   close: 'Đóng',
   view: 'Xem',
+  back: 'Quay lại',
+
+  // Banner
+  banners: 'Banner',
+  bannerSettings: 'Cài đặt banner',
+  addBanner: 'Thêm banner',
+  removeBanner: 'Xóa banner',
+  enableBanner: 'Bật banner',
+  enableBlog: 'Bật bài viết',
+  bannerMaxReached: 'Tối đa 3 banner',
+  bannerUploaded: 'Banner đã được tải lên',
 };
 
 export const en = {
@@ -652,6 +663,17 @@ export const en = {
   send: 'Send',
   close: 'Close',
   view: 'View',
+  back: 'Back',
+
+  // Banner
+  banners: 'Banners',
+  bannerSettings: 'Banner Settings',
+  addBanner: 'Add Banner',
+  removeBanner: 'Remove Banner',
+  enableBanner: 'Enable Banner',
+  enableBlog: 'Enable Blog',
+  bannerMaxReached: 'Maximum 3 banners',
+  bannerUploaded: 'Banner uploaded',
 };
 
 export const translations = { vi, en };
