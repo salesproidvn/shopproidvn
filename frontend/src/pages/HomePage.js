@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import Header from '../components/Header';
 import ProductCard from '../components/ProductCard';
+import PriceFilter from '../components/PriceFilter';
 import { useLanguage } from '../context/LanguageContext';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Loader2 } from 'lucide-react';
@@ -14,6 +15,7 @@ const HomePage = () => {
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('All Categories');
   const [searchQuery, setSearchQuery] = useState('');
+  const [priceFilter, setPriceFilter] = useState({ id: 'all', min: 0, max: Infinity });
   const [loading, setLoading] = useState(true);
 
   const fetchProducts = async (category = null, search = null) => {
@@ -55,6 +57,11 @@ const HomePage = () => {
     fetchProducts(selectedCategory, query);
   };
 
+  const filteredProducts = products.filter(p => {
+    if (priceFilter.id === 'all') return true;
+    return p.price >= priceFilter.min && p.price <= priceFilter.max;
+  });
+
   return (
     <div className="min-h-screen flex flex-col bg-white" data-testid="home-page">
       <Header searchQuery={searchQuery} setSearchQuery={setSearchQuery} onSearch={handleSearch} />
@@ -80,18 +87,19 @@ const HomePage = () => {
                 </SelectContent>
               </Select>
             </div>
+            <PriceFilter onFilter={setPriceFilter} activeFilter={priceFilter} />
 
             {loading ? (
               <div className="flex items-center justify-center py-24">
                 <Loader2 className="w-8 h-8 animate-spin text-[#0055FF]" />
               </div>
-            ) : products.length === 0 ? (
+            ) : filteredProducts.length === 0 ? (
               <div className="text-center py-24">
                 <p className="text-[#64748B] text-lg">{t.noProducts}</p>
               </div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 lg:gap-6" data-testid="product-grid">
-                {products.map((product) => (
+                {filteredProducts.map((product) => (
                   <ProductCard key={product.id} product={product} />
                 ))}
               </div>

@@ -199,6 +199,64 @@ export const vi = {
   userDeleted: 'Người dùng đã bị xóa',
   shopStatusUpdated: 'Trạng thái cửa hàng đã cập nhật',
   shopOwnerCreated: 'Chủ cửa hàng đã được tạo',
+
+  // Checkout Page
+  checkoutTitle: 'Thanh toán đơn hàng',
+  checkoutSubtitle: 'Vui lòng điền thông tin giao hàng',
+  orderSummary: 'Tóm tắt đơn hàng',
+  shippingInfo: 'Thông tin giao hàng',
+  subtotal: 'Tạm tính',
+  shipping: 'Phí vận chuyển',
+  freeShipping: 'Miễn phí',
+  placeOrder: 'Đặt hàng',
+  backToCart: 'Quay lại giỏ hàng',
+  
+  // Thank You Page
+  thankYou: 'Cảm ơn bạn!',
+  orderConfirmed: 'Đơn hàng đã được xác nhận',
+  orderConfirmedDesc: 'Chúng tôi đã nhận đơn hàng của bạn và sẽ liên hệ sớm nhất.',
+  yourOrderId: 'Mã đơn hàng của bạn',
+  continueShopping: 'Tiếp tục mua sắm',
+  
+  // Shop Expiry
+  expiryDate: 'Ngày hết hạn',
+  setExpiry: 'Đặt hạn',
+  shopExpired: 'Cửa hàng tạm ngưng',
+  shopExpiredMsg: 'Cửa hàng này hiện đang tạm ngưng hoạt động. Vui lòng liên hệ quản trị viên.',
+  expired: 'Hết hạn',
+  noExpiry: 'Không giới hạn',
+  expiryUpdated: 'Ngày hết hạn đã cập nhật',
+  
+  // Price Filter
+  priceFilter: 'Lọc theo giá',
+  priceRange: 'Khoảng giá',
+  minPrice: 'Giá thấp nhất',
+  maxPrice: 'Giá cao nhất',
+  applyFilter: 'Áp dụng',
+  clearFilter: 'Xóa bộ lọc',
+  under500k: 'Dưới 500K',
+  from500kTo1m: '500K - 1M',
+  from1mTo5m: '1M - 5M',
+  over5m: 'Trên 5M',
+  allPrices: 'Tất cả giá',
+  
+  // Social Login
+  orLoginWith: 'Hoặc đăng nhập bằng',
+  continueWithGoogle: 'Tiếp tục với Google',
+  continueWithFacebook: 'Tiếp tục với Facebook',
+  
+  // Contact Page
+  contactUs: 'Liên hệ với chúng tôi',
+  contactInfo: 'Thông tin liên hệ',
+  contactDesc: 'Hãy liên hệ nếu bạn cần hỗ trợ',
+  sendMessage: 'Gửi tin nhắn',
+  yourName: 'Tên của bạn',
+  yourEmail: 'Email của bạn',
+  yourMessage: 'Nội dung tin nhắn',
+  messageSent: 'Tin nhắn đã được gửi!',
+  quickLinks: 'Liên kết nhanh',
+  businessHours: 'Giờ làm việc',
+  businessHoursValue: 'T2 - T7: 8:00 - 18:00',
 };
 
 export const en = {
@@ -384,6 +442,64 @@ export const en = {
   userDeleted: 'User deleted',
   shopStatusUpdated: 'Shop status updated',
   shopOwnerCreated: 'Shop owner created',
+
+  // Checkout Page
+  checkoutTitle: 'Checkout',
+  checkoutSubtitle: 'Please fill in your shipping information',
+  orderSummary: 'Order Summary',
+  shippingInfo: 'Shipping Information',
+  subtotal: 'Subtotal',
+  shipping: 'Shipping',
+  freeShipping: 'Free',
+  placeOrder: 'Place Order',
+  backToCart: 'Back to Cart',
+  
+  // Thank You Page
+  thankYou: 'Thank You!',
+  orderConfirmed: 'Your order has been confirmed',
+  orderConfirmedDesc: 'We have received your order and will contact you shortly.',
+  yourOrderId: 'Your order ID',
+  continueShopping: 'Continue Shopping',
+  
+  // Shop Expiry
+  expiryDate: 'Expiry Date',
+  setExpiry: 'Set Expiry',
+  shopExpired: 'Shop Unavailable',
+  shopExpiredMsg: 'This shop is currently unavailable. Please contact the administrator.',
+  expired: 'Expired',
+  noExpiry: 'No Expiry',
+  expiryUpdated: 'Expiry date updated',
+  
+  // Price Filter
+  priceFilter: 'Filter by Price',
+  priceRange: 'Price Range',
+  minPrice: 'Min Price',
+  maxPrice: 'Max Price',
+  applyFilter: 'Apply',
+  clearFilter: 'Clear Filter',
+  under500k: 'Under 500K',
+  from500kTo1m: '500K - 1M',
+  from1mTo5m: '1M - 5M',
+  over5m: 'Over 5M',
+  allPrices: 'All Prices',
+  
+  // Social Login
+  orLoginWith: 'Or login with',
+  continueWithGoogle: 'Continue with Google',
+  continueWithFacebook: 'Continue with Facebook',
+  
+  // Contact Page
+  contactUs: 'Contact Us',
+  contactInfo: 'Contact Information',
+  contactDesc: 'Get in touch if you need support',
+  sendMessage: 'Send Message',
+  yourName: 'Your Name',
+  yourEmail: 'Your Email',
+  yourMessage: 'Your Message',
+  messageSent: 'Message sent!',
+  quickLinks: 'Quick Links',
+  businessHours: 'Business Hours',
+  businessHoursValue: 'Mon - Sat: 8:00 AM - 6:00 PM',
 };
 
 export const translations = { vi, en };

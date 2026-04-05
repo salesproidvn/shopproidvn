@@ -10,7 +10,7 @@ import { Input } from '../components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog';
 import { 
   LayoutDashboard, Store, Users, ShoppingCart, 
-  LogOut, Menu, X, TrendingUp
+  LogOut, Menu, X, TrendingUp, CalendarClock
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -106,6 +106,16 @@ const SuperAdminDashboard = () => {
     try {
       await axios.post(`${API}/admin/shops/${shopId}/status?status=${status}`, {}, { withCredentials: true });
       toast.success(t.shopStatusUpdated);
+      fetchData();
+    } catch (err) {
+      toast.error(t.failedToUpdate);
+    }
+  };
+
+  const handleSetExpiry = async (shopId, expiryDate) => {
+    try {
+      await axios.post(`${API}/admin/shops/${shopId}/expiry`, { expiry_date: expiryDate || null }, { withCredentials: true });
+      toast.success(t.expiryUpdated);
       fetchData();
     } catch (err) {
       toast.error(t.failedToUpdate);
@@ -247,6 +257,7 @@ const SuperAdminDashboard = () => {
                         <th className="text-left py-3 px-4 font-medium text-[#64748B]">{t.owner}</th>
                         <th className="text-left py-3 px-4 font-medium text-[#64748B]">{t.orders}</th>
                         <th className="text-left py-3 px-4 font-medium text-[#64748B]">{t.status}</th>
+                        <th className="text-left py-3 px-4 font-medium text-[#64748B]">{t.expiryDate}</th>
                         <th className="text-left py-3 px-4 font-medium text-[#64748B]">{t.actions}</th>
                       </tr>
                     </thead>
@@ -265,6 +276,25 @@ const SuperAdminDashboard = () => {
                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${shop.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                               {shop.status}
                             </span>
+                            {shop.expiry_date && new Date(shop.expiry_date) < new Date() && (
+                              <span className="ml-2 px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700">{t.expired}</span>
+                            )}
+                          </td>
+                          <td className="py-3 px-4">
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="date"
+                                value={shop.expiry_date ? shop.expiry_date.split('T')[0] : ''}
+                                onChange={(e) => handleSetExpiry(shop.id, e.target.value ? new Date(e.target.value).toISOString() : null)}
+                                className="text-sm border rounded px-2 py-1 w-36"
+                                data-testid={`expiry-input-${shop.id}`}
+                              />
+                              {shop.expiry_date && (
+                                <button onClick={() => handleSetExpiry(shop.id, null)} className="text-xs text-red-500 hover:text-red-600">
+                                  <X className="w-4 h-4" />
+                                </button>
+                              )}
+                            </div>
                           </td>
                           <td className="py-3 px-4">
                             <Button variant="outline" size="sm" onClick={() => handleShopStatus(shop.id, shop.status === 'active' ? 'suspended' : 'active')} data-testid={`toggle-shop-${shop.id}`}>

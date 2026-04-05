@@ -15,8 +15,9 @@ export let mockShops = [
     theme_color: '#0055FF', is_active: true, status: 'active',
     description: 'Premium products curated for the modern lifestyle',
     logo_url: '', contact_phone: '0912 345 678', contact_email: 'hello@theeliteshop.com',
-    address: '123 Nguyen Hue, Q1, TP.HCM', social_facebook: '', social_instagram: '',
+    address: '123 Nguyen Hue, Q1, TP.HCM', social_facebook: 'https://facebook.com/theeliteshop', social_instagram: 'https://instagram.com/theeliteshop',
     order_count: 4, owner: { email: 'demo@thewishop.com' },
+    expiry_date: null,
     created_at: '2025-12-01T00:00:00Z'
   }
 ];
@@ -281,6 +282,14 @@ export const handleMockRequest = (method, path, body) => {
     const status = body._params?.status || 'active';
     const idx = mockShops.findIndex(s => s.id === sid);
     if (idx !== -1) mockShops[idx].status = status;
+    return { data: { ok: true } };
+  }
+
+  const shopExpiryMatch = path.match(/^\/admin\/shops\/(.+)\/expiry$/);
+  if (shopExpiryMatch && m === 'post') {
+    const sid = shopExpiryMatch[1];
+    const idx = mockShops.findIndex(s => s.id === sid);
+    if (idx !== -1) mockShops[idx].expiry_date = body.expiry_date || null;
     return { data: { ok: true } };
   }
 
