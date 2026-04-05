@@ -1,105 +1,68 @@
-# The Wi Shop - Multi-Tenant E-commerce Platform PRD
+# E-commerce Platform PRD
 
-## Project Overview
-A multi-tenant e-commerce platform that allows individuals and small businesses to create and manage online storefronts with unique URLs.
+## Original Problem Statement
+Create a desktop UI for a Micro-SaaS E-commerce Platform with multi-tenant setup including Super-Admin, Shop Owner, and public Storefront views. The UI should support Vietnamese language.
 
-## Date: 2026-04-04
+## Architecture
+- **Frontend:** React + Tailwind CSS + Shadcn UI
+- **Backend:** FastAPI + Motor (async MongoDB) + PyJWT
+- **Database:** MongoDB (multi-tenant via `shop_id`)
 
-## Latest Updates
-- Mobile responsive: 2 columns with proper text/button sizing
-- Product image upload via object storage
-- Rich text editor toolbar for product descriptions (bold, italic, list)
-- Click product in dashboard to view details
-- Product detail modal with Edit button
-- Shop preview links (sidebar + settings)
-- Admin can reset any user password to "iLoveProID@"
-- Removed hero section and footer from homepage
+## Core Features — Completed
 
-## What's Been Implemented
+### Authentication & Multi-tenancy (DONE)
+- JWT-based auth with cookie sessions
+- Roles: super_admin, shop_owner, customer
+- Shop owners tied to specific shops
 
-### User Roles & Permissions
-- **Super Admin**: Platform owner with full access to manage all shops and users
-- **Shop Owner**: Merchant account linked to one unique shop
-- **Customer**: Public users who browse and order from storefronts
+### Super Admin Dashboard (DONE)
+- Overview stats (shops, owners, orders, revenue)
+- Shop management (activate/suspend)
+- User management (create owner, block/unblock, reset password to `iLoveProID@`, delete)
+- Mobile-responsive sidebar with hamburger menu overlay
 
-### Features Implemented
+### Shop Owner Dashboard (DONE)
+- Overview stats, recent orders
+- Product CRUD with image upload (Emergent object storage), markdown description
+- Category CRUD
+- Order management with status updates
+- Shop settings (profile, theme colors, preview link)
+- Mobile-responsive sidebar with hamburger menu overlay
 
-#### Super Admin Dashboard (/admin)
-- View platform analytics (total shops, orders, revenue, shop owners)
-- View and manage all registered shops
-- Block/suspend shops
-- View and manage all users
-- Create new shop owner accounts
-- Block/unblock user accounts
-- Delete user accounts
-
-#### Shop Owner Dashboard (/dashboard)
-- Dashboard overview with stats (products, orders, pending orders, revenue)
-- Product Management: Create, Edit, Delete products (5-column grid)
-- Category Management: Create, Edit, Delete categories
-- Order Management: View orders, update status, **view order details**
-- Shop Settings: Edit shop profile, logo, contact info, social links
-- **Theme Color Customization**: 6 color options (Blue, Green, Purple, Red, Orange, Pink)
-
-#### Public Storefront (/shop/:slug)
-- Unique URL for each shop (e.g., /shop/the-elite-shop)
-- Product catalog with search and category filtering (5-column grid)
+### Public Storefront (DONE)
+- Per-shop storefronts at `/shop/{slug}`
+- 5-column desktop / 2-column mobile product grids
+- Local cart with checkout flow
+- Search and category filtering
 - Product detail modals
-- Shopping cart functionality
-- Checkout/order form with customer details
-- Contact info display
 
-#### Homepage
-- Clean product grid (5 columns desktop, 2 columns mobile)
-- No hero section
-- No footer
-- Category filter
-- Search functionality
+### Vietnamese i18n (DONE — Feb 2026)
+- Full Vietnamese translations across ALL components
+- Language switcher (globe icon in Header) toggles VI/EN
+- Translations applied to: HomePage, StorefrontPage, AuthModal, CartDrawer, ProductModal, WishlistPage, ShopOwnerDashboard, SuperAdminDashboard
 
-### UI/UX Updates
-- All modals (login, product, cart, checkout) have white backgrounds
-- Responsive grid: 5 columns desktop, 2 columns mobile
-- Clean, minimal design without hero/footer clutter
+### Mobile UI (DONE — Feb 2026)
+- "Add to Cart" as full-width text button below price on mobile
+- Mobile-responsive sidebars on both dashboards (hamburger menu, overlay, backdrop, auto-close on nav click)
+- 2-column product grids on mobile
 
-### Technical Implementation
-- **Backend**: FastAPI with MongoDB (multi-tenant data isolation)
-- **Frontend**: React with Tailwind CSS, Shadcn UI components
-- **Authentication**: JWT tokens with httpOnly cookies
-- **Currency**: VND (Vietnamese Dong)
-- **Theme**: Blue/White color scheme (customizable per shop)
+## DB Schema
+- **users:** email, password_hash, role, shop_id, name, status, created_at
+- **shops:** owner_id, name, slug, theme_color, is_active, description, logo_url, contact_*, address, created_at
+- **products:** shop_id, name, description, price, image_url, category, stock, is_active, created_at
 
-## Test Credentials
-- **Super Admin**: admin@thewishop.com / admin123
-- **Demo Shop Owner**: demo@thewishop.com / demo123
-- **Demo Shop URL**: /shop/the-elite-shop
+## Key API Endpoints
+- Auth: POST /api/auth/login, /api/auth/register, GET /api/auth/me
+- Shops: GET /api/shops, /api/shops/{slug}
+- Products: GET /api/products, POST/PUT/DELETE /api/dashboard/products
+- Admin: GET /api/admin/stats, /api/admin/shops, /api/admin/users
+- Upload: POST /api/upload/image
 
-## API Endpoints
-- Auth: /api/auth/login, /api/auth/register, /api/auth/logout, /api/auth/me
-- Admin: /api/admin/stats, /api/admin/shops, /api/admin/users
-- Dashboard: /api/dashboard/stats, /api/dashboard/shop, /api/dashboard/products, /api/dashboard/categories, /api/dashboard/orders
-- Public: /api/shop/{slug}, /api/shop/{slug}/products, /api/shop/{slug}/categories, /api/shop/{slug}/orders
+## Backlog
+- P1: Order notifications (email/SMS)
+- P2: Inventory alerts for low stock
+- P2: Sales analytics charts in dashboards
 
-## Prioritized Backlog
-
-### P0 (Next Priority)
-- Payment integration (Stripe/MoMo for VND)
-- Order confirmation emails
-- Image upload for products (currently URL-based)
-
-### P1 (High Priority)
-- Shop owner onboarding flow (self-registration)
-- Analytics dashboard for shop owners
-- Inventory management with low stock alerts
-- Customer accounts and order history
-
-### P2 (Medium Priority)
-- Product variants (size, color)
-- Discount codes and promotions
-- Reviews and ratings
-- Multi-language support
-
-### P3 (Future Enhancements)
-- Custom domain support for shops
-- Mobile app (React Native)
-- Subscription plans for shop tiers
-- Bulk product import/export
+## Credentials
+- Shop Owner: demo@thewishop.com / demo123
+- Super Admin: admin@thewishop.com / admin123
