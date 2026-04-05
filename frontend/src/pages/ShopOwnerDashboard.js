@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import { formatVND } from '../utils/format';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
@@ -20,6 +21,7 @@ const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 const ShopOwnerDashboard = () => {
   const { user, logout, loading: authLoading } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
   const [stats, setStats] = useState(null);
@@ -29,13 +31,12 @@ const ShopOwnerDashboard = () => {
   const [orders, setOrders] = useState([]);
   const [activeTab, setActiveTab] = useState('overview');
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   
-  // Theme color
   const [themeColor, setThemeColor] = useState('#0055FF');
 
-  // Modal states
   const [showProductModal, setShowProductModal] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showOrderModal, setShowOrderModal] = useState(false);
@@ -45,7 +46,6 @@ const ShopOwnerDashboard = () => {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [selectedProduct, setSelectedProduct] = useState(null);
 
-  // Form states
   const [productForm, setProductForm] = useState({ name: '', price: '', category_id: '', description: '', image_url: '', stock: '' });
   const [categoryForm, setCategoryForm] = useState({ name: '', description: '' });
   const [shopForm, setShopForm] = useState({});
@@ -76,20 +76,17 @@ const ShopOwnerDashboard = () => {
       setCategories(categoriesRes.data);
       setOrders(ordersRes.data);
     } catch (err) {
-      toast.error('Failed to load data');
+      toast.error(t.failedToLoad);
     } finally {
       setLoading(false);
     }
   };
 
-  // Image upload handler
   const handleImageUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     const formData = new FormData();
     formData.append('file', file);
-
     try {
       setUploading(true);
       const { data } = await axios.post(`${API}/upload/image`, formData, {
@@ -97,15 +94,14 @@ const ShopOwnerDashboard = () => {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       setProductForm({ ...productForm, image_url: `${API}/files/${data.id}` });
-      toast.success('Image uploaded successfully');
+      toast.success(t.uploadSuccess);
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Upload failed');
+      toast.error(err.response?.data?.detail || t.uploadFailed);
     } finally {
       setUploading(false);
     }
   };
 
-  // Product handlers
   const handleSaveProduct = async (e) => {
     e.preventDefault();
     try {
@@ -117,27 +113,27 @@ const ShopOwnerDashboard = () => {
       };
       if (editingProduct) {
         await axios.put(`${API}/dashboard/products/${editingProduct.id}`, data, { withCredentials: true });
-        toast.success('Product updated');
+        toast.success(t.productUpdated);
       } else {
         await axios.post(`${API}/dashboard/products`, data, { withCredentials: true });
-        toast.success('Product created');
+        toast.success(t.productCreated);
       }
       setShowProductModal(false);
       resetProductForm();
       fetchData();
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Failed to save product');
+      toast.error(err.response?.data?.detail || t.failedToSave);
     }
   };
 
   const handleDeleteProduct = async (prodId) => {
-    if (!window.confirm('Delete this product?')) return;
+    if (!window.confirm(t.deleteConfirmProduct)) return;
     try {
       await axios.delete(`${API}/dashboard/products/${prodId}`, { withCredentials: true });
-      toast.success('Product deleted');
+      toast.success(t.productDeleted);
       fetchData();
     } catch (err) {
-      toast.error('Failed to delete');
+      toast.error(t.failedToDelete);
     }
   };
 
@@ -164,33 +160,32 @@ const ShopOwnerDashboard = () => {
     setProductForm({ name: '', price: '', category_id: '', description: '', image_url: '', stock: '' });
   };
 
-  // Category handlers
   const handleSaveCategory = async (e) => {
     e.preventDefault();
     try {
       if (editingCategory) {
         await axios.put(`${API}/dashboard/categories/${editingCategory.id}`, categoryForm, { withCredentials: true });
-        toast.success('Category updated');
+        toast.success(t.categoryUpdated);
       } else {
         await axios.post(`${API}/dashboard/categories`, categoryForm, { withCredentials: true });
-        toast.success('Category created');
+        toast.success(t.categoryCreated);
       }
       setShowCategoryModal(false);
       resetCategoryForm();
       fetchData();
     } catch (err) {
-      toast.error('Failed to save category');
+      toast.error(t.failedToSave);
     }
   };
 
   const handleDeleteCategory = async (catId) => {
-    if (!window.confirm('Delete this category?')) return;
+    if (!window.confirm(t.deleteConfirmCategory)) return;
     try {
       await axios.delete(`${API}/dashboard/categories/${catId}`, { withCredentials: true });
-      toast.success('Category deleted');
+      toast.success(t.categoryDeleted);
       fetchData();
     } catch (err) {
-      toast.error('Failed to delete');
+      toast.error(t.failedToDelete);
     }
   };
 
@@ -199,26 +194,24 @@ const ShopOwnerDashboard = () => {
     setCategoryForm({ name: '', description: '' });
   };
 
-  // Shop handlers
   const handleSaveShop = async (e) => {
     e.preventDefault();
     try {
       await axios.put(`${API}/dashboard/shop`, shopForm, { withCredentials: true });
-      toast.success('Shop updated');
+      toast.success(t.shopUpdated);
       fetchData();
     } catch (err) {
-      toast.error('Failed to update shop');
+      toast.error(t.failedToSave);
     }
   };
 
-  // Order handlers
   const handleOrderStatus = async (orderId, status) => {
     try {
       await axios.put(`${API}/dashboard/orders/${orderId}/status`, { status }, { withCredentials: true });
-      toast.success('Order status updated');
+      toast.success(t.orderStatusUpdated);
       fetchData();
     } catch (err) {
-      toast.error('Failed to update order');
+      toast.error(t.failedToUpdate);
     }
   };
 
@@ -233,11 +226,11 @@ const ShopOwnerDashboard = () => {
   };
 
   const menuItems = [
-    { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-    { id: 'products', label: 'Products', icon: Package },
-    { id: 'categories', label: 'Categories', icon: FolderOpen },
-    { id: 'orders', label: 'Orders', icon: ShoppingCart },
-    { id: 'settings', label: 'Settings', icon: Settings },
+    { id: 'overview', label: t.overview, icon: LayoutDashboard },
+    { id: 'products', label: t.products, icon: Package },
+    { id: 'categories', label: t.categories, icon: FolderOpen },
+    { id: 'orders', label: t.orders, icon: ShoppingCart },
+    { id: 'settings', label: t.settings, icon: Settings },
   ];
 
   const statusColors = {
@@ -249,6 +242,11 @@ const ShopOwnerDashboard = () => {
     cancelled: 'bg-red-100 text-red-700'
   };
 
+  const statusLabels = {
+    pending: t.pending, confirmed: t.confirmed, processing: t.processing,
+    shipped: t.shipped, completed: t.completed, cancelled: t.cancelled
+  };
+
   const themeColors = [
     { name: 'Blue', value: '#0055FF' },
     { name: 'Green', value: '#10B981' },
@@ -258,16 +256,13 @@ const ShopOwnerDashboard = () => {
     { name: 'Pink', value: '#EC4899' },
   ];
 
-  // Simple formatting functions
   const insertFormatting = (format) => {
     const textarea = document.querySelector('[data-testid="product-description-input"]');
     if (!textarea) return;
-    
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
     const text = productForm.description;
     const selectedText = text.substring(start, end);
-    
     let newText = '';
     switch (format) {
       case 'bold':
@@ -295,17 +290,23 @@ const ShopOwnerDashboard = () => {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC]" data-testid="shop-owner-dashboard" style={{ '--theme-color': themeColor }}>
-      {/* Sidebar */}
-      <aside className={`fixed top-0 left-0 h-full bg-[#0F172A] text-white transition-all z-50 ${sidebarOpen ? 'w-64' : 'w-16'}`}>
+      {/* Mobile Backdrop */}
+      {mobileSidebarOpen && (
+        <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setMobileSidebarOpen(false)} data-testid="sidebar-backdrop" />
+      )}
+
+      {/* Sidebar - Desktop: toggle width, Mobile: overlay slide-in */}
+      <aside className={`fixed top-0 left-0 h-full bg-[#0F172A] text-white z-50 transition-all duration-300 w-64 ${mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 ${sidebarOpen ? 'lg:w-64' : 'lg:w-16'}`}>
         <div className="p-4 flex items-center justify-between">
-          {sidebarOpen && (
-            <div className="min-w-0">
-              <span className="font-bold text-base truncate block">{shop?.name || 'Dashboard'}</span>
-              <p className="text-xs text-[#94A3B8] truncate">/{shop?.slug}</p>
-            </div>
-          )}
-          <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(!sidebarOpen)} className="text-white hover:bg-white/10 flex-shrink-0">
+          <div className={`min-w-0 ${sidebarOpen ? '' : 'lg:hidden'}`}>
+            <span className="font-bold text-base truncate block">{shop?.name || t.dashboard}</span>
+            <p className="text-xs text-[#94A3B8] truncate">/{shop?.slug}</p>
+          </div>
+          <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(!sidebarOpen)} className="text-white hover:bg-white/10 flex-shrink-0 hidden lg:inline-flex">
             {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </Button>
+          <Button variant="ghost" size="icon" onClick={() => setMobileSidebarOpen(false)} className="text-white hover:bg-white/10 flex-shrink-0 lg:hidden">
+            <X className="w-5 h-5" />
           </Button>
         </div>
         
@@ -313,63 +314,62 @@ const ShopOwnerDashboard = () => {
           {menuItems.map((item) => (
             <button
               key={item.id}
-              onClick={() => setActiveTab(item.id)}
-              className={`w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-white/10 transition-colors`}
+              onClick={() => { setActiveTab(item.id); setMobileSidebarOpen(false); }}
+              className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-white/10 transition-colors"
               style={{ backgroundColor: activeTab === item.id ? themeColor : 'transparent' }}
               data-testid={`nav-${item.id}`}
             >
               <item.icon className="w-5 h-5 flex-shrink-0" />
-              {sidebarOpen && <span>{item.label}</span>}
+              <span className={sidebarOpen ? '' : 'lg:hidden'}>{item.label}</span>
             </button>
           ))}
         </nav>
 
-        {/* Shop Preview Link */}
-        {sidebarOpen && shop && (
-          <div className="px-4 mt-4">
-            <a 
-              href={`${window.location.origin}/shop/${shop.slug}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 px-4 py-2 bg-white/10 rounded-lg text-sm hover:bg-white/20 transition-colors"
-            >
+        {shop && (
+          <div className={`px-4 mt-4 ${sidebarOpen ? '' : 'lg:hidden'}`}>
+            <a href={`${window.location.origin}/shop/${shop.slug}`} target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-2 px-4 py-2 bg-white/10 rounded-lg text-sm hover:bg-white/20 transition-colors">
               <ExternalLink className="w-4 h-4" />
-              Preview Shop
+              {t.previewShop}
             </a>
           </div>
         )}
         
         <div className="absolute bottom-0 left-0 right-0 p-4">
-          <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/10 text-red-400 text-sm" data-testid="logout-btn">
+          <button onClick={() => { handleLogout(); setMobileSidebarOpen(false); }} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/10 text-red-400 text-sm" data-testid="logout-btn">
             <LogOut className="w-5 h-5" />
-            {sidebarOpen && <span>Logout</span>}
+            <span className={sidebarOpen ? '' : 'lg:hidden'}>{t.logout}</span>
           </button>
         </div>
       </aside>
 
       {/* Main Content */}
-      <main className={`transition-all ${sidebarOpen ? 'ml-64' : 'ml-16'} p-4 lg:p-6`}>
+      <main className={`transition-all p-4 lg:p-6 ${sidebarOpen ? 'lg:ml-64' : 'lg:ml-16'}`}>
         <div className="max-w-[1600px] mx-auto">
-          {/* Header */}
           <div className="mb-6 flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
-            <div>
-              <h1 className="text-xl lg:text-2xl font-bold text-[#0F172A]">
-                {activeTab === 'overview' && 'Dashboard'}
-                {activeTab === 'products' && 'Products'}
-                {activeTab === 'categories' && 'Categories'}
-                {activeTab === 'orders' && 'Orders'}
-                {activeTab === 'settings' && 'Settings'}
-              </h1>
-              <p className="text-sm text-[#64748B] mt-1">Welcome back, {user?.name}</p>
+            <div className="flex items-center gap-3">
+              <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setMobileSidebarOpen(true)} data-testid="mobile-sidebar-toggle">
+                <Menu className="w-5 h-5" />
+              </Button>
+              <div>
+                <h1 className="text-xl lg:text-2xl font-bold text-[#0F172A]">
+                  {activeTab === 'overview' && t.dashboard}
+                  {activeTab === 'products' && t.products}
+                  {activeTab === 'categories' && t.categories}
+                  {activeTab === 'orders' && t.orders}
+                  {activeTab === 'settings' && t.settings}
+                </h1>
+                <p className="text-sm text-[#64748B] mt-1">{t.welcomeBack}, {user?.name}</p>
+              </div>
             </div>
             {activeTab === 'products' && (
               <Button onClick={() => { resetProductForm(); setShowProductModal(true); }} style={{ backgroundColor: themeColor }} className="hover:opacity-90 text-sm" data-testid="add-product-btn">
-                <Plus className="w-4 h-4 mr-2" /> Add Product
+                <Plus className="w-4 h-4 mr-2" /> {t.addProduct}
               </Button>
             )}
             {activeTab === 'categories' && (
               <Button onClick={() => { resetCategoryForm(); setShowCategoryModal(true); }} style={{ backgroundColor: themeColor }} className="hover:opacity-90 text-sm" data-testid="add-category-btn">
-                <Plus className="w-4 h-4 mr-2" /> Add Category
+                <Plus className="w-4 h-4 mr-2" /> {t.addCategory}
               </Button>
             )}
           </div>
@@ -380,37 +380,34 @@ const ShopOwnerDashboard = () => {
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <Card className="border-0 shadow-sm">
                   <CardHeader className="flex flex-row items-center justify-between pb-2 p-4">
-                    <CardTitle className="text-xs font-medium text-[#64748B]">Products</CardTitle>
+                    <CardTitle className="text-xs font-medium text-[#64748B]">{t.totalProducts}</CardTitle>
                     <Package className="w-4 h-4" style={{ color: themeColor }} />
                   </CardHeader>
                   <CardContent className="p-4 pt-0">
                     <div className="text-2xl font-bold text-[#0F172A]">{stats.total_products}</div>
                   </CardContent>
                 </Card>
-
                 <Card className="border-0 shadow-sm">
                   <CardHeader className="flex flex-row items-center justify-between pb-2 p-4">
-                    <CardTitle className="text-xs font-medium text-[#64748B]">Orders</CardTitle>
+                    <CardTitle className="text-xs font-medium text-[#64748B]">{t.totalOrders}</CardTitle>
                     <ShoppingCart className="w-4 h-4" style={{ color: themeColor }} />
                   </CardHeader>
                   <CardContent className="p-4 pt-0">
                     <div className="text-2xl font-bold text-[#0F172A]">{stats.total_orders}</div>
                   </CardContent>
                 </Card>
-
                 <Card className="border-0 shadow-sm">
                   <CardHeader className="flex flex-row items-center justify-between pb-2 p-4">
-                    <CardTitle className="text-xs font-medium text-[#64748B]">Pending</CardTitle>
+                    <CardTitle className="text-xs font-medium text-[#64748B]">{t.pendingOrders}</CardTitle>
                     <Clock className="w-4 h-4 text-yellow-500" />
                   </CardHeader>
                   <CardContent className="p-4 pt-0">
                     <div className="text-2xl font-bold text-[#0F172A]">{stats.pending_orders}</div>
                   </CardContent>
                 </Card>
-
                 <Card className="border-0 shadow-sm">
                   <CardHeader className="flex flex-row items-center justify-between pb-2 p-4">
-                    <CardTitle className="text-xs font-medium text-[#64748B]">Revenue</CardTitle>
+                    <CardTitle className="text-xs font-medium text-[#64748B]">{t.totalRevenue}</CardTitle>
                     <TrendingUp className="w-4 h-4 text-green-500" />
                   </CardHeader>
                   <CardContent className="p-4 pt-0">
@@ -418,15 +415,13 @@ const ShopOwnerDashboard = () => {
                   </CardContent>
                 </Card>
               </div>
-
-              {/* Recent Orders */}
               <Card className="border-0 shadow-sm">
                 <CardHeader className="p-4">
-                  <CardTitle className="text-base">Recent Orders</CardTitle>
+                  <CardTitle className="text-base">{t.recentOrders}</CardTitle>
                 </CardHeader>
                 <CardContent className="p-4 pt-0">
                   {orders.length === 0 ? (
-                    <p className="text-[#64748B] text-center py-8 text-sm">No orders yet</p>
+                    <p className="text-[#64748B] text-center py-8 text-sm">{t.noOrdersYet}</p>
                   ) : (
                     <div className="space-y-3">
                       {orders.slice(0, 5).map((order) => (
@@ -438,7 +433,7 @@ const ShopOwnerDashboard = () => {
                           <div className="text-right">
                             <p className="font-bold text-sm" style={{ color: themeColor }}>{formatVND(order.total_amount)}</p>
                             <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusColors[order.status]}`}>
-                              {order.status}
+                              {statusLabels[order.status] || order.status}
                             </span>
                           </div>
                         </div>
@@ -450,14 +445,14 @@ const ShopOwnerDashboard = () => {
             </div>
           )}
 
-          {/* Products Tab - 5 columns desktop, 2 mobile */}
+          {/* Products Tab */}
           {activeTab === 'products' && (
             <Card className="border-0 shadow-sm">
               <CardContent className="p-4">
                 {products.length === 0 ? (
                   <div className="text-center py-12">
                     <Package className="w-12 h-12 text-[#E2E8F0] mx-auto mb-4" />
-                    <p className="text-[#64748B] text-sm">No products yet. Add your first product!</p>
+                    <p className="text-[#64748B] text-sm">{t.noProductsYet}</p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 lg:gap-4" data-testid="products-grid">
@@ -469,10 +464,10 @@ const ShopOwnerDashboard = () => {
                         <div className="p-2 lg:p-3">
                           <h3 className="font-medium text-[#0F172A] text-xs lg:text-sm truncate cursor-pointer hover:text-[#0055FF]" onClick={() => openProductDetail(product)}>{product.name}</h3>
                           <p className="font-bold mt-1 text-xs lg:text-sm" style={{ color: themeColor }}>{formatVND(product.price)}</p>
-                          <p className="text-[10px] lg:text-xs text-[#64748B]">Stock: {product.stock || 0}</p>
+                          <p className="text-[10px] lg:text-xs text-[#64748B]">{t.stock}: {product.stock || 0}</p>
                           <div className="flex gap-1 lg:gap-2 mt-2">
                             <Button variant="outline" size="sm" className="flex-1 text-[10px] lg:text-xs h-7 lg:h-8 px-1 lg:px-2" onClick={() => openEditProduct(product)} data-testid={`edit-product-${product.id}`}>
-                              <Pencil className="w-3 h-3 mr-1" /> Edit
+                              <Pencil className="w-3 h-3 mr-1" /> {t.edit}
                             </Button>
                             <Button variant="destructive" size="sm" className="h-7 lg:h-8 px-1 lg:px-2" onClick={() => handleDeleteProduct(product.id)} data-testid={`delete-product-${product.id}`}>
                               <Trash2 className="w-3 h-3" />
@@ -494,7 +489,7 @@ const ShopOwnerDashboard = () => {
                 {categories.length === 0 ? (
                   <div className="text-center py-12">
                     <FolderOpen className="w-12 h-12 text-[#E2E8F0] mx-auto mb-4" />
-                    <p className="text-[#64748B] text-sm">No categories yet. Create your first category!</p>
+                    <p className="text-[#64748B] text-sm">{t.noCategoriesYet}</p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3" data-testid="categories-grid">
@@ -502,7 +497,7 @@ const ShopOwnerDashboard = () => {
                       <div key={cat.id} className="p-3 border rounded-lg bg-white flex justify-between items-center">
                         <div>
                           <h3 className="font-medium text-[#0F172A] text-sm">{cat.name}</h3>
-                          <p className="text-xs text-[#64748B]">{cat.description || 'No description'}</p>
+                          <p className="text-xs text-[#64748B]">{cat.description || t.noDescription}</p>
                         </div>
                         <div className="flex gap-1">
                           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditingCategory(cat); setCategoryForm({ name: cat.name, description: cat.description || '' }); setShowCategoryModal(true); }}>
@@ -527,7 +522,7 @@ const ShopOwnerDashboard = () => {
                 {orders.length === 0 ? (
                   <div className="text-center py-12">
                     <ShoppingCart className="w-12 h-12 text-[#E2E8F0] mx-auto mb-4" />
-                    <p className="text-[#64748B] text-sm">No orders yet</p>
+                    <p className="text-[#64748B] text-sm">{t.noOrdersYet}</p>
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -535,13 +530,13 @@ const ShopOwnerDashboard = () => {
                       <div key={order.id} className="p-3 border rounded-lg bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <div className="flex-1 min-w-0">
                           <p className="font-medium text-[#0F172A] text-sm">{order.id}</p>
-                          <p className="text-xs text-[#64748B]">{order.customer_name} • {order.customer_phone}</p>
-                          <p className="text-xs text-[#64748B]">{order.items?.length || 0} items</p>
+                          <p className="text-xs text-[#64748B]">{order.customer_name} - {order.customer_phone}</p>
+                          <p className="text-xs text-[#64748B]">{order.items?.length || 0} {t.items}</p>
                         </div>
                         <div className="flex items-center gap-3">
                           <p className="font-bold text-sm" style={{ color: themeColor }}>{formatVND(order.total_amount)}</p>
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[order.status]}`}>
-                            {order.status}
+                            {statusLabels[order.status] || order.status}
                           </span>
                           <Button variant="outline" size="sm" className="h-8" onClick={() => openOrderDetail(order)} data-testid={`view-order-${order.id}`}>
                             <Eye className="w-4 h-4" />
@@ -558,88 +553,78 @@ const ShopOwnerDashboard = () => {
           {/* Settings Tab */}
           {activeTab === 'settings' && shop && (
             <div className="space-y-6">
-              {/* Shop Preview */}
               <Card className="border-0 shadow-sm">
                 <CardHeader className="p-4">
-                  <CardTitle className="text-base flex items-center gap-2"><ExternalLink className="w-4 h-4" /> Shop Preview</CardTitle>
+                  <CardTitle className="text-base flex items-center gap-2"><ExternalLink className="w-4 h-4" /> {t.shopPreview}</CardTitle>
                 </CardHeader>
                 <CardContent className="p-4 pt-0">
                   <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                     <div className="flex-1">
-                      <p className="text-sm text-[#64748B]">Your shop is live at:</p>
+                      <p className="text-sm text-[#64748B]">{t.shopLiveAt}</p>
                       <p className="font-medium text-[#0F172A]">{window.location.origin}/shop/{shop.slug}</p>
                     </div>
                     <a href={`${window.location.origin}/shop/${shop.slug}`} target="_blank" rel="noopener noreferrer">
                       <Button style={{ backgroundColor: themeColor }} className="hover:opacity-90 text-sm">
-                        <ExternalLink className="w-4 h-4 mr-2" /> Open Shop
+                        <ExternalLink className="w-4 h-4 mr-2" /> {t.openShop}
                       </Button>
                     </a>
                   </div>
                 </CardContent>
               </Card>
-
-              {/* Theme Color Setting */}
               <Card className="border-0 shadow-sm">
                 <CardHeader className="p-4">
-                  <CardTitle className="text-base flex items-center gap-2"><Palette className="w-4 h-4" /> Theme Color</CardTitle>
+                  <CardTitle className="text-base flex items-center gap-2"><Palette className="w-4 h-4" /> {t.themeColor}</CardTitle>
                 </CardHeader>
                 <CardContent className="p-4 pt-0">
                   <div className="flex flex-wrap gap-3">
                     {themeColors.map((color) => (
-                      <button
-                        key={color.value}
-                        onClick={() => setThemeColor(color.value)}
+                      <button key={color.value} onClick={() => setThemeColor(color.value)}
                         className={`w-10 h-10 rounded-full border-4 transition-all ${themeColor === color.value ? 'border-[#0F172A] scale-110' : 'border-transparent'}`}
-                        style={{ backgroundColor: color.value }}
-                        title={color.name}
-                        data-testid={`theme-${color.name.toLowerCase()}`}
-                      />
+                        style={{ backgroundColor: color.value }} title={color.name} data-testid={`theme-${color.name.toLowerCase()}`} />
                     ))}
                   </div>
                 </CardContent>
               </Card>
-
-              {/* Shop Profile */}
               <Card className="border-0 shadow-sm">
                 <CardHeader className="p-4">
-                  <CardTitle className="text-base">Shop Profile</CardTitle>
+                  <CardTitle className="text-base">{t.shopProfile}</CardTitle>
                 </CardHeader>
                 <CardContent className="p-4 pt-0">
                   <form onSubmit={handleSaveShop} className="space-y-4 max-w-2xl">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-xs font-medium mb-1">Shop Name</label>
+                        <label className="block text-xs font-medium mb-1">{t.shopName}</label>
                         <Input value={shopForm.name || ''} onChange={(e) => setShopForm({ ...shopForm, name: e.target.value })} className="text-sm" data-testid="shop-name-input" />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium mb-1">Shop URL</label>
+                        <label className="block text-xs font-medium mb-1">{t.shopUrl}</label>
                         <Input value={`/${shop.slug}`} disabled className="bg-[#F8FAFC] text-sm" />
                       </div>
                     </div>
                     <div>
-                      <label className="block text-xs font-medium mb-1">Description</label>
+                      <label className="block text-xs font-medium mb-1">{t.description}</label>
                       <Textarea value={shopForm.description || ''} onChange={(e) => setShopForm({ ...shopForm, description: e.target.value })} rows={3} className="text-sm" data-testid="shop-description-input" />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium mb-1">Logo URL</label>
+                      <label className="block text-xs font-medium mb-1">{t.logoUrl}</label>
                       <Input value={shopForm.logo_url || ''} onChange={(e) => setShopForm({ ...shopForm, logo_url: e.target.value })} placeholder="https://..." className="text-sm" data-testid="shop-logo-input" />
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-xs font-medium mb-1">Contact Phone</label>
+                        <label className="block text-xs font-medium mb-1">{t.contactPhone}</label>
                         <Input value={shopForm.contact_phone || ''} onChange={(e) => setShopForm({ ...shopForm, contact_phone: e.target.value })} className="text-sm" />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium mb-1">Contact Email</label>
+                        <label className="block text-xs font-medium mb-1">{t.contactEmail}</label>
                         <Input value={shopForm.contact_email || ''} onChange={(e) => setShopForm({ ...shopForm, contact_email: e.target.value })} className="text-sm" />
                       </div>
                     </div>
                     <div>
-                      <label className="block text-xs font-medium mb-1">Address</label>
+                      <label className="block text-xs font-medium mb-1">{t.shopAddress}</label>
                       <Input value={shopForm.address || ''} onChange={(e) => setShopForm({ ...shopForm, address: e.target.value })} className="text-sm" />
                     </div>
                     <Button type="submit" style={{ backgroundColor: themeColor }} className="hover:opacity-90 text-sm" data-testid="save-shop-btn">
-                      Save Changes
+                      {t.saveChanges}
                     </Button>
                   </form>
                 </CardContent>
@@ -649,36 +634,36 @@ const ShopOwnerDashboard = () => {
         </div>
       </main>
 
-      {/* Product Modal with Image Upload and Rich Text */}
+      {/* Product Modal */}
       <Dialog open={showProductModal} onOpenChange={setShowProductModal}>
         <DialogContent className="sm:max-w-lg bg-white max-h-[90vh] overflow-y-auto" data-testid="product-modal">
           <DialogHeader>
-            <DialogTitle className="text-lg">{editingProduct ? 'Edit Product' : 'Add Product'}</DialogTitle>
-            <DialogDescription className="text-sm">Fill in the product details below</DialogDescription>
+            <DialogTitle className="text-lg">{editingProduct ? t.editProduct : t.addProduct}</DialogTitle>
+            <DialogDescription className="text-sm">{t.fillProductDetails}</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSaveProduct} className="space-y-4">
             <div>
-              <label className="block text-xs font-medium mb-1">Name *</label>
+              <label className="block text-xs font-medium mb-1">{t.productName} *</label>
               <Input value={productForm.name} onChange={(e) => setProductForm({ ...productForm, name: e.target.value })} required className="text-sm" data-testid="product-name-input" />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-medium mb-1">Price (VND) *</label>
+                <label className="block text-xs font-medium mb-1">{t.productPrice} *</label>
                 <Input type="number" value={productForm.price} onChange={(e) => setProductForm({ ...productForm, price: e.target.value })} required className="text-sm" data-testid="product-price-input" />
               </div>
               <div>
-                <label className="block text-xs font-medium mb-1">Stock</label>
+                <label className="block text-xs font-medium mb-1">{t.stock}</label>
                 <Input type="number" value={productForm.stock} onChange={(e) => setProductForm({ ...productForm, stock: e.target.value })} className="text-sm" data-testid="product-stock-input" />
               </div>
             </div>
             <div>
-              <label className="block text-xs font-medium mb-1">Category</label>
+              <label className="block text-xs font-medium mb-1">{t.category}</label>
               <Select value={productForm.category_id || "none"} onValueChange={(val) => setProductForm({ ...productForm, category_id: val })}>
                 <SelectTrigger className="text-sm" data-testid="product-category-select">
-                  <SelectValue placeholder="Select category" />
+                  <SelectValue placeholder={t.selectCategory} />
                 </SelectTrigger>
                 <SelectContent className="bg-white">
-                  <SelectItem value="none">None</SelectItem>
+                  <SelectItem value="none">{t.none}</SelectItem>
                   {categories.map((cat) => (
                     <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
                   ))}
@@ -686,7 +671,7 @@ const ShopOwnerDashboard = () => {
               </Select>
             </div>
             <div>
-              <label className="block text-xs font-medium mb-1">Product Image *</label>
+              <label className="block text-xs font-medium mb-1">{t.productImage} *</label>
               <div className="space-y-2">
                 {productForm.image_url && (
                   <div className="w-24 h-24 rounded-lg overflow-hidden bg-[#F8FAFC]">
@@ -694,52 +679,29 @@ const ShopOwnerDashboard = () => {
                   </div>
                 )}
                 <div className="flex gap-2">
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleImageUpload}
-                    accept="image/*"
-                    className="hidden"
-                  />
+                  <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden" />
                   <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={uploading} className="text-xs">
-                    <Upload className="w-4 h-4 mr-1" /> {uploading ? 'Uploading...' : 'Upload Image'}
+                    <Upload className="w-4 h-4 mr-1" /> {uploading ? '...' : t.uploadImage}
                   </Button>
                 </div>
-                <Input 
-                  value={productForm.image_url} 
-                  onChange={(e) => setProductForm({ ...productForm, image_url: e.target.value })} 
-                  placeholder="Or paste image URL..." 
-                  className="text-sm"
-                  data-testid="product-image-input" 
-                />
+                <Input value={productForm.image_url} onChange={(e) => setProductForm({ ...productForm, image_url: e.target.value })} placeholder={t.orPasteUrl} className="text-sm" data-testid="product-image-input" />
               </div>
             </div>
             <div>
-              <label className="block text-xs font-medium mb-1">Description</label>
+              <label className="block text-xs font-medium mb-1">{t.description}</label>
               <div className="border rounded-lg overflow-hidden bg-white">
                 <div className="flex gap-1 p-2 border-b bg-[#F8FAFC]">
-                  <Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => insertFormatting('bold')} title="Bold">
-                    <Bold className="w-4 h-4" />
-                  </Button>
-                  <Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => insertFormatting('italic')} title="Italic">
-                    <Italic className="w-4 h-4" />
-                  </Button>
-                  <Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => insertFormatting('list')} title="List">
-                    <List className="w-4 h-4" />
-                  </Button>
+                  <Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => insertFormatting('bold')} title="Bold"><Bold className="w-4 h-4" /></Button>
+                  <Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => insertFormatting('italic')} title="Italic"><Italic className="w-4 h-4" /></Button>
+                  <Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => insertFormatting('list')} title="List"><List className="w-4 h-4" /></Button>
                 </div>
-                <Textarea
-                  value={productForm.description}
-                  onChange={(e) => setProductForm({ ...productForm, description: e.target.value })}
-                  placeholder="Enter product description... (supports **bold**, *italic*, - lists)"
-                  className="text-sm border-0 rounded-none min-h-[120px] focus-visible:ring-0"
-                  data-testid="product-description-input"
-                />
+                <Textarea value={productForm.description} onChange={(e) => setProductForm({ ...productForm, description: e.target.value })}
+                  placeholder={t.description + '...'} className="text-sm border-0 rounded-none min-h-[120px] focus-visible:ring-0" data-testid="product-description-input" />
               </div>
             </div>
             <div className="flex gap-3 pt-4">
-              <Button type="button" variant="outline" className="flex-1 text-sm" onClick={() => setShowProductModal(false)}>Cancel</Button>
-              <Button type="submit" className="flex-1 hover:opacity-90 text-sm" style={{ backgroundColor: themeColor }} data-testid="save-product-btn">Save</Button>
+              <Button type="button" variant="outline" className="flex-1 text-sm" onClick={() => setShowProductModal(false)}>{t.cancel}</Button>
+              <Button type="submit" className="flex-1 hover:opacity-90 text-sm" style={{ backgroundColor: themeColor }} data-testid="save-product-btn">{t.save}</Button>
             </div>
           </form>
         </DialogContent>
@@ -749,21 +711,21 @@ const ShopOwnerDashboard = () => {
       <Dialog open={showCategoryModal} onOpenChange={setShowCategoryModal}>
         <DialogContent className="sm:max-w-md bg-white" data-testid="category-modal">
           <DialogHeader>
-            <DialogTitle className="text-lg">{editingCategory ? 'Edit Category' : 'Add Category'}</DialogTitle>
-            <DialogDescription className="text-sm">Enter category details</DialogDescription>
+            <DialogTitle className="text-lg">{editingCategory ? t.editCategory : t.addCategory}</DialogTitle>
+            <DialogDescription className="text-sm">{t.enterCategoryDetails}</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSaveCategory} className="space-y-4">
             <div>
-              <label className="block text-xs font-medium mb-1">Name *</label>
+              <label className="block text-xs font-medium mb-1">{t.categoryName} *</label>
               <Input value={categoryForm.name} onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })} required className="text-sm" data-testid="category-name-input" />
             </div>
             <div>
-              <label className="block text-xs font-medium mb-1">Description</label>
+              <label className="block text-xs font-medium mb-1">{t.categoryDescription}</label>
               <Textarea value={categoryForm.description} onChange={(e) => setCategoryForm({ ...categoryForm, description: e.target.value })} rows={2} className="text-sm" data-testid="category-description-input" />
             </div>
             <div className="flex gap-3 pt-4">
-              <Button type="button" variant="outline" className="flex-1 text-sm" onClick={() => setShowCategoryModal(false)}>Cancel</Button>
-              <Button type="submit" className="flex-1 hover:opacity-90 text-sm" style={{ backgroundColor: themeColor }} data-testid="save-category-btn">Save</Button>
+              <Button type="button" variant="outline" className="flex-1 text-sm" onClick={() => setShowCategoryModal(false)}>{t.cancel}</Button>
+              <Button type="submit" className="flex-1 hover:opacity-90 text-sm" style={{ backgroundColor: themeColor }} data-testid="save-category-btn">{t.save}</Button>
             </div>
           </form>
         </DialogContent>
@@ -773,75 +735,64 @@ const ShopOwnerDashboard = () => {
       <Dialog open={showOrderModal} onOpenChange={setShowOrderModal}>
         <DialogContent className="sm:max-w-2xl bg-white max-h-[90vh] overflow-y-auto" data-testid="order-modal">
           <DialogHeader>
-            <DialogTitle className="text-lg">Order Details</DialogTitle>
-            <DialogDescription className="text-sm">Order ID: {selectedOrder?.id}</DialogDescription>
+            <DialogTitle className="text-lg">{t.orderDetails}</DialogTitle>
+            <DialogDescription className="text-sm">{t.orderId}: {selectedOrder?.id}</DialogDescription>
           </DialogHeader>
           {selectedOrder && (
             <div className="space-y-4">
-              {/* Customer Info */}
               <div className="grid grid-cols-2 gap-3 p-3 bg-[#F8FAFC] rounded-lg text-sm">
                 <div>
-                  <p className="text-xs text-[#64748B]">Customer Name</p>
+                  <p className="text-xs text-[#64748B]">{t.customerName}</p>
                   <p className="font-medium">{selectedOrder.customer_name}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-[#64748B]">Phone</p>
+                  <p className="text-xs text-[#64748B]">{t.phone}</p>
                   <p className="font-medium">{selectedOrder.customer_phone}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-[#64748B]">Email</p>
+                  <p className="text-xs text-[#64748B]">{t.email}</p>
                   <p className="font-medium">{selectedOrder.customer_email || '-'}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-[#64748B]">Address</p>
+                  <p className="text-xs text-[#64748B]">{t.address}</p>
                   <p className="font-medium">{selectedOrder.customer_address}</p>
                 </div>
               </div>
-
-              {/* Order Items */}
               <div>
-                <h4 className="font-medium mb-2 text-sm">Order Items</h4>
+                <h4 className="font-medium mb-2 text-sm">{t.items}</h4>
                 <div className="space-y-2">
                   {selectedOrder.items?.map((item, idx) => (
                     <div key={idx} className="flex justify-between items-center p-2 border rounded-lg text-sm">
                       <div>
                         <p className="font-medium">{item.name}</p>
-                        <p className="text-xs text-[#64748B]">Qty: {item.quantity} × {formatVND(item.price)}</p>
+                        <p className="text-xs text-[#64748B]">{t.quantity}: {item.quantity} x {formatVND(item.price)}</p>
                       </div>
                       <p className="font-bold" style={{ color: themeColor }}>{formatVND(item.subtotal)}</p>
                     </div>
                   ))}
                 </div>
               </div>
-
-              {/* Total */}
               <div className="flex justify-between items-center p-3 bg-[#F8FAFC] rounded-lg">
-                <span className="font-medium text-sm">Total</span>
+                <span className="font-medium text-sm">{t.total}</span>
                 <span className="text-xl font-bold" style={{ color: themeColor }}>{formatVND(selectedOrder.total_amount)}</span>
               </div>
-
-              {/* Note */}
               {selectedOrder.note && (
                 <div className="p-3 border rounded-lg text-sm">
-                  <p className="text-xs text-[#64748B]">Note</p>
+                  <p className="text-xs text-[#64748B]">{t.note}</p>
                   <p>{selectedOrder.note}</p>
                 </div>
               )}
-
-              {/* Status Update */}
               <div className="flex items-center gap-3">
-                <span className="text-sm text-[#64748B]">Status:</span>
+                <span className="text-sm text-[#64748B]">{t.status}:</span>
                 <Select value={selectedOrder.status} onValueChange={(val) => { handleOrderStatus(selectedOrder.id, val); setSelectedOrder({ ...selectedOrder, status: val }); }}>
-                  <SelectTrigger className="w-36 text-sm">
-                    <SelectValue />
-                  </SelectTrigger>
+                  <SelectTrigger className="w-36 text-sm"><SelectValue /></SelectTrigger>
                   <SelectContent className="bg-white">
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="confirmed">Confirmed</SelectItem>
-                    <SelectItem value="processing">Processing</SelectItem>
-                    <SelectItem value="shipped">Shipped</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                    <SelectItem value="pending">{t.pending}</SelectItem>
+                    <SelectItem value="confirmed">{t.confirmed}</SelectItem>
+                    <SelectItem value="processing">{t.processing}</SelectItem>
+                    <SelectItem value="shipped">{t.shipped}</SelectItem>
+                    <SelectItem value="completed">{t.completed}</SelectItem>
+                    <SelectItem value="cancelled">{t.cancelled}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -853,7 +804,7 @@ const ShopOwnerDashboard = () => {
       {/* Product Detail Modal */}
       <Dialog open={showProductDetailModal} onOpenChange={setShowProductDetailModal}>
         <DialogContent className="sm:max-w-2xl bg-white p-0 overflow-hidden" data-testid="product-detail-modal">
-          <DialogDescription className="sr-only">Product details</DialogDescription>
+          <DialogDescription className="sr-only">{t.productDetail}</DialogDescription>
           {selectedProduct && (
             <div className="grid md:grid-cols-2">
               <div className="aspect-square bg-[#F8FAFC]">
@@ -862,25 +813,16 @@ const ShopOwnerDashboard = () => {
               <div className="p-6 flex flex-col">
                 <h2 className="text-xl font-bold text-[#0F172A] mb-2">{selectedProduct.name}</h2>
                 <p className="text-2xl font-bold mb-4" style={{ color: themeColor }}>{formatVND(selectedProduct.price)}</p>
-                <p className="text-sm text-[#64748B] mb-2">Stock: {selectedProduct.stock || 0}</p>
+                <p className="text-sm text-[#64748B] mb-2">{t.stock}: {selectedProduct.stock || 0}</p>
                 {selectedProduct.description && (
                   <div className="text-sm text-[#64748B] mb-4 flex-1 whitespace-pre-wrap">{selectedProduct.description}</div>
                 )}
                 <div className="flex gap-3 mt-auto pt-4">
-                  <Button 
-                    variant="outline" 
-                    className="flex-1 text-sm" 
-                    onClick={(e) => { 
-                      e.stopPropagation();
-                      setShowProductDetailModal(false); 
-                      setTimeout(() => openEditProduct(selectedProduct), 100);
-                    }}
-                    data-testid="product-detail-edit-btn"
-                  >
-                    <Pencil className="w-4 h-4 mr-2" /> Edit
+                  <Button variant="outline" className="flex-1 text-sm" onClick={(e) => { e.stopPropagation(); setShowProductDetailModal(false); setTimeout(() => openEditProduct(selectedProduct), 100); }} data-testid="product-detail-edit-btn">
+                    <Pencil className="w-4 h-4 mr-2" /> {t.editProduct}
                   </Button>
                   <Button className="flex-1 text-sm hover:opacity-90" style={{ backgroundColor: themeColor }} onClick={() => setShowProductDetailModal(false)}>
-                    Close
+                    {t.close}
                   </Button>
                 </div>
               </div>

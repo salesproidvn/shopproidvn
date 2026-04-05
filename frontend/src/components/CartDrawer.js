@@ -1,4 +1,5 @@
 import { useCart } from '../context/CartContext';
+import { useLanguage } from '../context/LanguageContext';
 import { formatVND } from '../utils/format';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '../components/ui/sheet';
 import { Button } from '../components/ui/button';
@@ -7,65 +8,43 @@ import { Minus, Plus, Trash2, ShoppingBag } from 'lucide-react';
 
 const CartDrawer = ({ open, onOpenChange }) => {
   const { cart, cartTotal, updateQuantity, removeFromCart, clearCart } = useCart();
+  const { t } = useLanguage();
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-lg flex flex-col bg-white" data-testid="cart-drawer">
         <SheetHeader>
-          <SheetTitle className="text-xl font-bold">Giỏ hàng ({cart.length})</SheetTitle>
-          <SheetDescription>Các sản phẩm trong giỏ hàng của bạn</SheetDescription>
+          <SheetTitle className="text-xl font-bold">{t.cart} ({cart.length})</SheetTitle>
+          <SheetDescription>{t.cartItems}</SheetDescription>
         </SheetHeader>
 
         {cart.length === 0 ? (
           <div className="flex flex-col items-center justify-center flex-1 text-center">
             <ShoppingBag className="w-16 h-16 text-[#E2E8F0] mb-4" />
-            <p className="text-[#64748B]">Giỏ hàng trống</p>
+            <p className="text-[#64748B]">{t.cartEmpty}</p>
           </div>
         ) : (
           <>
             <ScrollArea className="flex-1 -mx-6 px-6">
               <div className="space-y-4 py-4">
                 {cart.map((item) => (
-                  <div
-                    key={item.product_id}
-                    className="flex gap-4 p-4 bg-[#F8FAFC] rounded-xl"
-                    data-testid={`cart-item-${item.product_id}`}
-                  >
-                    <img
-                      src={item.image_url}
-                      alt={item.name}
-                      className="w-20 h-20 object-cover rounded-lg"
-                    />
+                  <div key={item.product_id} className="flex gap-4 p-4 bg-[#F8FAFC] rounded-xl" data-testid={`cart-item-${item.product_id}`}>
+                    <img src={item.image_url} alt={item.name} className="w-20 h-20 object-cover rounded-lg" />
                     <div className="flex-1 min-w-0">
                       <h4 className="font-medium text-[#0F172A] truncate">{item.name}</h4>
                       <p className="text-[#0055FF] font-semibold mt-1">{formatVND(item.price)}</p>
                       <div className="flex items-center gap-2 mt-2">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="w-8 h-8 rounded-full"
-                          onClick={() => updateQuantity(item.product_id, item.quantity - 1)}
-                          data-testid={`decrease-qty-${item.product_id}`}
-                        >
+                        <Button variant="outline" size="icon" className="w-8 h-8 rounded-full"
+                          onClick={() => updateQuantity(item.product_id, item.quantity - 1)} data-testid={`decrease-qty-${item.product_id}`}>
                           <Minus className="w-4 h-4" />
                         </Button>
                         <span className="w-8 text-center font-medium">{item.quantity}</span>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="w-8 h-8 rounded-full"
-                          onClick={() => updateQuantity(item.product_id, item.quantity + 1)}
-                          data-testid={`increase-qty-${item.product_id}`}
-                        >
+                        <Button variant="outline" size="icon" className="w-8 h-8 rounded-full"
+                          onClick={() => updateQuantity(item.product_id, item.quantity + 1)} data-testid={`increase-qty-${item.product_id}`}>
                           <Plus className="w-4 h-4" />
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="w-8 h-8 ml-auto text-red-500 hover:text-red-600 hover:bg-red-50"
-                          onClick={() => removeFromCart(item.product_id)}
-                          data-testid={`remove-item-${item.product_id}`}
-                        >
+                        <Button variant="ghost" size="icon" className="w-8 h-8 ml-auto text-red-500 hover:text-red-600 hover:bg-red-50"
+                          onClick={() => removeFromCart(item.product_id)} data-testid={`remove-item-${item.product_id}`}>
                           <Trash2 className="w-4 h-4" />
                         </Button>
                       </div>
@@ -77,24 +56,14 @@ const CartDrawer = ({ open, onOpenChange }) => {
 
             <div className="border-t pt-4 mt-auto space-y-4">
               <div className="flex justify-between items-center">
-                <span className="text-[#64748B]">Tổng cộng:</span>
-                <span className="text-2xl font-bold text-[#0055FF]" data-testid="cart-total">
-                  {formatVND(cartTotal)}
-                </span>
+                <span className="text-[#64748B]">{t.total}:</span>
+                <span className="text-2xl font-bold text-[#0055FF]" data-testid="cart-total">{formatVND(cartTotal)}</span>
               </div>
-              <Button
-                className="w-full bg-[#0055FF] hover:bg-[#0040CC] rounded-full py-6 text-lg"
-                data-testid="checkout-button"
-              >
-                Thanh toán
+              <Button className="w-full bg-[#0055FF] hover:bg-[#0040CC] rounded-full py-6 text-lg" data-testid="checkout-button">
+                {t.checkout}
               </Button>
-              <Button
-                variant="outline"
-                className="w-full rounded-full"
-                onClick={clearCart}
-                data-testid="clear-cart-button"
-              >
-                Xóa giỏ hàng
+              <Button variant="outline" className="w-full rounded-full" onClick={clearCart} data-testid="clear-cart-button">
+                {t.clearCart}
               </Button>
             </div>
           </>

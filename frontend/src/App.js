@@ -4,6 +4,7 @@ import { Toaster } from "sonner";
 import { AuthProvider } from "./context/AuthContext";
 import { CartProvider } from "./context/CartContext";
 import { WishlistProvider } from "./context/WishlistContext";
+import { LanguageProvider } from "./context/LanguageContext";
 import HomePage from "./pages/HomePage";
 import WishlistPage from "./pages/WishlistPage";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
@@ -12,31 +13,33 @@ import StorefrontPage from "./pages/StorefrontPage";
 
 function App() {
   return (
-    <AuthProvider>
-      <CartProvider>
-        <WishlistProvider>
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<HomePage />} />
-              <Route path="/wishlist" element={<WishlistPage />} />
-              <Route path="/admin" element={<SuperAdminDashboard />} />
-              <Route path="/dashboard" element={<ShopOwnerDashboard />} />
-              <Route path="/shop/:slug" element={<StorefrontPage />} />
-            </Routes>
-          </BrowserRouter>
-          <Toaster 
-            position="top-right" 
-            richColors 
-            closeButton 
-            toastOptions={{
-              style: {
-                fontFamily: 'Manrope, sans-serif',
-              },
-            }}
-          />
-        </WishlistProvider>
-      </CartProvider>
-    </AuthProvider>
+    <LanguageProvider>
+      <AuthProvider>
+        <CartProvider>
+          <WishlistProvider>
+            <BrowserRouter>
+              <Routes>
+                <Route path="/" element={<HomePage />} />
+                <Route path="/wishlist" element={<WishlistPage />} />
+                <Route path="/admin" element={<SuperAdminDashboard />} />
+                <Route path="/dashboard" element={<ShopOwnerDashboard />} />
+                <Route path="/shop/:slug" element={<StorefrontPage />} />
+              </Routes>
+            </BrowserRouter>
+            <Toaster 
+              position="top-right" 
+              richColors 
+              closeButton 
+              toastOptions={{
+                style: {
+                  fontFamily: 'Manrope, sans-serif',
+                },
+              }}
+            />
+          </WishlistProvider>
+        </CartProvider>
+      </AuthProvider>
+    </LanguageProvider>
   );
 }
 
