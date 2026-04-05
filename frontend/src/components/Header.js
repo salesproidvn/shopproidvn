@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ShoppingCart, Heart, User, Search, Menu, X, LogOut, Globe } from 'lucide-react';
+import { ShoppingCart, Heart, User, Search, Menu, X, LogOut, Globe, LayoutDashboard } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
@@ -122,6 +122,14 @@ const Header = ({ searchQuery, setSearchQuery, onSearch }) => {
                       <p className="text-xs text-[#64748B]">{user.email}</p>
                     </div>
                     <DropdownMenuSeparator />
+                    {(user.role === 'shop_owner' || user.role === 'super_admin') && (
+                      <DropdownMenuItem asChild>
+                        <Link to={user.role === 'super_admin' ? '/admin' : '/dashboard'} className="cursor-pointer" data-testid="dropdown-dashboard-link">
+                          <LayoutDashboard className="w-4 h-4 mr-2" />
+                          {t.dashboard}
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem asChild>
                       <Link to="/wishlist" className="cursor-pointer" data-testid="dropdown-wishlist-link">
                         <Heart className="w-4 h-4 mr-2" />
@@ -202,6 +210,13 @@ const Header = ({ searchQuery, setSearchQuery, onSearch }) => {
                           <p className="font-medium text-sm">{user.name}</p>
                           <p className="text-xs text-[#64748B]">{user.email}</p>
                         </div>
+                        {(user.role === 'shop_owner' || user.role === 'super_admin') && (
+                          <Link to={user.role === 'super_admin' ? '/admin' : '/dashboard'} onClick={() => setMobileMenuOpen(false)}
+                            className="flex items-center gap-3 text-[#0F172A] text-sm py-2" data-testid="mobile-dashboard-link">
+                            <LayoutDashboard className="w-5 h-5" />
+                            {t.dashboard}
+                          </Link>
+                        )}
                         <Button
                           onClick={() => { handleLogout(); setMobileMenuOpen(false); }}
                           variant="destructive"

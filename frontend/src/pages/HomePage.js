@@ -90,7 +90,7 @@ const HomePage = () => {
                 <p className="text-[#64748B] text-lg">{t.noProducts}</p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 lg:gap-6" data-testid="product-grid">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 lg:gap-6" data-testid="product-grid">
                 {products.map((product) => (
                   <ProductCard key={product.id} product={product} />
                 ))}

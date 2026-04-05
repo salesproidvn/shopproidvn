@@ -224,14 +224,14 @@ const StorefrontPage = () => {
             <p className="text-[#64748B] text-lg">{t.noProducts}</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 lg:gap-6" data-testid="product-grid">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 lg:gap-6" data-testid="product-grid">
             {products.map((product) => (
               <div key={product.id} className="group bg-white border border-[#E2E8F0] rounded-2xl overflow-hidden hover:shadow-lg transition-all cursor-pointer"
                 onClick={() => setSelectedProduct(product)} data-testid={`product-${product.id}`}>
                 <div className="aspect-square bg-[#F8FAFC] overflow-hidden">
                   <img src={product.image_url} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                 </div>
-                <div className="p-3 sm:p-4">
+                <div className="p-3 sm:p-4 text-center">
                   <h3 className="font-medium text-[#0F172A] text-sm sm:text-base line-clamp-2 mb-2">{product.name}</h3>
                   <p className="text-base sm:text-lg font-bold text-[#0055FF] mb-2">{formatVND(product.price)}</p>
                   <Button className="w-full bg-[#0055FF] hover:bg-[#0040CC] text-white text-xs sm:text-sm h-9 sm:h-10 rounded-lg"

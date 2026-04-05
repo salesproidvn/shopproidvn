@@ -14,6 +14,7 @@ Create a desktop UI for a Micro-SaaS E-commerce Platform with multi-tenant setup
 - JWT-based auth with cookie sessions
 - Roles: super_admin, shop_owner, customer
 - Shop owners tied to specific shops
+- Dashboard navigation link in user dropdown when logged in
 
 ### Super Admin Dashboard (DONE)
 - Overview stats (shops, owners, orders, revenue)
@@ -31,7 +32,8 @@ Create a desktop UI for a Micro-SaaS E-commerce Platform with multi-tenant setup
 
 ### Public Storefront (DONE)
 - Per-shop storefronts at `/shop/{slug}`
-- 5-column desktop / 2-column mobile product grids
+- 6-column desktop / 2-column mobile product grids
+- Centered product title and price
 - Local cart with checkout flow
 - Search and category filtering
 - Product detail modals
