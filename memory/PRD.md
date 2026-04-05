@@ -4,9 +4,9 @@
 Create a desktop UI for a Micro-SaaS E-commerce Platform with multi-tenant setup including Super-Admin, Shop Owner, and public Storefront views. The UI should support Vietnamese language.
 
 ## Architecture
-- **Frontend:** React + Tailwind CSS + Shadcn UI
-- **Backend:** FastAPI + Motor (async MongoDB) + PyJWT
-- **Database:** MongoDB (multi-tenant via `shop_id`)
+- **Frontend:** React + Tailwind CSS + Shadcn UI (fully standalone — no backend needed)
+- **Mock Layer:** Axios interceptor (`mockAdapter.js`) intercepts all API calls and returns data from `mockData.js`
+- **Data Persistence:** Auth state persists via localStorage; product/order CRUD in memory
 
 ## Core Features — Completed
 
