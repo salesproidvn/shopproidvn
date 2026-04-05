@@ -7,18 +7,19 @@ import { formatVND } from '../utils/format';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '../components/ui/sheet';
 import { ScrollArea } from '../components/ui/scroll-area';
 import PriceFilter from '../components/PriceFilter';
 import { 
   Search, ShoppingCart, Phone, Mail, MapPin, Facebook, Instagram, 
-  Plus, Minus, Trash2, ArrowLeft, LayoutDashboard, X, AlertTriangle, Play
+  Plus, Minus, Trash2, ArrowLeft, LayoutDashboard, X, AlertTriangle, Play,
+  MessageCircle, Map, FolderOpen, ChevronLeft, ChevronRight, FileText, Calendar
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { emitNotification } from '../context/NotificationContext';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+const PRODUCTS_PER_CATEGORY = 10;
 
 const StorefrontPage = () => {
   const { slug } = useParams();
@@ -29,6 +30,7 @@ const StorefrontPage = () => {
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [posts, setPosts] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [priceFilter, setPriceFilter] = useState({ id: 'all', min: 0, max: Infinity });
@@ -46,25 +48,26 @@ const StorefrontPage = () => {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [activeImage, setActiveImage] = useState(0);
   const [showVideo, setShowVideo] = useState(false);
+  const [showCategoryMenu, setShowCategoryMenu] = useState(false);
+  const [expandedCategories, setExpandedCategories] = useState({});
+  const [postCarouselIndex, setPostCarouselIndex] = useState(0);
 
-  useEffect(() => {
-    fetchShopData();
-  }, [slug]);
+  useEffect(() => { fetchShopData(); }, [slug]);
 
   const fetchShopData = async () => {
     try {
       setLoading(true);
-      const [shopRes, productsRes, categoriesRes] = await Promise.all([
+      const [shopRes, productsRes, categoriesRes, postsRes] = await Promise.all([
         axios.get(`${API}/shop/${slug}`),
         axios.get(`${API}/shop/${slug}/products`),
-        axios.get(`${API}/shop/${slug}/categories`)
+        axios.get(`${API}/shop/${slug}/categories`),
+        axios.get(`${API}/shop/${slug}/posts`)
       ]);
       setShop(shopRes.data);
       setProducts(productsRes.data);
       setFilteredProducts(productsRes.data);
       setCategories(categoriesRes.data);
-
-      // Check expiry
+      setPosts(postsRes.data || []);
       if (shopRes.data.expiry_date) {
         const expiry = new Date(shopRes.data.expiry_date);
         if (expiry < new Date()) setIsExpired(true);
@@ -76,19 +79,11 @@ const StorefrontPage = () => {
     }
   };
 
-  // Filter products locally
   useEffect(() => {
     let result = [...products];
-    if (selectedCategory && selectedCategory !== 'all') {
-      result = result.filter(p => p.category_id === selectedCategory);
-    }
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      result = result.filter(p => p.name.toLowerCase().includes(q));
-    }
-    if (priceFilter.id !== 'all') {
-      result = result.filter(p => p.price >= priceFilter.min && p.price <= priceFilter.max);
-    }
+    if (selectedCategory && selectedCategory !== 'all') result = result.filter(p => p.category_id === selectedCategory);
+    if (searchQuery) { const q = searchQuery.toLowerCase(); result = result.filter(p => p.name.toLowerCase().includes(q)); }
+    if (priceFilter.id !== 'all') result = result.filter(p => p.price >= priceFilter.min && p.price <= priceFilter.max);
     setFilteredProducts(result);
   }, [selectedCategory, searchQuery, priceFilter, products]);
 
@@ -112,40 +107,36 @@ const StorefrontPage = () => {
     }).filter(Boolean));
   };
 
-  const removeFromCart = (productId) => {
-    setCart(cart.filter(item => item.product_id !== productId));
-  };
+  const removeFromCart = (productId) => { setCart(cart.filter(item => item.product_id !== productId)); };
 
   const cartTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
   const themeColor = shop?.theme_color || '#0055FF';
+  const postPosition = shop?.post_carousel_position || 'bottom';
 
   const handleCheckout = async (e) => {
     e.preventDefault();
     try {
-      const orderData = {
-        ...checkoutForm,
-        items: cart.map(item => ({ product_id: item.product_id, quantity: item.quantity }))
-      };
+      const orderData = { ...checkoutForm, items: cart.map(item => ({ product_id: item.product_id, quantity: item.quantity })) };
       const { data } = await axios.post(`${API}/shop/${slug}/orders`, orderData);
-      
-      // Emit notification for shop owner
-      emitNotification({
-        type: 'new_order',
-        title: t.newOrder,
-        message: `${checkoutForm.customer_name} - ${formatVND(data.total_amount)}`,
-        order_id: data.id,
-        shop_slug: slug,
-      });
-      
-      setCart([]);
-      setShowCheckout(false);
-      setShowCart(false);
+      emitNotification({ type: 'new_order', title: t.newOrder, message: `${checkoutForm.customer_name} - ${formatVND(data.total_amount)}`, order_id: data.id, shop_slug: slug });
+      setCart([]); setShowCheckout(false); setShowCart(false);
       setCheckoutForm({ customer_name: '', customer_phone: '', customer_email: '', customer_address: '', note: '' });
       navigate(`/shop/${slug}/thank-you`, { state: { order: data } });
-    } catch (err) {
-      toast.error(t.orderFailed);
-    }
+    } catch { toast.error(t.orderFailed); }
+  };
+
+  const toggleCategoryExpand = (catId) => {
+    setExpandedCategories(prev => ({ ...prev, [catId]: !prev[catId] }));
+  };
+
+  const scrollToCategory = (catId) => {
+    setShowCategoryMenu(false);
+    setSelectedCategory('all');
+    setTimeout(() => {
+      const el = document.getElementById(`cat-section-${catId}`);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
   };
 
   if (loading) {
@@ -161,31 +152,140 @@ const StorefrontPage = () => {
       <div className="min-h-screen flex flex-col items-center justify-center bg-[#F8FAFC]">
         <h1 className="text-2xl font-bold text-[#0F172A] mb-4">{t.shopNotFound}</h1>
         <p className="text-[#64748B] mb-6">{error}</p>
-        <Link to="/">
-          <Button className="hover:opacity-90" style={{ backgroundColor: themeColor }}>
-            <ArrowLeft className="w-4 h-4 mr-2" /> {t.backToHome}
-          </Button>
-        </Link>
+        <Link to="/"><Button className="hover:opacity-90" style={{ backgroundColor: themeColor }}><ArrowLeft className="w-4 h-4 mr-2" /> {t.backToHome}</Button></Link>
+      </div>
+    );
+  }
+
+  // Post Carousel Component
+  const PostCarousel = () => {
+    if (!posts.length) return null;
+    return (
+      <div className="mb-8" data-testid="post-carousel">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-xl sm:text-2xl font-bold text-[#0F172A]">{t.latestPosts}</h3>
+          <Link to={`/shop/${slug}/posts`}><Button variant="ghost" size="sm" className="text-sm" style={{ color: themeColor }}>{t.readMore} &rarr;</Button></Link>
+        </div>
+        <div className="relative">
+          <div className="flex gap-4 overflow-hidden">
+            {posts.slice(postCarouselIndex, postCarouselIndex + 3).map(post => (
+              <Link key={post.id} to={`/shop/${slug}/posts/${post.id}`} className="flex-1 min-w-0 bg-white border border-[#E2E8F0] overflow-hidden hover:shadow-lg transition-all group" data-testid={`carousel-post-${post.id}`}>
+                {post.thumbnail && (
+                  <div className="aspect-video overflow-hidden">
+                    <img src={post.thumbnail} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                  </div>
+                )}
+                <div className="p-3">
+                  <p className="text-[10px] text-[#94A3B8] mb-1 flex items-center gap-1"><Calendar className="w-3 h-3" />{new Date(post.created_at).toLocaleDateString('vi-VN')}</p>
+                  <h4 className="font-semibold text-sm text-[#0F172A] line-clamp-2 group-hover:transition-colors" style={{ '--hover-color': themeColor }}>{post.title}</h4>
+                </div>
+              </Link>
+            ))}
+          </div>
+          {posts.length > 3 && (
+            <div className="flex justify-center gap-2 mt-3">
+              <Button variant="outline" size="icon" className="w-8 h-8" disabled={postCarouselIndex === 0} onClick={() => setPostCarouselIndex(Math.max(0, postCarouselIndex - 3))}>
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              <Button variant="outline" size="icon" className="w-8 h-8" disabled={postCarouselIndex + 3 >= posts.length} onClick={() => setPostCarouselIndex(Math.min(posts.length - 3, postCarouselIndex + 3))}>
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // Product Card
+  const ProductCard = ({ product }) => (
+    <div className="group bg-white border border-[#E2E8F0] overflow-hidden hover:shadow-lg transition-all cursor-pointer"
+      onClick={() => { setSelectedProduct(product); setActiveImage(0); setShowVideo(false); }} data-testid={`product-${product.id}`}>
+      <div className="aspect-square bg-[#F8FAFC] overflow-hidden">
+        <img src={product.image_url} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+      </div>
+      <div className="p-3 sm:p-4 text-center">
+        <h3 className="font-medium text-[#0F172A] text-sm sm:text-base line-clamp-2 mb-2">{product.name}</h3>
+        <p className="text-base sm:text-lg font-bold mb-2" style={{ color: themeColor }}>{formatVND(product.price)}</p>
+        <Button className="w-full hover:opacity-90 text-white text-xs sm:text-sm h-9 sm:h-10 rounded-none"
+          style={{ backgroundColor: themeColor }}
+          onClick={(e) => { e.stopPropagation(); addToCart(product); }} data-testid={`add-cart-${product.id}`}>
+          {t.addToCart}
+        </Button>
+      </div>
+    </div>
+  );
+
+  // Full-page product view
+  if (selectedProduct) {
+    const images = selectedProduct.images?.length > 0 ? selectedProduct.images : [selectedProduct.image_url];
+    const ytMatch = selectedProduct.video_url?.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+    const embedUrl = ytMatch ? `https://www.youtube.com/embed/${ytMatch[1]}` : (selectedProduct.video_url || null);
+    return (
+      <div className="fixed inset-0 z-50 bg-white overflow-y-auto" data-testid="product-fullpage">
+        <button onClick={() => { setSelectedProduct(null); setActiveImage(0); setShowVideo(false); }}
+          className="fixed top-4 right-4 z-[60] w-10 h-10 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-lg transition-colors"
+          data-testid="product-close-btn">
+          <X className="w-5 h-5" />
+        </button>
+        <div className="max-w-5xl mx-auto px-4 py-8">
+          <div className="grid md:grid-cols-2 gap-8">
+            <div className="flex flex-col">
+              <div className="aspect-square bg-[#F8FAFC] relative overflow-hidden" data-testid="product-main-image">
+                {showVideo && embedUrl ? (
+                  <iframe src={embedUrl} title="Product video" className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
+                ) : (
+                  <img src={images[activeImage]} alt={selectedProduct.name} className="w-full h-full object-cover" />
+                )}
+              </div>
+              {(images.length > 1 || embedUrl) && (
+                <div className="flex gap-2 mt-3 overflow-x-auto" data-testid="product-thumbnails">
+                  {images.map((img, idx) => (
+                    <button key={idx} onClick={() => { setActiveImage(idx); setShowVideo(false); }}
+                      className={`w-16 h-16 rounded overflow-hidden flex-shrink-0 border-2 transition-all ${!showVideo && activeImage === idx ? 'ring-1' : 'border-transparent hover:border-[#E2E8F0]'}`}
+                      style={!showVideo && activeImage === idx ? { borderColor: themeColor, '--tw-ring-color': themeColor } : {}}
+                      data-testid={`thumb-${idx}`}>
+                      <img src={img} alt="" className="w-full h-full object-cover" />
+                    </button>
+                  ))}
+                  {embedUrl && (
+                    <button onClick={() => setShowVideo(true)}
+                      className={`w-16 h-16 rounded flex-shrink-0 border-2 transition-all flex items-center justify-center bg-[#0F172A] ${showVideo ? 'ring-1' : 'border-transparent hover:border-[#E2E8F0]'}`}
+                      style={showVideo ? { borderColor: themeColor, '--tw-ring-color': themeColor } : {}}
+                      data-testid="thumb-video">
+                      <Play className="w-5 h-5 text-white fill-white" />
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+            <div className="flex flex-col">
+              <h1 className="text-2xl sm:text-3xl font-bold text-[#0F172A] mb-3" data-testid="product-name">{selectedProduct.name}</h1>
+              <p className="text-3xl font-bold mb-4" style={{ color: themeColor }} data-testid="product-price">{formatVND(selectedProduct.price)}</p>
+              {selectedProduct.category && <p className="text-sm text-[#94A3B8] mb-4">{selectedProduct.category}</p>}
+              {selectedProduct.description && <p className="text-[#64748B] leading-relaxed mb-8 whitespace-pre-wrap" data-testid="product-description">{selectedProduct.description}</p>}
+              <Button className="w-full hover:opacity-90 py-6 text-base"
+                style={{ backgroundColor: themeColor }}
+                onClick={() => { addToCart(selectedProduct); setSelectedProduct(null); setActiveImage(0); setShowVideo(false); }} data-testid="product-add-cart">
+                <ShoppingCart className="w-5 h-5 mr-2" /> {t.addToCart}
+              </Button>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white" data-testid="storefront-page" style={{ '--tc': themeColor }}>
+    <div className="min-h-screen bg-white pb-14" data-testid="storefront-page" style={{ '--tc': themeColor }}>
       {/* Expired Overlay */}
       {isExpired && (
         <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" data-testid="shop-expired-overlay">
           <div className="bg-white rounded-3xl p-8 sm:p-12 max-w-md w-full text-center shadow-2xl">
-            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <AlertTriangle className="w-8 h-8 text-red-500" />
-            </div>
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6"><AlertTriangle className="w-8 h-8 text-red-500" /></div>
             <h2 className="text-2xl font-bold text-[#0F172A] mb-3">{t.shopExpired}</h2>
             <p className="text-[#64748B] mb-8">{t.shopExpiredMsg}</p>
-            <Link to="/">
-              <Button className="hover:opacity-90 rounded-full px-8 py-6" style={{ backgroundColor: themeColor }}>
-                <ArrowLeft className="w-4 h-4 mr-2" /> {t.backToHome}
-              </Button>
-            </Link>
+            <Link to="/"><Button className="hover:opacity-90 rounded-full px-8 py-6" style={{ backgroundColor: themeColor }}><ArrowLeft className="w-4 h-4 mr-2" /> {t.backToHome}</Button></Link>
           </div>
         </div>
       )}
@@ -193,37 +293,41 @@ const StorefrontPage = () => {
       {/* Header */}
       <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-lg border-b border-[#E2E8F0]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
+          <div className="flex items-center justify-between h-14">
             <div className="flex items-center gap-3">
               {shop.logo_url ? (
-                <img src={shop.logo_url} alt={shop.name} className="w-10 h-10 rounded-full object-cover" />
+                <img src={shop.logo_url} alt={shop.name} className="w-9 h-9 rounded-full object-cover" />
               ) : (
-                <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: themeColor }}>
-                  <span className="text-white font-bold">{shop.name[0]}</span>
+                <div className="w-9 h-9 rounded-full flex items-center justify-center" style={{ backgroundColor: themeColor }}>
+                  <span className="text-white font-bold text-sm">{shop.name[0]}</span>
                 </div>
               )}
-              <span className="font-bold text-lg text-[#0F172A]">{shop.name}</span>
+              <span className="font-bold text-base text-[#0F172A] hidden sm:block">{shop.name}</span>
             </div>
             <div className="hidden md:flex flex-1 max-w-md mx-6">
               <div className="relative w-full">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#64748B]" />
-                <Input type="text" placeholder={t.search} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 rounded-full bg-[#F8FAFC]" data-testid="search-input" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#64748B]" />
+                <Input type="text" placeholder={t.search} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9 rounded-full bg-[#F8FAFC] h-9 text-sm" data-testid="search-input" />
               </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <Link to={`/shop/${slug}/posts`} className="hidden sm:block" data-testid="menu-posts">
+                <Button variant="ghost" size="sm" className="text-sm gap-1"><FileText className="w-4 h-4" /> {t.posts}</Button>
+              </Link>
+              <Link to={`/shop/${slug}/contact`} className="hidden sm:block" data-testid="menu-contact">
+                <Button variant="ghost" size="sm" className="text-sm gap-1"><Mail className="w-4 h-4" /> {t.contact}</Button>
+              </Link>
               {user && (user.role === 'shop_owner' || user.role === 'super_admin') && (
                 <Link to={user.role === 'super_admin' ? '/admin' : '/dashboard'} data-testid="storefront-dashboard-btn">
-                  <Button variant="outline" className="rounded-full px-4 text-sm hover:text-white" style={{ borderColor: themeColor, color: themeColor, '--hover-bg': themeColor }} onMouseEnter={(e) => { e.target.style.backgroundColor = themeColor; e.target.style.color = 'white'; }} onMouseLeave={(e) => { e.target.style.backgroundColor = 'transparent'; e.target.style.color = themeColor; }}>
-                    <LayoutDashboard className="w-4 h-4 mr-2" />
-                    {t.dashboard}
+                  <Button variant="outline" size="sm" className="rounded-full text-xs hover:text-white" style={{ borderColor: themeColor, color: themeColor }} onMouseEnter={(e) => { e.target.style.backgroundColor = themeColor; e.target.style.color = 'white'; }} onMouseLeave={(e) => { e.target.style.backgroundColor = 'transparent'; e.target.style.color = themeColor; }}>
+                    <LayoutDashboard className="w-3 h-3 mr-1" /> {t.dashboard}
                   </Button>
                 </Link>
               )}
-              <Button variant="outline" className="relative rounded-full" onClick={() => setShowCart(true)} data-testid="cart-button">
-                <ShoppingCart className="w-5 h-5" />
+              <Button variant="outline" className="relative rounded-full h-9 w-9 p-0" onClick={() => setShowCart(true)} data-testid="cart-button">
+                <ShoppingCart className="w-4 h-4" />
                 {cartCount > 0 && (
-                  <span className="absolute -top-2 -right-2 w-5 h-5 text-white text-xs rounded-full flex items-center justify-center" style={{ backgroundColor: themeColor }}>{cartCount}</span>
+                  <span className="absolute -top-1.5 -right-1.5 w-4 h-4 text-white text-[10px] rounded-full flex items-center justify-center" style={{ backgroundColor: themeColor }}>{cartCount}</span>
                 )}
               </Button>
             </div>
@@ -232,92 +336,71 @@ const StorefrontPage = () => {
       </header>
 
       {/* Products */}
-      <main className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex flex-col gap-4 mb-8">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="md:hidden flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#64748B]" />
-                <Input type="text" placeholder={t.searchShort} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10" />
-              </div>
-            </div>
+      <main className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {/* Mobile search */}
+        <div className="md:hidden mb-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#64748B]" />
+            <Input type="text" placeholder={t.searchShort} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9 h-9 text-sm" />
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-3 mb-6">
+          <div className="flex flex-col sm:flex-row gap-3">
             <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-              <SelectTrigger className="w-full sm:w-[200px]" data-testid="category-filter">
+              <SelectTrigger className="w-full sm:w-[200px] h-9 text-sm" data-testid="category-filter">
                 <SelectValue placeholder={t.allCategories} />
               </SelectTrigger>
               <SelectContent className="bg-white">
                 <SelectItem value="all">{t.allCategories}</SelectItem>
-                {categories.map((cat) => (
-                  <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
-                ))}
+                {categories.map((cat) => (<SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>))}
               </SelectContent>
             </Select>
           </div>
           <PriceFilter onFilter={setPriceFilter} activeFilter={priceFilter} />
         </div>
 
+        {/* Post carousel at top */}
+        {postPosition === 'top' && <PostCarousel />}
+
         {filteredProducts.length === 0 ? (
-          <div className="text-center py-24">
-            <p className="text-[#64748B] text-lg">{t.noProducts}</p>
-          </div>
+          <div className="text-center py-24"><p className="text-[#64748B] text-lg">{t.noProducts}</p></div>
         ) : selectedCategory === 'all' && !searchQuery && priceFilter.id === 'all' ? (
           <div className="space-y-10" data-testid="grouped-product-view">
             {categories.map(cat => {
-              const catProducts = filteredProducts
-                .filter(p => p.category_id === cat.id)
-                .sort((a, b) => (a.position || 0) - (b.position || 0));
+              const catProducts = filteredProducts.filter(p => p.category_id === cat.id).sort((a, b) => (a.position || 0) - (b.position || 0));
               if (catProducts.length === 0) return null;
+              const isExpanded = expandedCategories[cat.id];
+              const visibleProducts = isExpanded ? catProducts : catProducts.slice(0, PRODUCTS_PER_CATEGORY);
               return (
-                <div key={cat.id} data-testid={`category-section-${cat.id}`}>
+                <div key={cat.id} id={`cat-section-${cat.id}`} data-testid={`category-section-${cat.id}`}>
                   <div className="flex items-center gap-3 mb-5">
                     <h3 className="text-xl sm:text-2xl font-bold text-[#0F172A]">{cat.name}</h3>
                     <div className="flex-1 h-px bg-[#E2E8F0]" />
                     <span className="text-sm text-[#94A3B8]">{catProducts.length}</span>
                   </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 lg:gap-6">
-                    {catProducts.map((product) => (
-                      <div key={product.id} className="group bg-white border border-[#E2E8F0] overflow-hidden hover:shadow-lg transition-all cursor-pointer"
-                        onClick={() => setSelectedProduct(product)} data-testid={`product-${product.id}`}>
-                        <div className="aspect-square bg-[#F8FAFC] overflow-hidden">
-                          <img src={product.image_url} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
-                        </div>
-                        <div className="p-3 sm:p-4 text-center">
-                          <h3 className="font-medium text-[#0F172A] text-sm sm:text-base line-clamp-2 mb-2">{product.name}</h3>
-                          <p className="text-base sm:text-lg font-bold mb-2" style={{ color: themeColor }}>{formatVND(product.price)}</p>
-                          <Button className="w-full hover:opacity-90 text-white text-xs sm:text-sm h-9 sm:h-10 rounded-none"
-                            style={{ backgroundColor: themeColor }}
-                            onClick={(e) => { e.stopPropagation(); addToCart(product); }} data-testid={`add-cart-${product.id}`}>
-                            {t.addToCart}
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 lg:gap-5">
+                    {visibleProducts.map((product) => (<ProductCard key={product.id} product={product} />))}
                   </div>
+                  {catProducts.length > PRODUCTS_PER_CATEGORY && (
+                    <div className="text-center mt-4">
+                      <Button variant="outline" onClick={() => toggleCategoryExpand(cat.id)} className="text-sm px-6" style={{ borderColor: themeColor, color: themeColor }} data-testid={`load-more-${cat.id}`}>
+                        {isExpanded ? t.close : `${t.loadMore} (${catProducts.length - PRODUCTS_PER_CATEGORY})`}
+                      </Button>
+                    </div>
+                  )}
                 </div>
               );
             })}
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 lg:gap-6" data-testid="product-grid">
-            {filteredProducts.map((product) => (
-              <div key={product.id} className="group bg-white border border-[#E2E8F0] overflow-hidden hover:shadow-lg transition-all cursor-pointer"
-                onClick={() => setSelectedProduct(product)} data-testid={`product-${product.id}`}>
-                <div className="aspect-square bg-[#F8FAFC] overflow-hidden">
-                  <img src={product.image_url} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
-                </div>
-                <div className="p-3 sm:p-4 text-center">
-                  <h3 className="font-medium text-[#0F172A] text-sm sm:text-base line-clamp-2 mb-2">{product.name}</h3>
-                  <p className="text-base sm:text-lg font-bold mb-2" style={{ color: themeColor }}>{formatVND(product.price)}</p>
-                  <Button className="w-full hover:opacity-90 text-white text-xs sm:text-sm h-9 sm:h-10 rounded-none"
-                            style={{ backgroundColor: themeColor }}
-                    onClick={(e) => { e.stopPropagation(); addToCart(product); }} data-testid={`add-cart-${product.id}`}>
-                    {t.addToCart}
-                  </Button>
-                </div>
-              </div>
-            ))}
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 lg:gap-5" data-testid="product-grid">
+            {filteredProducts.map((product) => (<ProductCard key={product.id} product={product} />))}
           </div>
         )}
+
+        {/* Post carousel at bottom */}
+        {postPosition === 'bottom' && <div className="mt-12"><PostCarousel /></div>}
       </main>
 
       {/* Footer */}
@@ -328,12 +411,8 @@ const StorefrontPage = () => {
               <h3 className="font-bold text-xl mb-4">{shop.name}</h3>
               {shop.description && <p className="text-[#94A3B8] mb-4">{shop.description}</p>}
               <div className="flex gap-4">
-                {shop.social_facebook && (
-                  <a href={shop.social_facebook} target="_blank" rel="noopener noreferrer" className="hover:text-[#0055FF]"><Facebook className="w-6 h-6" /></a>
-                )}
-                {shop.social_instagram && (
-                  <a href={shop.social_instagram} target="_blank" rel="noopener noreferrer" className="hover:text-[#0055FF]"><Instagram className="w-6 h-6" /></a>
-                )}
+                {shop.social_facebook && (<a href={shop.social_facebook} target="_blank" rel="noopener noreferrer" className="hover:text-[#0055FF]"><Facebook className="w-6 h-6" /></a>)}
+                {shop.social_instagram && (<a href={shop.social_instagram} target="_blank" rel="noopener noreferrer" className="hover:text-[#0055FF]"><Instagram className="w-6 h-6" /></a>)}
               </div>
             </div>
             <div>
@@ -348,60 +427,49 @@ const StorefrontPage = () => {
         </div>
       </footer>
 
-      {/* Product Modal */}
-      <Dialog open={!!selectedProduct} onOpenChange={(v) => { if (!v) { setSelectedProduct(null); setActiveImage(0); setShowVideo(false); } }}>
-        <DialogContent className="sm:max-w-4xl p-0 overflow-hidden bg-white max-h-[90vh] overflow-y-auto" data-testid="product-modal">
-          <DialogDescription className="sr-only">{t.productDetail}</DialogDescription>
-          {selectedProduct && (() => {
-            const images = selectedProduct.images?.length > 0 ? selectedProduct.images : [selectedProduct.image_url];
-            const ytMatch = selectedProduct.video_url?.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-            const embedUrl = ytMatch ? `https://www.youtube.com/embed/${ytMatch[1]}` : (selectedProduct.video_url || null);
-            return (
-              <div className="grid md:grid-cols-2">
-                <div className="flex flex-col">
-                  <div className="aspect-square bg-[#F8FAFC] relative overflow-hidden" data-testid="storefront-product-main-image">
-                    {showVideo && embedUrl ? (
-                      <iframe src={embedUrl} title="Product video" className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
-                    ) : (
-                      <img src={images[activeImage]} alt={selectedProduct.name} className="w-full h-full object-cover" />
-                    )}
-                  </div>
-                  {(images.length > 1 || embedUrl) && (
-                    <div className="flex gap-2 p-3 overflow-x-auto" data-testid="storefront-product-thumbnails">
-                      {images.map((img, idx) => (
-                        <button key={idx} onClick={() => { setActiveImage(idx); setShowVideo(false); }}
-                          className={`w-14 h-14 rounded-lg overflow-hidden flex-shrink-0 border-2 transition-all ${!showVideo && activeImage === idx ? 'ring-1' : 'border-transparent hover:border-[#E2E8F0]'}`}
-                          style={!showVideo && activeImage === idx ? { borderColor: themeColor, '--tw-ring-color': themeColor } : {}}
-                          data-testid={`storefront-thumb-${idx}`}>
-                          <img src={img} alt="" className="w-full h-full object-cover" />
-                        </button>
-                      ))}
-                      {embedUrl && (
-                        <button onClick={() => setShowVideo(true)}
-                          className={`w-14 h-14 rounded-lg flex-shrink-0 border-2 transition-all flex items-center justify-center bg-[#0F172A] ${showVideo ? 'ring-1' : 'border-transparent hover:border-[#E2E8F0]'}`}
-                          style={showVideo ? { borderColor: themeColor, '--tw-ring-color': themeColor } : {}}
-                          data-testid="storefront-thumb-video">
-                          <Play className="w-5 h-5 text-white fill-white" />
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </div>
-                <div className="p-6 flex flex-col">
-                  <h2 className="text-xl font-bold text-[#0F172A] mb-2">{selectedProduct.name}</h2>
-                  <p className="text-2xl font-bold mb-4" style={{ color: themeColor }}>{formatVND(selectedProduct.price)}</p>
-                  {selectedProduct.description && <p className="text-[#64748B] mb-6 flex-1">{selectedProduct.description}</p>}
-                  <Button className="w-full hover:opacity-90 py-6"
-                    style={{ backgroundColor: themeColor }}
-                    onClick={() => { addToCart(selectedProduct); setSelectedProduct(null); setActiveImage(0); setShowVideo(false); }} data-testid="modal-add-cart">
-                    <ShoppingCart className="w-5 h-5 mr-2" /> {t.addToCart}
-                  </Button>
-                </div>
-              </div>
-            );
-          })()}
-        </DialogContent>
-      </Dialog>
+      {/* Bottom Bar */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-[#E2E8F0] shadow-lg" data-testid="bottom-bar">
+        <div className="max-w-7xl mx-auto flex items-center justify-around h-12">
+          {shop.contact_phone && (
+            <a href={`tel:${shop.contact_phone}`} className="flex flex-col items-center gap-0.5 text-[#64748B] hover:text-green-600 transition-colors" data-testid="bottom-call">
+              <Phone className="w-4 h-4" />
+              <span className="text-[10px]">{t.call}</span>
+            </a>
+          )}
+          {shop.contact_phone && (
+            <a href={`sms:${shop.contact_phone}`} className="flex flex-col items-center gap-0.5 text-[#64748B] hover:text-blue-600 transition-colors" data-testid="bottom-message">
+              <MessageCircle className="w-4 h-4" />
+              <span className="text-[10px]">{t.message}</span>
+            </a>
+          )}
+          {shop.address && (
+            <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(shop.address)}`} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-0.5 text-[#64748B] hover:text-purple-600 transition-colors" data-testid="bottom-map">
+              <Map className="w-4 h-4" />
+              <span className="text-[10px]">{t.map}</span>
+            </a>
+          )}
+          <button onClick={() => setShowCategoryMenu(!showCategoryMenu)} className="flex flex-col items-center gap-0.5 text-[#64748B] hover:text-[#0055FF] transition-colors relative" data-testid="bottom-categories">
+            <FolderOpen className="w-4 h-4" />
+            <span className="text-[10px]">{t.productCategories}</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Category Menu Popup */}
+      {showCategoryMenu && (
+        <>
+          <div className="fixed inset-0 z-[41]" onClick={() => setShowCategoryMenu(false)} />
+          <div className="fixed bottom-14 left-0 right-0 z-[42] bg-white border-t border-[#E2E8F0] shadow-xl p-4 max-h-64 overflow-y-auto" data-testid="category-menu-popup">
+            <div className="max-w-7xl mx-auto grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {categories.map(cat => (
+                <button key={cat.id} onClick={() => scrollToCategory(cat.id)} className="text-left p-3 bg-[#F8FAFC] hover:bg-[#EFF6FF] rounded-lg transition-colors text-sm font-medium text-[#0F172A]" data-testid={`cat-menu-${cat.id}`}>
+                  {cat.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Cart Drawer */}
       <Sheet open={showCart} onOpenChange={setShowCart}>
@@ -411,9 +479,7 @@ const StorefrontPage = () => {
             <SheetDescription>{t.cartItems}</SheetDescription>
           </SheetHeader>
           {cart.length === 0 ? (
-            <div className="flex-1 flex items-center justify-center">
-              <p className="text-[#64748B]">{t.cartEmpty}</p>
-            </div>
+            <div className="flex-1 flex items-center justify-center"><p className="text-[#64748B]">{t.cartEmpty}</p></div>
           ) : (
             <>
               <ScrollArea className="flex-1 -mx-6 px-6">
@@ -440,8 +506,7 @@ const StorefrontPage = () => {
                   <span className="text-[#64748B]">{t.total}:</span>
                   <span className="font-bold" style={{ color: themeColor }}>{formatVND(cartTotal)}</span>
                 </div>
-                <Button className="w-full hover:opacity-90 py-6"
-                    style={{ backgroundColor: themeColor }}
+                <Button className="w-full hover:opacity-90 py-6" style={{ backgroundColor: themeColor }}
                   onClick={() => { setShowCart(false); setShowCheckout(true); }} data-testid="checkout-btn">
                   {t.orderNow}
                 </Button>
@@ -456,14 +521,10 @@ const StorefrontPage = () => {
         <div className="fixed inset-0 z-50 bg-[#F8FAFC] overflow-y-auto" data-testid="checkout-overlay">
           <div className="max-w-4xl mx-auto px-4 py-8">
             <div className="flex items-center gap-4 mb-8">
-              <Button variant="ghost" size="icon" className="rounded-full" onClick={() => { setShowCheckout(false); setShowCart(true); }}>
-                <ArrowLeft className="w-5 h-5" />
-              </Button>
+              <Button variant="ghost" size="icon" className="rounded-full" onClick={() => { setShowCheckout(false); setShowCart(true); }}><ArrowLeft className="w-5 h-5" /></Button>
               <h1 className="text-2xl font-bold text-[#0F172A]">{t.checkoutTitle}</h1>
             </div>
-
             <div className="grid md:grid-cols-5 gap-8">
-              {/* Shipping Form */}
               <div className="md:col-span-3">
                 <div className="bg-white rounded-2xl p-6 shadow-sm">
                   <h2 className="font-semibold text-lg text-[#0F172A] mb-4">{t.shippingInfo}</h2>
@@ -493,8 +554,6 @@ const StorefrontPage = () => {
                   </form>
                 </div>
               </div>
-
-              {/* Order Summary */}
               <div className="md:col-span-2">
                 <div className="bg-white rounded-2xl p-6 shadow-sm sticky top-8">
                   <h2 className="font-semibold text-lg text-[#0F172A] mb-4">{t.orderSummary}</h2>

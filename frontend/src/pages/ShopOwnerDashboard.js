@@ -13,10 +13,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { 
   LayoutDashboard, Package, FolderOpen, ShoppingCart, Settings, 
   LogOut, Menu, X, Plus, Pencil, Trash2, TrendingUp, Clock, Eye, Palette, Upload, ExternalLink,
-  Bold, Italic, List, ChevronUp, ChevronDown, Play
+  Bold, Italic, List, ChevronUp, ChevronDown, Play, FileText, Image, Calendar
 } from 'lucide-react';
 import { toast } from 'sonner';
 import NotificationBell from '../components/NotificationBell';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -42,16 +44,22 @@ const ShopOwnerDashboard = () => {
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showOrderModal, setShowOrderModal] = useState(false);
   const [showProductDetailModal, setShowProductDetailModal] = useState(false);
+  const [showPostModal, setShowPostModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [editingCategory, setEditingCategory] = useState(null);
+  const [editingPost, setEditingPost] = useState(null);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [detailActiveImage, setDetailActiveImage] = useState(0);
   const [detailShowVideo, setDetailShowVideo] = useState(false);
+  const [posts, setPosts] = useState([]);
 
   const [productForm, setProductForm] = useState({ name: '', price: '', category_id: '', description: '', image_url: '', images: [], stock: '', position: '', video_url: '' });
   const [categoryForm, setCategoryForm] = useState({ name: '', description: '' });
   const [shopForm, setShopForm] = useState({});
+  const [postForm, setPostForm] = useState({ title: '', description: '', thumbnail: '', images: [], attached_products: [] });
+  const postFileInputRef = useRef(null);
+  const postImagesInputRef = useRef(null);
 
   useEffect(() => {
     if (authLoading) return;
@@ -65,12 +73,13 @@ const ShopOwnerDashboard = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [statsRes, shopRes, productsRes, categoriesRes, ordersRes] = await Promise.all([
+      const [statsRes, shopRes, productsRes, categoriesRes, ordersRes, postsRes] = await Promise.all([
         axios.get(`${API}/dashboard/stats`),
         axios.get(`${API}/dashboard/shop`),
         axios.get(`${API}/dashboard/products`),
         axios.get(`${API}/dashboard/categories`),
-        axios.get(`${API}/dashboard/orders`)
+        axios.get(`${API}/dashboard/orders`),
+        axios.get(`${API}/dashboard/posts`)
       ]);
       setStats(statsRes.data);
       setShop(shopRes.data);
@@ -79,6 +88,7 @@ const ShopOwnerDashboard = () => {
       setProducts(productsRes.data);
       setCategories(categoriesRes.data);
       setOrders(ordersRes.data);
+      setPosts(postsRes.data || []);
     } catch (err) {
       toast.error(t.failedToLoad);
     } finally {
@@ -272,10 +282,93 @@ const ShopOwnerDashboard = () => {
     }
   };
 
+  // Post methods
+  const countWords = (html) => {
+    const text = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+    return text ? text.split(' ').length : 0;
+  };
+
+  const handleSavePost = async (e) => {
+    e.preventDefault();
+    if (countWords(postForm.description) > 2000) { toast.error(t.maxWordsReached); return; }
+    try {
+      const data = { ...postForm, images: postForm.images || [], attached_products: postForm.attached_products || [] };
+      if (editingPost) {
+        await axios.put(`${API}/dashboard/posts/${editingPost.id}`, data);
+        toast.success(t.postUpdated);
+      } else {
+        await axios.post(`${API}/dashboard/posts`, data);
+        toast.success(t.postCreated);
+      }
+      setShowPostModal(false);
+      resetPostForm();
+      fetchData();
+    } catch (err) { toast.error(t.failedToSave); }
+  };
+
+  const handleDeletePost = async (postId) => {
+    if (!window.confirm(t.deleteConfirmPost)) return;
+    try {
+      await axios.delete(`${API}/dashboard/posts/${postId}`);
+      toast.success(t.postDeleted);
+      fetchData();
+    } catch { toast.error(t.failedToDelete); }
+  };
+
+  const openEditPost = (post) => {
+    setEditingPost(post);
+    setPostForm({ title: post.title, description: post.description, thumbnail: post.thumbnail || '', images: post.images || [], attached_products: post.attached_products || [] });
+    setShowPostModal(true);
+  };
+
+  const resetPostForm = () => {
+    setEditingPost(null);
+    setPostForm({ title: '', description: '', thumbnail: '', images: [], attached_products: [] });
+  };
+
+  const handlePostThumbnailUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+      const { data } = await axios.post(`${API}/upload/image`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+      const url = data.url || `${API}/files/${data.id}`;
+      setPostForm(prev => ({ ...prev, thumbnail: url }));
+      toast.success(t.uploadSuccess);
+    } catch { toast.error(t.uploadFailed); }
+    if (postFileInputRef.current) postFileInputRef.current.value = '';
+  };
+
+  const handlePostImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if ((postForm.images || []).length >= 3) { toast.error('Max 3 images'); return; }
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+      const { data } = await axios.post(`${API}/upload/image`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+      const url = data.url || `${API}/files/${data.id}`;
+      setPostForm(prev => ({ ...prev, images: [...(prev.images || []), url] }));
+      toast.success(t.uploadSuccess);
+    } catch { toast.error(t.uploadFailed); }
+    if (postImagesInputRef.current) postImagesInputRef.current.value = '';
+  };
+
+  const toggleProductAttach = (prodId) => {
+    setPostForm(prev => {
+      const current = prev.attached_products || [];
+      return { ...prev, attached_products: current.includes(prodId) ? current.filter(id => id !== prodId) : [...current, prodId] };
+    });
+  };
+
+  const quillModules = { toolbar: [['bold', 'italic', 'underline'], [{ list: 'ordered' }, { list: 'bullet' }], ['link'], ['clean']] };
+
   const menuItems = [
     { id: 'overview', label: t.overview, icon: LayoutDashboard },
     { id: 'products', label: t.products, icon: Package },
     { id: 'categories', label: t.categories, icon: FolderOpen },
+    { id: 'posts', label: t.posts, icon: FileText },
     { id: 'orders', label: t.orders, icon: ShoppingCart },
     { id: 'settings', label: t.settings, icon: Settings },
   ];
@@ -403,6 +496,7 @@ const ShopOwnerDashboard = () => {
                   {activeTab === 'overview' && t.dashboard}
                   {activeTab === 'products' && t.products}
                   {activeTab === 'categories' && t.categories}
+                  {activeTab === 'posts' && t.posts}
                   {activeTab === 'orders' && t.orders}
                   {activeTab === 'settings' && t.settings}
                 </h1>
@@ -418,6 +512,11 @@ const ShopOwnerDashboard = () => {
             {activeTab === 'categories' && (
               <Button onClick={() => { resetCategoryForm(); setShowCategoryModal(true); }} style={{ backgroundColor: themeColor }} className="hover:opacity-90 text-sm" data-testid="add-category-btn">
                 <Plus className="w-4 h-4 mr-2" /> {t.addCategory}
+              </Button>
+            )}
+            {activeTab === 'posts' && (
+              <Button onClick={() => { resetPostForm(); setShowPostModal(true); }} style={{ backgroundColor: themeColor }} className="hover:opacity-90 text-sm" data-testid="add-post-btn">
+                <Plus className="w-4 h-4 mr-2" /> {t.addPost}
               </Button>
             )}
           </div>
@@ -633,6 +732,48 @@ const ShopOwnerDashboard = () => {
             </Card>
           )}
 
+          {/* Posts Tab */}
+          {activeTab === 'posts' && (
+            <Card className="border-0 shadow-sm">
+              <CardContent className="p-4">
+                {posts.length === 0 ? (
+                  <div className="text-center py-12">
+                    <FileText className="w-12 h-12 text-[#E2E8F0] mx-auto mb-4" />
+                    <p className="text-[#64748B] text-sm">{t.noPostsYet}</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3" data-testid="posts-list">
+                    {posts.map((post) => (
+                      <div key={post.id} className="p-3 border rounded-lg bg-white flex gap-4 items-start" data-testid={`post-row-${post.id}`}>
+                        {post.thumbnail && (
+                          <img src={post.thumbnail} alt={post.title} className="w-20 h-14 rounded object-cover flex-shrink-0" />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-medium text-[#0F172A] text-sm truncate">{post.title}</h4>
+                          <p className="text-xs text-[#64748B] mt-0.5 line-clamp-1" dangerouslySetInnerHTML={{ __html: post.description.replace(/<[^>]+>/g, '') }} />
+                          <div className="flex items-center gap-3 mt-1">
+                            <span className="text-[10px] text-[#94A3B8] flex items-center gap-1"><Calendar className="w-3 h-3" />{new Date(post.created_at).toLocaleDateString('vi-VN')}</span>
+                            {post.attached_products?.length > 0 && (
+                              <span className="text-[10px] text-[#94A3B8]">{post.attached_products.length} {t.products.toLowerCase()}</span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex gap-1 flex-shrink-0">
+                          <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => openEditPost(post)} data-testid={`edit-post-${post.id}`}>
+                            <Pencil className="w-3 h-3 mr-1" /> {t.edit}
+                          </Button>
+                          <Button variant="destructive" size="sm" className="h-8" onClick={() => handleDeletePost(post.id)} data-testid={`delete-post-${post.id}`}>
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
           {/* Settings Tab */}
           {activeTab === 'settings' && shop && (
             <div className="space-y-6">
@@ -695,6 +836,30 @@ const ShopOwnerDashboard = () => {
                       }}
                         className={`w-10 h-10 rounded-full border-4 transition-all ${themeColor === color.value ? 'border-[#0F172A] scale-110' : 'border-transparent'}`}
                         style={{ backgroundColor: color.value }} title={color.name} data-testid={`theme-${color.name.toLowerCase()}`} />
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="border-0 shadow-sm">
+                <CardHeader className="p-4">
+                  <CardTitle className="text-base flex items-center gap-2"><FileText className="w-4 h-4" /> {t.postCarouselPosition}</CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 pt-0">
+                  <div className="flex gap-3">
+                    {['top', 'bottom'].map(pos => (
+                      <Button key={pos} variant={shopForm.post_carousel_position === pos ? 'default' : 'outline'}
+                        className={`flex-1 text-sm ${shopForm.post_carousel_position === pos ? 'text-white' : ''}`}
+                        style={shopForm.post_carousel_position === pos ? { backgroundColor: themeColor } : {}}
+                        onClick={async () => {
+                          setShopForm({ ...shopForm, post_carousel_position: pos });
+                          try {
+                            await axios.put(`${API}/dashboard/shop`, { post_carousel_position: pos });
+                            toast.success(t.shopUpdated);
+                          } catch { toast.error(t.failedToSave); }
+                        }}
+                        data-testid={`post-position-${pos}`}>
+                        {pos === 'top' ? t.postPositionTop : t.postPositionBottom}
+                      </Button>
                     ))}
                   </div>
                 </CardContent>
@@ -1003,6 +1168,82 @@ const ShopOwnerDashboard = () => {
               </div>
             );
           })()}
+        </DialogContent>
+      </Dialog>
+
+      {/* Post Modal */}
+      <Dialog open={showPostModal} onOpenChange={setShowPostModal}>
+        <DialogContent className="sm:max-w-2xl bg-white max-h-[90vh] overflow-y-auto" data-testid="post-modal">
+          <DialogHeader>
+            <DialogTitle className="text-lg">{editingPost ? t.editPost : t.addPost}</DialogTitle>
+            <DialogDescription className="text-sm">{t.postDescription}</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSavePost} className="space-y-4">
+            <div>
+              <label className="block text-xs font-medium mb-1">{t.postTitle} *</label>
+              <Input value={postForm.title} onChange={(e) => setPostForm({ ...postForm, title: e.target.value })} required className="text-sm" data-testid="post-title-input" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium mb-1">{t.postThumbnail}</label>
+              <div className="flex items-center gap-3">
+                {postForm.thumbnail && (
+                  <div className="relative w-24 h-16 rounded overflow-hidden bg-[#F8FAFC]">
+                    <img src={postForm.thumbnail} alt="" className="w-full h-full object-cover" />
+                    <button type="button" onClick={() => setPostForm({ ...postForm, thumbnail: '' })} className="absolute top-0.5 right-0.5 w-4 h-4 bg-red-500 text-white rounded-full flex items-center justify-center text-[10px]"><X className="w-3 h-3" /></button>
+                  </div>
+                )}
+                <input type="file" ref={postFileInputRef} onChange={handlePostThumbnailUpload} accept="image/*" className="hidden" />
+                <Button type="button" variant="outline" size="sm" className="text-xs" onClick={() => postFileInputRef.current?.click()} data-testid="post-thumbnail-upload">
+                  <Upload className="w-3 h-3 mr-1" /> {t.uploadImage}
+                </Button>
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-medium mb-1">{t.postImages}</label>
+              <div className="flex items-center gap-2 flex-wrap">
+                {(postForm.images || []).map((img, idx) => (
+                  <div key={idx} className="relative w-20 h-14 rounded overflow-hidden bg-[#F8FAFC]">
+                    <img src={img} alt="" className="w-full h-full object-cover" />
+                    <button type="button" onClick={() => setPostForm({ ...postForm, images: postForm.images.filter((_, i) => i !== idx) })} className="absolute top-0.5 right-0.5 w-4 h-4 bg-red-500 text-white rounded-full flex items-center justify-center text-[10px]"><X className="w-3 h-3" /></button>
+                  </div>
+                ))}
+                {(postForm.images || []).length < 3 && (
+                  <>
+                    <input type="file" ref={postImagesInputRef} onChange={handlePostImageUpload} accept="image/*" className="hidden" />
+                    <Button type="button" variant="outline" size="sm" className="text-xs h-14 w-20" onClick={() => postImagesInputRef.current?.click()} data-testid="post-images-upload">
+                      <Image className="w-4 h-4" />
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-medium">{t.postDescription} *</label>
+                <span className={`text-[10px] ${countWords(postForm.description) > 2000 ? 'text-red-500 font-bold' : 'text-[#94A3B8]'}`}>
+                  {countWords(postForm.description)}/2000 {t.wordCount}
+                </span>
+              </div>
+              <ReactQuill theme="snow" value={postForm.description} onChange={(val) => setPostForm({ ...postForm, description: val })} modules={quillModules} className="bg-white [&_.ql-container]:min-h-[200px]" data-testid="post-editor" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium mb-2">{t.attachProducts}</label>
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-40 overflow-y-auto border rounded-lg p-2" data-testid="post-product-attach">
+                {products.map(prod => (
+                  <button type="button" key={prod.id} onClick={() => toggleProductAttach(prod.id)}
+                    className={`p-1.5 rounded border text-left transition-all ${(postForm.attached_products || []).includes(prod.id) ? 'border-2 shadow-sm' : 'border-[#E2E8F0] opacity-60 hover:opacity-100'}`}
+                    style={(postForm.attached_products || []).includes(prod.id) ? { borderColor: themeColor } : {}}>
+                    <img src={prod.image_url} alt={prod.name} className="w-full aspect-square object-cover rounded mb-1" />
+                    <p className="text-[9px] leading-tight line-clamp-2 text-[#0F172A]">{prod.name}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="flex gap-3 pt-4">
+              <Button type="button" variant="outline" className="flex-1 text-sm" onClick={() => setShowPostModal(false)}>{t.cancel}</Button>
+              <Button type="submit" className="flex-1 hover:opacity-90 text-sm" style={{ backgroundColor: themeColor }} data-testid="save-post-btn">{t.save}</Button>
+            </div>
+          </form>
         </DialogContent>
       </Dialog>
     </div>

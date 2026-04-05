@@ -18,6 +18,9 @@ export let mockShops = [
     address: '123 Nguyen Hue, Q1, TP.HCM', social_facebook: 'https://facebook.com/theeliteshop', social_instagram: 'https://instagram.com/theeliteshop',
     order_count: 4, owner: { email: 'demo@thewishop.com' },
     expiry_date: null,
+    post_carousel_position: 'bottom',
+    max_products: 100,
+    max_posts: 50,
     created_at: '2025-12-01T00:00:00Z'
   }
 ];
@@ -127,6 +130,34 @@ export let mockOrders = [
       { product_id: 'prod-6', name: 'Handwoven Rattan Baskets', price: 450000, quantity: 1, subtotal: 450000 }
     ],
     created_at: '2026-01-28T16:45:00Z'
+  },
+];
+
+// ── Blog Posts ─────────────────────────────────────────
+export let mockPosts = [
+  {
+    id: 'post-1', shop_id: 'shop-1', title: 'Top 10 Wireless Headphones for 2026',
+    description: '<p>Looking for the <strong>best wireless headphones</strong> in 2026? We\'ve curated our top picks for every budget and use case.</p><p>From studio-quality sound to everyday commuting, these headphones deliver exceptional audio experiences.</p><ul><li>Sony Wireless Headphones - Best overall</li><li>AirPods Pro Max - Best premium</li><li>Black Studio Headphones - Best for production</li></ul><p>Each model has been tested extensively for sound quality, comfort, battery life, and noise cancellation performance.</p>',
+    thumbnail: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600&h=400&fit=crop',
+    images: ['https://images.unsplash.com/photo-1583394838336-acd977736f90?w=600&h=400&fit=crop', 'https://images.unsplash.com/photo-1606220588913-b3aacb4d2f46?w=600&h=400&fit=crop'],
+    attached_products: ['prod-1', 'prod-2', 'prod-10'],
+    created_at: '2026-02-10T08:00:00Z'
+  },
+  {
+    id: 'post-2', shop_id: 'shop-1', title: 'Summer Fashion Essentials You Need',
+    description: '<p>Get ready for summer with our <strong>essential fashion picks</strong>. From lightweight dresses to trendy accessories, we have everything you need.</p><p>This season is all about <em>natural fabrics</em>, minimalist designs, and earth tones that complement any wardrobe.</p>',
+    thumbnail: 'https://images.unsplash.com/photo-1596783074918-c84cb06531ca?w=600&h=400&fit=crop',
+    images: ['https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=600&h=400&fit=crop'],
+    attached_products: ['prod-22', 'prod-23', 'prod-21'],
+    created_at: '2026-02-08T12:00:00Z'
+  },
+  {
+    id: 'post-3', shop_id: 'shop-1', title: 'Home Office Setup Guide',
+    description: '<p>Create the perfect <strong>home office</strong> with our curated selection of desk organizers, plants, and comfort accessories.</p><p>A well-organized workspace boosts productivity and creativity. Here are our recommendations for making your home office both functional and beautiful.</p>',
+    thumbnail: 'https://images.unsplash.com/photo-1544457070-4cd773b4d71e?w=600&h=400&fit=crop',
+    images: [],
+    attached_products: ['prod-27', 'prod-5', 'prod-26'],
+    created_at: '2026-02-05T16:00:00Z'
   },
 ];
 
@@ -266,6 +297,32 @@ export const handleMockRequest = (method, path, body) => {
     return { data: mockShops[0] };
   }
 
+  // ─ POSTS (shop owner) ─
+  if (m === 'get' && path === '/dashboard/posts') {
+    return { data: mockPosts.filter(p => p.shop_id === 'shop-1').map(p => ({ ...p })) };
+  }
+
+  if (m === 'post' && path === '/dashboard/posts') {
+    const newPost = { id: genId('post'), shop_id: 'shop-1', ...body, created_at: new Date().toISOString() };
+    mockPosts.unshift(newPost);
+    return { data: newPost };
+  }
+
+  const postMatch = path.match(/^\/dashboard\/posts\/(.+)$/);
+  if (postMatch) {
+    const pid = postMatch[1];
+    if (m === 'put') {
+      const idx = mockPosts.findIndex(p => p.id === pid);
+      if (idx === -1) return { error: 'Post not found', status: 404 };
+      mockPosts[idx] = { ...mockPosts[idx], ...body };
+      return { data: mockPosts[idx] };
+    }
+    if (m === 'delete') {
+      mockPosts = mockPosts.filter(p => p.id !== pid);
+      return { data: { ok: true } };
+    }
+  }
+
   const orderStatusMatch = path.match(/^\/dashboard\/orders\/(.+)\/status$/);
   if (orderStatusMatch && m === 'put') {
     const oid = orderStatusMatch[1];
@@ -350,6 +407,17 @@ export const handleMockRequest = (method, path, body) => {
     return { data: { ok: true } };
   }
 
+  const shopLimitsMatch = path.match(/^\/admin\/shops\/(.+)\/limits$/);
+  if (shopLimitsMatch && m === 'put') {
+    const sid = shopLimitsMatch[1];
+    const idx = mockShops.findIndex(s => s.id === sid);
+    if (idx !== -1) {
+      if (body.max_products !== undefined) mockShops[idx].max_products = parseInt(body.max_products);
+      if (body.max_posts !== undefined) mockShops[idx].max_posts = parseInt(body.max_posts);
+    }
+    return { data: { ok: true } };
+  }
+
   // ─ STOREFRONT ─
   const shopSlugMatch = path.match(/^\/shop\/([^/]+)$/);
   if (shopSlugMatch && m === 'get') {
@@ -376,6 +444,18 @@ export const handleMockRequest = (method, path, body) => {
     const shop = mockShops.find(s => s.slug === shopCatsMatch[1]);
     if (!shop) return { error: 'Shop not found', status: 404 };
     return { data: mockCategories.filter(c => c.shop_id === shop.id).sort((a, b) => (a.position || 0) - (b.position || 0)) };
+  }
+
+  const shopPostsMatch = path.match(/^\/shop\/([^/]+)\/posts$/);
+  if (shopPostsMatch && m === 'get') {
+    const shop = mockShops.find(s => s.slug === shopPostsMatch[1]);
+    if (!shop) return { error: 'Shop not found', status: 404 };
+    return { data: mockPosts.filter(p => p.shop_id === shop.id).sort((a, b) => new Date(b.created_at) - new Date(a.created_at)) };
+  }
+
+  const shopContactMatch = path.match(/^\/shop\/([^/]+)\/contact$/);
+  if (shopContactMatch && m === 'post') {
+    return { data: { ok: true } };
   }
 
   const shopOrderMatch = path.match(/^\/shop\/([^/]+)\/orders$/);

@@ -13,8 +13,7 @@ import ShopOwnerDashboard from "./pages/ShopOwnerDashboard";
 import StorefrontPage from "./pages/StorefrontPage";
 import ContactPage from "./pages/ContactPage";
 import ThankYouPage from "./pages/ThankYouPage";
-
-import FloatingActions from "./components/FloatingActions";
+import BlogPostPage from "./pages/BlogPostPage";
 
 function App() {
   return (
@@ -31,11 +30,12 @@ function App() {
                 <Route path="/dashboard" element={<ShopOwnerDashboard />} />
                 <Route path="/shop/:slug" element={<StorefrontPage />} />
                 <Route path="/shop/:slug/contact" element={<ContactPage />} />
+                <Route path="/shop/:slug/posts" element={<BlogPostPage />} />
+                <Route path="/shop/:slug/posts/:postId" element={<BlogPostPage />} />
                 <Route path="/shop/:slug/thank-you" element={<ThankYouPage />} />
                 <Route path="/thank-you" element={<ThankYouPage />} />
                 <Route path="/contact" element={<ContactPage />} />
               </Routes>
-              <FloatingActions />
             </BrowserRouter>
             <Toaster 
               position="top-right" 

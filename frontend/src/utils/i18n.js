@@ -285,6 +285,55 @@ export const vi = {
   customDomainPlaceholder: 'vd: shop.yourdomain.com',
   customDomainHint: 'Trỏ CNAME của tên miền đến server của bạn',
   setAsThumbnail: 'Đặt làm ảnh đại diện',
+
+  // Blog Posts
+  posts: 'Bài viết',
+  addPost: 'Thêm bài viết',
+  editPost: 'Sửa bài viết',
+  deletePost: 'Xóa bài viết',
+  postTitle: 'Tiêu đề bài viết',
+  postDescription: 'Nội dung bài viết',
+  postThumbnail: 'Ảnh đại diện',
+  postImages: 'Ảnh bổ sung (tối đa 3)',
+  attachProducts: 'Gắn sản phẩm',
+  selectProducts: 'Chọn sản phẩm',
+  noPostsYet: 'Chưa có bài viết. Tạo bài viết đầu tiên!',
+  postCreated: 'Bài viết đã được tạo',
+  postUpdated: 'Bài viết đã được cập nhật',
+  postDeleted: 'Bài viết đã được xóa',
+  deleteConfirmPost: 'Xóa bài viết này?',
+  wordCount: 'Số từ',
+  wordsRemaining: 'từ còn lại',
+  maxWordsReached: 'Đã đạt giới hạn 2000 từ',
+  readMore: 'Đọc thêm',
+  loadMore: 'Xem thêm',
+  relatedProducts: 'Sản phẩm liên quan',
+  postCarouselPosition: 'Vị trí bài viết',
+  postPositionTop: 'Đầu trang',
+  postPositionBottom: 'Cuối trang',
+  latestPosts: 'Bài viết mới nhất',
+
+  // Bottom Bar
+  call: 'Gọi điện',
+  message: 'Nhắn tin',
+  map: 'Bản đồ',
+  productCategories: 'Danh mục',
+
+  // Admin Limits
+  shopLimits: 'Giới hạn cửa hàng',
+  maxProducts: 'Số sản phẩm tối đa',
+  maxPosts: 'Số bài viết tối đa',
+  limitsUpdated: 'Giới hạn đã cập nhật',
+  limitReached: 'Đã đạt giới hạn',
+  productsUsed: 'sản phẩm đã dùng',
+  postsUsed: 'bài viết đã dùng',
+
+  // Menu
+  shopMenu: 'Menu',
+  sendMessage: 'Gửi tin nhắn',
+  messageSent: 'Tin nhắn đã được gửi',
+  send: 'Gửi',
+  close: 'Đóng',
 };
 
 export const en = {
@@ -552,6 +601,55 @@ export const en = {
   
   businessHours: 'Business Hours',
   businessHoursValue: 'Mon - Sat: 8:00 AM - 6:00 PM',
+
+  // Blog Posts
+  posts: 'Posts',
+  addPost: 'Add Post',
+  editPost: 'Edit Post',
+  deletePost: 'Delete Post',
+  postTitle: 'Post Title',
+  postDescription: 'Post Content',
+  postThumbnail: 'Thumbnail Image',
+  postImages: 'Additional Images (max 3)',
+  attachProducts: 'Attach Products',
+  selectProducts: 'Select Products',
+  noPostsYet: 'No posts yet. Create your first post!',
+  postCreated: 'Post created',
+  postUpdated: 'Post updated',
+  postDeleted: 'Post deleted',
+  deleteConfirmPost: 'Delete this post?',
+  wordCount: 'Word count',
+  wordsRemaining: 'words remaining',
+  maxWordsReached: 'Maximum 2000 words reached',
+  readMore: 'Read More',
+  loadMore: 'Load More',
+  relatedProducts: 'Related Products',
+  postCarouselPosition: 'Post display position',
+  postPositionTop: 'Top of page',
+  postPositionBottom: 'Bottom of page',
+  latestPosts: 'Latest Posts',
+
+  // Bottom Bar
+  call: 'Call',
+  message: 'Message',
+  map: 'Map',
+  productCategories: 'Categories',
+
+  // Admin Limits
+  shopLimits: 'Shop Limits',
+  maxProducts: 'Max Products',
+  maxPosts: 'Max Posts',
+  limitsUpdated: 'Limits updated',
+  limitReached: 'Limit reached',
+  productsUsed: 'products used',
+  postsUsed: 'posts used',
+
+  // Menu
+  shopMenu: 'Menu',
+  sendMessage: 'Send Message',
+  messageSent: 'Message sent!',
+  send: 'Send',
+  close: 'Close',
 };
 
 export const translations = { vi, en };

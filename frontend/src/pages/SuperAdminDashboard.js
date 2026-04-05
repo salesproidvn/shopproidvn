@@ -122,6 +122,16 @@ const SuperAdminDashboard = () => {
     }
   };
 
+  const handleSetLimits = async (shopId, field, value) => {
+    try {
+      await axios.put(`${API}/admin/shops/${shopId}/limits`, { [field]: parseInt(value) || 0 });
+      toast.success(t.limitsUpdated);
+      fetchData();
+    } catch (err) {
+      toast.error(t.failedToUpdate);
+    }
+  };
+
   const handleLogout = async () => {
     await logout();
     navigate('/');
@@ -258,6 +268,7 @@ const SuperAdminDashboard = () => {
                         <th className="text-left py-3 px-4 font-medium text-[#64748B]">{t.orders}</th>
                         <th className="text-left py-3 px-4 font-medium text-[#64748B]">{t.status}</th>
                         <th className="text-left py-3 px-4 font-medium text-[#64748B]">{t.expiryDate}</th>
+                        <th className="text-left py-3 px-4 font-medium text-[#64748B]">{t.shopLimits}</th>
                         <th className="text-left py-3 px-4 font-medium text-[#64748B]">{t.actions}</th>
                       </tr>
                     </thead>
@@ -294,6 +305,24 @@ const SuperAdminDashboard = () => {
                                   <X className="w-4 h-4" />
                                 </button>
                               )}
+                            </div>
+                          </td>
+                          <td className="py-3 px-4">
+                            <div className="flex flex-col gap-1">
+                              <div className="flex items-center gap-1">
+                                <label className="text-[10px] text-[#94A3B8] w-12">{t.maxProducts}:</label>
+                                <input type="number" min="0" value={shop.max_products ?? 100}
+                                  onChange={(e) => handleSetLimits(shop.id, 'max_products', e.target.value)}
+                                  className="text-xs border rounded px-1 py-0.5 w-16 text-center"
+                                  data-testid={`max-products-${shop.id}`} />
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <label className="text-[10px] text-[#94A3B8] w-12">{t.maxPosts}:</label>
+                                <input type="number" min="0" value={shop.max_posts ?? 50}
+                                  onChange={(e) => handleSetLimits(shop.id, 'max_posts', e.target.value)}
+                                  className="text-xs border rounded px-1 py-0.5 w-16 text-center"
+                                  data-testid={`max-posts-${shop.id}`} />
+                              </div>
                             </div>
                           </td>
                           <td className="py-3 px-4">
