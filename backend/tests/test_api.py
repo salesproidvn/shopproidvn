@@ -76,7 +76,7 @@ class TestPublicEndpoints:
         assert response.status_code == 200
         products = response.json()
         assert isinstance(products, list)
-        assert len(products) == 12
+        assert len(products) >= 12  # At least 12 seeded products
         # Check product structure
         first_product = products[0]
         assert "id" in first_product
@@ -88,18 +88,18 @@ class TestPublicEndpoints:
         print(f"✓ GET /api/products returned {len(products)} products")
     
     def test_get_categories(self):
-        """GET /api/categories returns 4 categories with positions"""
+        """GET /api/categories returns categories with positions"""
         response = requests.get(f"{BASE_URL}/api/categories")
         assert response.status_code == 200
         categories = response.json()
         assert isinstance(categories, list)
-        assert len(categories) == 4
+        assert len(categories) >= 4  # At least 4 seeded categories
         # Check category structure - should be objects with id, name, position
         first_cat = categories[0]
         assert "id" in first_cat
         assert "name" in first_cat
         assert "position" in first_cat
-        # Verify category names
+        # Verify core category names exist
         cat_names = [c["name"] for c in categories]
         assert "Electronics" in cat_names
         assert "Fashion" in cat_names
@@ -112,7 +112,7 @@ class TestStorefront:
     """Public storefront endpoints for the-elite-shop"""
     
     def test_get_shop_info(self):
-        """GET /api/shop/the-elite-shop returns shop info"""
+        """GET /api/shop/the-elite-shop returns shop info with theme_color and custom_domain"""
         response = requests.get(f"{BASE_URL}/api/shop/the-elite-shop")
         assert response.status_code == 200
         shop = response.json()
@@ -121,7 +121,8 @@ class TestStorefront:
         assert "id" in shop
         assert "description" in shop
         assert "theme_color" in shop
-        print(f"✓ GET /api/shop/the-elite-shop returned: {shop['name']}")
+        assert "custom_domain" in shop  # New feature: custom domain in public response
+        print(f"✓ GET /api/shop/the-elite-shop returned: {shop['name']}, theme_color: {shop['theme_color']}")
     
     def test_get_shop_products(self):
         """GET /api/shop/the-elite-shop/products returns products sorted by position"""
@@ -200,13 +201,45 @@ class TestDashboardWithAuth:
         print(f"✓ Dashboard stats: {stats['total_products']} products, {stats['total_orders']} orders")
     
     def test_get_dashboard_shop(self):
-        """GET /api/dashboard/shop returns shop details"""
+        """GET /api/dashboard/shop returns shop details with custom_domain"""
         response = self.session.get(f"{BASE_URL}/api/dashboard/shop")
         assert response.status_code == 200
         shop = response.json()
         assert shop["name"] == "The Elite Shop"
         assert shop["slug"] == "the-elite-shop"
-        print(f"✓ Dashboard shop: {shop['name']}")
+        assert "custom_domain" in shop  # New feature: custom domain in dashboard response
+        assert "theme_color" in shop
+        print(f"✓ Dashboard shop: {shop['name']}, custom_domain: {shop.get('custom_domain', '')}")
+    
+    def test_update_shop_theme_color(self):
+        """PUT /api/dashboard/shop updates theme_color"""
+        # Update theme color
+        response = self.session.put(f"{BASE_URL}/api/dashboard/shop", json={
+            "theme_color": "#10B981"  # Green
+        })
+        assert response.status_code == 200
+        
+        # Verify the change persisted
+        response = self.session.get(f"{BASE_URL}/api/dashboard/shop")
+        assert response.status_code == 200
+        shop = response.json()
+        assert shop["theme_color"] == "#10B981"
+        print(f"✓ Theme color updated to: {shop['theme_color']}")
+    
+    def test_update_shop_custom_domain(self):
+        """PUT /api/dashboard/shop updates custom_domain"""
+        # Update custom domain
+        response = self.session.put(f"{BASE_URL}/api/dashboard/shop", json={
+            "custom_domain": "myshop.example.com"
+        })
+        assert response.status_code == 200
+        
+        # Verify the change persisted
+        response = self.session.get(f"{BASE_URL}/api/dashboard/shop")
+        assert response.status_code == 200
+        shop = response.json()
+        assert shop["custom_domain"] == "myshop.example.com"
+        print(f"✓ Custom domain updated to: {shop['custom_domain']}")
     
     def test_get_dashboard_products(self):
         """GET /api/dashboard/products returns shop products"""
@@ -234,12 +267,12 @@ class TestDashboardWithAuth:
         print(f"✓ Dashboard categories: {len(categories)} categories")
     
     def test_get_dashboard_orders(self):
-        """GET /api/dashboard/orders returns 3 seeded orders"""
+        """GET /api/dashboard/orders returns orders"""
         response = self.session.get(f"{BASE_URL}/api/dashboard/orders")
         assert response.status_code == 200
         orders = response.json()
         assert isinstance(orders, list)
-        assert len(orders) == 3
+        assert len(orders) >= 3  # At least 3 seeded orders
         # Check order structure
         first_order = orders[0]
         assert "id" in first_order

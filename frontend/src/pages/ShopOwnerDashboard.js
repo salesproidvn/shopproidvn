@@ -75,6 +75,7 @@ const ShopOwnerDashboard = () => {
       setStats(statsRes.data);
       setShop(shopRes.data);
       setShopForm(shopRes.data);
+      if (shopRes.data.theme_color) setThemeColor(shopRes.data.theme_color);
       setProducts(productsRes.data);
       setCategories(categoriesRes.data);
       setOrders(ordersRes.data);
@@ -111,6 +112,14 @@ const ShopOwnerDashboard = () => {
   const removeProductImage = (idx) => {
     const newImages = productForm.images.filter((_, i) => i !== idx);
     setProductForm({ ...productForm, images: newImages, image_url: newImages[0] || '' });
+  };
+
+  const setAsThumbnail = (idx) => {
+    if (idx === 0) return;
+    const newImages = [...productForm.images];
+    const [moved] = newImages.splice(idx, 1);
+    newImages.unshift(moved);
+    setProductForm({ ...productForm, images: newImages, image_url: newImages[0] });
   };
 
   const handleSaveProduct = async (e) => {
@@ -648,12 +657,43 @@ const ShopOwnerDashboard = () => {
               </Card>
               <Card className="border-0 shadow-sm">
                 <CardHeader className="p-4">
+                  <CardTitle className="text-base flex items-center gap-2"><ExternalLink className="w-4 h-4" /> {t.customDomain}</CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 pt-0">
+                  <p className="text-xs text-[#94A3B8] mb-3">{t.customDomainHint}</p>
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <Input value={shopForm.custom_domain || ''} onChange={(e) => setShopForm({ ...shopForm, custom_domain: e.target.value })} placeholder={t.customDomainPlaceholder} className="text-sm flex-1" data-testid="custom-domain-input" />
+                    <Button onClick={async () => {
+                      try {
+                        await axios.put(`${API}/dashboard/shop`, { custom_domain: shopForm.custom_domain || '' }, { withCredentials: true });
+                        toast.success(t.shopUpdated);
+                        fetchData();
+                      } catch (err) { toast.error(t.failedToSave); }
+                    }} style={{ backgroundColor: themeColor }} className="hover:opacity-90 text-sm" data-testid="save-domain-btn">
+                      {t.saveChanges}
+                    </Button>
+                  </div>
+                  {shopForm.custom_domain && (
+                    <div className="mt-3 p-3 bg-[#F0F9FF] rounded-lg">
+                      <p className="text-xs text-[#0369A1]">CNAME: <code className="bg-white px-2 py-0.5 rounded text-[#0F172A]">{shopForm.custom_domain}</code> → <code className="bg-white px-2 py-0.5 rounded text-[#0F172A]">your-server.com</code></p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+              <Card className="border-0 shadow-sm">
+                <CardHeader className="p-4">
                   <CardTitle className="text-base flex items-center gap-2"><Palette className="w-4 h-4" /> {t.themeColor}</CardTitle>
                 </CardHeader>
                 <CardContent className="p-4 pt-0">
                   <div className="flex flex-wrap gap-3">
                     {themeColors.map((color) => (
-                      <button key={color.value} onClick={() => setThemeColor(color.value)}
+                      <button key={color.value} onClick={async () => {
+                        setThemeColor(color.value);
+                        try {
+                          await axios.put(`${API}/dashboard/shop`, { theme_color: color.value }, { withCredentials: true });
+                          toast.success(t.shopUpdated);
+                        } catch (err) { toast.error(t.failedToSave); }
+                      }}
                         className={`w-10 h-10 rounded-full border-4 transition-all ${themeColor === color.value ? 'border-[#0F172A] scale-110' : 'border-transparent'}`}
                         style={{ backgroundColor: color.value }} title={color.name} data-testid={`theme-${color.name.toLowerCase()}`} />
                     ))}
@@ -755,14 +795,15 @@ const ShopOwnerDashboard = () => {
                 {productForm.images?.length > 0 && (
                   <div className="flex flex-wrap gap-2" data-testid="product-images-preview">
                     {productForm.images.map((img, idx) => (
-                      <div key={idx} className="relative w-20 h-20 rounded-lg overflow-hidden bg-[#F8FAFC] group">
+                      <div key={idx} className="relative w-20 h-20 rounded-lg overflow-hidden bg-[#F8FAFC] group cursor-pointer"
+                        onClick={() => setAsThumbnail(idx)} title={idx === 0 ? '' : (t.setAsThumbnail || 'Set as thumbnail')}>
                         <img src={img} alt={`Preview ${idx + 1}`} className="w-full h-full object-cover" />
-                        <button type="button" onClick={() => removeProductImage(idx)}
+                        <button type="button" onClick={(e) => { e.stopPropagation(); removeProductImage(idx); }}
                           className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-xs"
                           data-testid={`remove-image-${idx}`}>
                           <X className="w-3 h-3" />
                         </button>
-                        {idx === 0 && <span className="absolute bottom-0 left-0 right-0 bg-[#0055FF]/80 text-white text-[9px] text-center py-0.5">Main</span>}
+                        {idx === 0 && <span className="absolute bottom-0 left-0 right-0 bg-[#0055FF]/80 text-white text-[9px] text-center py-0.5" data-testid="thumbnail-badge">Thumbnail</span>}
                       </div>
                     ))}
                   </div>

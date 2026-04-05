@@ -281,6 +281,10 @@ export const vi = {
   
   businessHours: 'Giờ làm việc',
   businessHoursValue: 'T2 - T7: 8:00 - 18:00',
+  customDomain: 'Tên miền tùy chỉnh',
+  customDomainPlaceholder: 'vd: shop.yourdomain.com',
+  customDomainHint: 'Trỏ CNAME của tên miền đến server của bạn',
+  setAsThumbnail: 'Đặt làm ảnh đại diện',
 };
 
 export const en = {

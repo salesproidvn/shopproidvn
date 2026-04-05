@@ -162,6 +162,7 @@ class ShopUpdate(BaseModel):
     social_facebook: Optional[str] = None
     social_instagram: Optional[str] = None
     theme_color: Optional[str] = None
+    custom_domain: Optional[str] = None
 
 class CategoryCreate(BaseModel):
     name: str
@@ -434,7 +435,8 @@ async def get_shop_details(request: Request):
         "contact_phone": shop.get("contact_phone", ""), "contact_email": shop.get("contact_email", ""),
         "address": shop.get("address", ""), "social_facebook": shop.get("social_facebook", ""),
         "social_instagram": shop.get("social_instagram", ""), "theme_color": shop.get("theme_color", "#0055FF"),
-        "status": shop.get("status", "active"), "expiry_date": shop.get("expiry_date", "")
+        "status": shop.get("status", "active"), "expiry_date": shop.get("expiry_date", ""),
+        "custom_domain": shop.get("custom_domain", "")
     }
 
 @api_router.put("/dashboard/shop")
@@ -598,7 +600,8 @@ async def get_shop_by_slug(slug: str):
         "description": shop.get("description", ""), "logo_url": shop.get("logo_url", ""),
         "contact_phone": shop.get("contact_phone", ""), "contact_email": shop.get("contact_email", ""),
         "address": shop.get("address", ""), "social_facebook": shop.get("social_facebook", ""),
-        "social_instagram": shop.get("social_instagram", ""), "theme_color": shop.get("theme_color", "#0055FF")
+        "social_instagram": shop.get("social_instagram", ""), "theme_color": shop.get("theme_color", "#0055FF"),
+        "custom_domain": shop.get("custom_domain", "")
     }
 
 @api_router.get("/shop/{slug}/products")

@@ -118,6 +118,7 @@ const StorefrontPage = () => {
 
   const cartTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+  const themeColor = shop?.theme_color || '#0055FF';
 
   const handleCheckout = async (e) => {
     e.preventDefault();
@@ -150,7 +151,7 @@ const StorefrontPage = () => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC]">
-        <div className="animate-spin w-8 h-8 border-4 border-[#0055FF] border-t-transparent rounded-full" />
+        <div className="animate-spin w-8 h-8 border-4 border-t-transparent rounded-full" style={{ borderColor: themeColor, borderTopColor: 'transparent' }} />
       </div>
     );
   }
@@ -161,7 +162,7 @@ const StorefrontPage = () => {
         <h1 className="text-2xl font-bold text-[#0F172A] mb-4">{t.shopNotFound}</h1>
         <p className="text-[#64748B] mb-6">{error}</p>
         <Link to="/">
-          <Button className="bg-[#0055FF] hover:bg-[#0040CC]">
+          <Button className="hover:opacity-90" style={{ backgroundColor: themeColor }}>
             <ArrowLeft className="w-4 h-4 mr-2" /> {t.backToHome}
           </Button>
         </Link>
@@ -170,7 +171,7 @@ const StorefrontPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-white" data-testid="storefront-page">
+    <div className="min-h-screen bg-white" data-testid="storefront-page" style={{ '--tc': themeColor }}>
       {/* Expired Overlay */}
       {isExpired && (
         <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" data-testid="shop-expired-overlay">
@@ -181,7 +182,7 @@ const StorefrontPage = () => {
             <h2 className="text-2xl font-bold text-[#0F172A] mb-3">{t.shopExpired}</h2>
             <p className="text-[#64748B] mb-8">{t.shopExpiredMsg}</p>
             <Link to="/">
-              <Button className="bg-[#0055FF] hover:bg-[#0040CC] rounded-full px-8 py-6">
+              <Button className="hover:opacity-90 rounded-full px-8 py-6" style={{ backgroundColor: themeColor }}>
                 <ArrowLeft className="w-4 h-4 mr-2" /> {t.backToHome}
               </Button>
             </Link>
@@ -197,7 +198,7 @@ const StorefrontPage = () => {
               {shop.logo_url ? (
                 <img src={shop.logo_url} alt={shop.name} className="w-10 h-10 rounded-full object-cover" />
               ) : (
-                <div className="w-10 h-10 bg-[#0055FF] rounded-full flex items-center justify-center">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: themeColor }}>
                   <span className="text-white font-bold">{shop.name[0]}</span>
                 </div>
               )}
@@ -213,7 +214,7 @@ const StorefrontPage = () => {
             <div className="flex items-center gap-3">
               {user && (user.role === 'shop_owner' || user.role === 'super_admin') && (
                 <Link to={user.role === 'super_admin' ? '/admin' : '/dashboard'} data-testid="storefront-dashboard-btn">
-                  <Button variant="outline" className="rounded-full px-4 text-sm border-[#0055FF] text-[#0055FF] hover:bg-[#0055FF] hover:text-white">
+                  <Button variant="outline" className="rounded-full px-4 text-sm hover:text-white" style={{ borderColor: themeColor, color: themeColor, '--hover-bg': themeColor }} onMouseEnter={(e) => { e.target.style.backgroundColor = themeColor; e.target.style.color = 'white'; }} onMouseLeave={(e) => { e.target.style.backgroundColor = 'transparent'; e.target.style.color = themeColor; }}>
                     <LayoutDashboard className="w-4 h-4 mr-2" />
                     {t.dashboard}
                   </Button>
@@ -222,7 +223,7 @@ const StorefrontPage = () => {
               <Button variant="outline" className="relative rounded-full" onClick={() => setShowCart(true)} data-testid="cart-button">
                 <ShoppingCart className="w-5 h-5" />
                 {cartCount > 0 && (
-                  <span className="absolute -top-2 -right-2 w-5 h-5 bg-[#0055FF] text-white text-xs rounded-full flex items-center justify-center">{cartCount}</span>
+                  <span className="absolute -top-2 -right-2 w-5 h-5 text-white text-xs rounded-full flex items-center justify-center" style={{ backgroundColor: themeColor }}>{cartCount}</span>
                 )}
               </Button>
             </div>
@@ -282,8 +283,9 @@ const StorefrontPage = () => {
                         </div>
                         <div className="p-3 sm:p-4 text-center">
                           <h3 className="font-medium text-[#0F172A] text-sm sm:text-base line-clamp-2 mb-2">{product.name}</h3>
-                          <p className="text-base sm:text-lg font-bold text-[#0055FF] mb-2">{formatVND(product.price)}</p>
-                          <Button className="w-full bg-[#0055FF] hover:bg-[#0040CC] text-white text-xs sm:text-sm h-9 sm:h-10 rounded-lg"
+                          <p className="text-base sm:text-lg font-bold mb-2" style={{ color: themeColor }}>{formatVND(product.price)}</p>
+                          <Button className="w-full hover:opacity-90 text-white text-xs sm:text-sm h-9 sm:h-10 rounded-lg"
+                            style={{ backgroundColor: themeColor }}
                             onClick={(e) => { e.stopPropagation(); addToCart(product); }} data-testid={`add-cart-${product.id}`}>
                             {t.addToCart}
                           </Button>
@@ -305,8 +307,9 @@ const StorefrontPage = () => {
                 </div>
                 <div className="p-3 sm:p-4 text-center">
                   <h3 className="font-medium text-[#0F172A] text-sm sm:text-base line-clamp-2 mb-2">{product.name}</h3>
-                  <p className="text-base sm:text-lg font-bold text-[#0055FF] mb-2">{formatVND(product.price)}</p>
-                  <Button className="w-full bg-[#0055FF] hover:bg-[#0040CC] text-white text-xs sm:text-sm h-9 sm:h-10 rounded-lg"
+                  <p className="text-base sm:text-lg font-bold mb-2" style={{ color: themeColor }}>{formatVND(product.price)}</p>
+                  <Button className="w-full hover:opacity-90 text-white text-xs sm:text-sm h-9 sm:h-10 rounded-lg"
+                            style={{ backgroundColor: themeColor }}
                     onClick={(e) => { e.stopPropagation(); addToCart(product); }} data-testid={`add-cart-${product.id}`}>
                     {t.addToCart}
                   </Button>
@@ -367,14 +370,16 @@ const StorefrontPage = () => {
                     <div className="flex gap-2 p-3 overflow-x-auto" data-testid="storefront-product-thumbnails">
                       {images.map((img, idx) => (
                         <button key={idx} onClick={() => { setActiveImage(idx); setShowVideo(false); }}
-                          className={`w-14 h-14 rounded-lg overflow-hidden flex-shrink-0 border-2 transition-all ${!showVideo && activeImage === idx ? 'border-[#0055FF] ring-1 ring-[#0055FF]' : 'border-transparent hover:border-[#E2E8F0]'}`}
+                          className={`w-14 h-14 rounded-lg overflow-hidden flex-shrink-0 border-2 transition-all ${!showVideo && activeImage === idx ? 'ring-1' : 'border-transparent hover:border-[#E2E8F0]'}`}
+                          style={!showVideo && activeImage === idx ? { borderColor: themeColor, '--tw-ring-color': themeColor } : {}}
                           data-testid={`storefront-thumb-${idx}`}>
                           <img src={img} alt="" className="w-full h-full object-cover" />
                         </button>
                       ))}
                       {embedUrl && (
                         <button onClick={() => setShowVideo(true)}
-                          className={`w-14 h-14 rounded-lg flex-shrink-0 border-2 transition-all flex items-center justify-center bg-[#0F172A] ${showVideo ? 'border-[#0055FF] ring-1 ring-[#0055FF]' : 'border-transparent hover:border-[#E2E8F0]'}`}
+                          className={`w-14 h-14 rounded-lg flex-shrink-0 border-2 transition-all flex items-center justify-center bg-[#0F172A] ${showVideo ? 'ring-1' : 'border-transparent hover:border-[#E2E8F0]'}`}
+                          style={showVideo ? { borderColor: themeColor, '--tw-ring-color': themeColor } : {}}
                           data-testid="storefront-thumb-video">
                           <Play className="w-5 h-5 text-white fill-white" />
                         </button>
@@ -384,9 +389,10 @@ const StorefrontPage = () => {
                 </div>
                 <div className="p-6 flex flex-col">
                   <h2 className="text-xl font-bold text-[#0F172A] mb-2">{selectedProduct.name}</h2>
-                  <p className="text-2xl font-bold text-[#0055FF] mb-4">{formatVND(selectedProduct.price)}</p>
+                  <p className="text-2xl font-bold mb-4" style={{ color: themeColor }}>{formatVND(selectedProduct.price)}</p>
                   {selectedProduct.description && <p className="text-[#64748B] mb-6 flex-1">{selectedProduct.description}</p>}
-                  <Button className="w-full bg-[#0055FF] hover:bg-[#0040CC] py-6"
+                  <Button className="w-full hover:opacity-90 py-6"
+                    style={{ backgroundColor: themeColor }}
                     onClick={() => { addToCart(selectedProduct); setSelectedProduct(null); setActiveImage(0); setShowVideo(false); }} data-testid="modal-add-cart">
                     <ShoppingCart className="w-5 h-5 mr-2" /> {t.addToCart}
                   </Button>
@@ -417,7 +423,7 @@ const StorefrontPage = () => {
                       <img src={item.image_url} alt={item.name} className="w-16 h-16 rounded-lg object-cover" />
                       <div className="flex-1 min-w-0">
                         <h4 className="font-medium text-[#0F172A] text-sm truncate">{item.name}</h4>
-                        <p className="text-[#0055FF] font-semibold text-sm">{formatVND(item.price)}</p>
+                        <p className="font-semibold text-sm" style={{ color: themeColor }}>{formatVND(item.price)}</p>
                         <div className="flex items-center gap-2 mt-2">
                           <Button variant="outline" size="icon" className="w-7 h-7" onClick={() => updateCartQuantity(item.product_id, -1)}><Minus className="w-3 h-3" /></Button>
                           <span className="w-6 text-center text-sm">{item.quantity}</span>
@@ -432,9 +438,10 @@ const StorefrontPage = () => {
               <div className="border-t pt-4 space-y-4">
                 <div className="flex justify-between text-lg">
                   <span className="text-[#64748B]">{t.total}:</span>
-                  <span className="font-bold text-[#0055FF]">{formatVND(cartTotal)}</span>
+                  <span className="font-bold" style={{ color: themeColor }}>{formatVND(cartTotal)}</span>
                 </div>
-                <Button className="w-full bg-[#0055FF] hover:bg-[#0040CC] py-6"
+                <Button className="w-full hover:opacity-90 py-6"
+                    style={{ backgroundColor: themeColor }}
                   onClick={() => { setShowCart(false); setShowCheckout(true); }} data-testid="checkout-btn">
                   {t.orderNow}
                 </Button>
@@ -514,10 +521,10 @@ const StorefrontPage = () => {
                     </div>
                     <div className="flex justify-between text-lg font-bold pt-2 border-t">
                       <span className="text-[#0F172A]">{t.total}</span>
-                      <span className="text-[#0055FF]">{formatVND(cartTotal)}</span>
+                      <span style={{ color: themeColor }}>{formatVND(cartTotal)}</span>
                     </div>
                   </div>
-                  <Button form="checkout-form" type="submit" className="w-full bg-[#0055FF] hover:bg-[#0040CC] rounded-xl py-6 mt-6 text-base" data-testid="place-order-btn">
+                  <Button form="checkout-form" type="submit" className="w-full hover:opacity-90 rounded-xl py-6 mt-6 text-base" style={{ backgroundColor: themeColor }} data-testid="place-order-btn">
                     {t.placeOrder}
                   </Button>
                 </div>

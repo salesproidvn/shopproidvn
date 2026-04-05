@@ -23,11 +23,11 @@ const FloatingActions = () => {
   if (location.pathname.startsWith('/dashboard') || location.pathname.startsWith('/admin')) return null;
 
   return (
-    <div className="fixed bottom-20 right-6 z-50 flex flex-col items-end gap-3" data-testid="floating-actions">
+    <div className="fixed bottom-20 right-6 z-50 flex flex-col items-end gap-3 pointer-events-none" data-testid="floating-actions">
       {/* Expanded action buttons */}
       <div className={`flex flex-col items-end gap-3 transition-all duration-300 ${expanded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
         {actions.map((action) => (
-          <div key={action.id} className="flex items-center gap-2">
+          <div key={action.id} className="flex items-center gap-2 pointer-events-auto">
             <span className="bg-white text-[#0F172A] text-xs font-medium px-3 py-1.5 rounded-full shadow-md whitespace-nowrap">
               {action.label}
             </span>
@@ -49,7 +49,7 @@ const FloatingActions = () => {
       {/* Toggle button */}
       <button
         onClick={() => setExpanded(!expanded)}
-        className={`w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-all duration-300 ${expanded ? 'bg-[#0F172A] rotate-0' : 'bg-[#0055FF] rotate-0'} hover:scale-110`}
+        className={`w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-all duration-300 pointer-events-auto ${expanded ? 'bg-[#0F172A] rotate-0' : 'bg-[#0055FF] rotate-0'} hover:scale-110`}
         data-testid="floating-toggle"
       >
         {expanded ? (
