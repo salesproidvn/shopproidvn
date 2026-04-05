@@ -5,10 +5,11 @@ Create a desktop UI for a Micro-SaaS E-commerce Platform with multi-tenant setup
 
 ## Architecture
 - **Frontend:** React + Tailwind CSS + Shadcn UI
-- **Backend:** FastAPI (Python) on port 8001
-- **Database:** MongoDB (localhost:27017, DB: test_database)
-- **Auth:** JWT tokens in httpOnly cookies, bcrypt password hashing
-- **Storage:** Emergent Object Storage for file uploads
+- **Mode:** Standalone mock mode (mockAdapter.js intercepts all API calls, no backend needed)
+- **Backend:** FastAPI (Python) on port 8001 (available for production deployment)
+- **Database:** MongoDB (available for production deployment)
+- **Auth:** JWT tokens stored in localStorage, sent via Bearer header (works with both mock and real backend)
+- **Storage:** Emergent Object Storage for file uploads (production)
 - **i18n:** Custom Vietnamese/English localization via LanguageContext
 
 ## Core Features — Completed
