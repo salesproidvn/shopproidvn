@@ -62,6 +62,8 @@ const HomePage = () => {
     return p.price >= priceFilter.min && p.price <= priceFilter.max;
   });
 
+  const isGroupedView = selectedCategory === 'All Categories' && !searchQuery && priceFilter.id === 'all';
+
   return (
     <div className="min-h-screen flex flex-col bg-white" data-testid="home-page">
       <Header searchQuery={searchQuery} setSearchQuery={setSearchQuery} onSearch={handleSearch} />
@@ -79,9 +81,12 @@ const HomePage = () => {
                   <SelectValue placeholder={t.allCategories} />
                 </SelectTrigger>
                 <SelectContent className="bg-white">
-                  {categories.map((category) => (
-                    <SelectItem key={category} value={category} data-testid={`category-${category}`}>
-                      {category === 'All Categories' ? t.allCategories : category}
+                  <SelectItem value="All Categories" data-testid="category-All Categories">
+                    {t.allCategories}
+                  </SelectItem>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.name} data-testid={`category-${cat.name}`}>
+                      {cat.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -96,6 +101,29 @@ const HomePage = () => {
             ) : filteredProducts.length === 0 ? (
               <div className="text-center py-24">
                 <p className="text-[#64748B] text-lg">{t.noProducts}</p>
+              </div>
+            ) : isGroupedView ? (
+              <div className="space-y-10" data-testid="grouped-product-view">
+                {categories.map(cat => {
+                  const catProducts = filteredProducts
+                    .filter(p => p.category === cat.name)
+                    .sort((a, b) => (a.position || 0) - (b.position || 0));
+                  if (catProducts.length === 0) return null;
+                  return (
+                    <div key={cat.id} data-testid={`category-section-${cat.id}`}>
+                      <div className="flex items-center gap-3 mb-5">
+                        <h3 className="text-xl sm:text-2xl font-bold text-[#0F172A]">{cat.name}</h3>
+                        <div className="flex-1 h-px bg-[#E2E8F0]" />
+                        <span className="text-sm text-[#94A3B8]">{catProducts.length} {t.products?.toLowerCase?.() || 'products'}</span>
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 lg:gap-6">
+                        {catProducts.map((product) => (
+                          <ProductCard key={product.id} product={product} />
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 lg:gap-6" data-testid="product-grid">

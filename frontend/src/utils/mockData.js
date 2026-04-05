@@ -353,7 +353,7 @@ export const handleMockRequest = (method, path, body) => {
 
   // ─ PUBLIC HOMEPAGE ─
   if (m === 'get' && path === '/products') {
-    let prods = [...mockProducts];
+    let prods = [...mockProducts].sort((a, b) => (a.position || 0) - (b.position || 0));
     if (body._params?.category && body._params.category !== 'All Categories') {
       prods = prods.filter(p => p.category === body._params.category);
     }
@@ -365,8 +365,12 @@ export const handleMockRequest = (method, path, body) => {
   }
 
   if (m === 'get' && path === '/categories') {
-    const cats = ['All Categories', ...new Set(mockProducts.map(p => p.category))];
-    return { data: cats };
+    const uniqueNames = [...new Set(mockProducts.map(p => p.category))];
+    const catObjects = uniqueNames.map(name => {
+      const cat = mockCategories.find(c => c.name === name);
+      return cat ? { ...cat } : { id: name, name, position: 999 };
+    }).sort((a, b) => (a.position || 0) - (b.position || 0));
+    return { data: catObjects };
   }
 
   // ─ FILE PROXY ─

@@ -279,6 +279,42 @@ const StorefrontPage = () => {
           <div className="text-center py-24">
             <p className="text-[#64748B] text-lg">{t.noProducts}</p>
           </div>
+        ) : selectedCategory === 'all' && !searchQuery && priceFilter.id === 'all' ? (
+          <div className="space-y-10" data-testid="grouped-product-view">
+            {categories.map(cat => {
+              const catProducts = filteredProducts
+                .filter(p => p.category_id === cat.id)
+                .sort((a, b) => (a.position || 0) - (b.position || 0));
+              if (catProducts.length === 0) return null;
+              return (
+                <div key={cat.id} data-testid={`category-section-${cat.id}`}>
+                  <div className="flex items-center gap-3 mb-5">
+                    <h3 className="text-xl sm:text-2xl font-bold text-[#0F172A]">{cat.name}</h3>
+                    <div className="flex-1 h-px bg-[#E2E8F0]" />
+                    <span className="text-sm text-[#94A3B8]">{catProducts.length}</span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 lg:gap-6">
+                    {catProducts.map((product) => (
+                      <div key={product.id} className="group bg-white border border-[#E2E8F0] rounded-2xl overflow-hidden hover:shadow-lg transition-all cursor-pointer"
+                        onClick={() => setSelectedProduct(product)} data-testid={`product-${product.id}`}>
+                        <div className="aspect-square bg-[#F8FAFC] overflow-hidden">
+                          <img src={product.image_url} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                        </div>
+                        <div className="p-3 sm:p-4 text-center">
+                          <h3 className="font-medium text-[#0F172A] text-sm sm:text-base line-clamp-2 mb-2">{product.name}</h3>
+                          <p className="text-base sm:text-lg font-bold text-[#0055FF] mb-2">{formatVND(product.price)}</p>
+                          <Button className="w-full bg-[#0055FF] hover:bg-[#0040CC] text-white text-xs sm:text-sm h-9 sm:h-10 rounded-lg"
+                            onClick={(e) => { e.stopPropagation(); addToCart(product); }} data-testid={`add-cart-${product.id}`}>
+                            {t.addToCart}
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 lg:gap-6" data-testid="product-grid">
             {filteredProducts.map((product) => (
