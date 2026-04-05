@@ -66,7 +66,7 @@ Create a desktop UI for a Micro-SaaS E-commerce Platform with multi-tenant setup
 
 ## DB Schema (MongoDB)
 - **users:** email, password_hash, name, role, shop_id, status, created_at
-- **shops:** name, slug, description, theme_color, status, expiry_date, contact_*, social_*, created_at
+- **shops:** name, slug, description, theme_color, custom_domain, status, expiry_date, contact_*, social_*, created_at
 - **products:** id, shop_id, name, price, image_url, images[], video_url, category, category_id, stock, position, is_active, description, created_at
 - **categories:** id, shop_id, name, description, position, created_at
 - **orders:** id, shop_id, customer_name, customer_phone, customer_email, customer_address, items[], total_amount, note, status, created_at
