@@ -1,7 +1,8 @@
 /* Custom utility classes for the shop */
 
 .product-card {
-  @apply bg-white border border-[#E2E8F0]/60 hover:border-[#0055FF]/30 transition-all rounded-2xl overflow-hidden;
+  @apply bg-white border border-[#E2E8F0]/60 hover:border-[#0055FF]/30 transition-all overflow-hidden;
+  border-radius: 5px;
 }
 
 .product-card:hover {
@@ -10,11 +11,13 @@
 }
 
 .btn-primary {
-  @apply bg-[#0055FF] text-white hover:bg-[#0040CC] font-semibold rounded-full px-6 py-3 transition-all shadow-sm hover:shadow-md;
+  @apply bg-[#0055FF] text-white hover:bg-[#0040CC] font-semibold px-6 py-3 transition-all shadow-sm hover:shadow-md;
+  border-radius: 5px;
 }
 
 .btn-secondary {
-  @apply bg-[#F8FAFC] text-[#0F172A] hover:bg-[#E2E8F0] font-semibold rounded-full px-6 py-3 transition-all;
+  @apply bg-[#F8FAFC] text-[#0F172A] hover:bg-[#E2E8F0] font-semibold px-6 py-3 transition-all;
+  border-radius: 5px;
 }
 
 .input-field {

@@ -18,7 +18,7 @@ export let mockShops = [
     address: '123 Nguyen Hue, Q1, TP.HCM', social_facebook: 'https://facebook.com/theeliteshop', social_instagram: 'https://instagram.com/theeliteshop',
     order_count: 4, owner: { email: 'demo@thewishop.com' },
     expiry_date: null,
-    post_carousel_position: 'bottom',
+    post_carousel_position: 'top',
     max_products: 100,
     max_posts: 50,
     created_at: '2025-12-01T00:00:00Z'

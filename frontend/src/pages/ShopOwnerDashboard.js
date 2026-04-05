@@ -396,29 +396,14 @@ const ShopOwnerDashboard = () => {
     { name: 'Pink', value: '#EC4899' },
   ];
 
-  const insertFormatting = (format) => {
-    const textarea = document.querySelector('[data-testid="product-description-input"]');
-    if (!textarea) return;
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const text = productForm.description;
-    const selectedText = text.substring(start, end);
-    let newText = '';
-    switch (format) {
-      case 'bold':
-        newText = text.substring(0, start) + `**${selectedText}**` + text.substring(end);
-        break;
-      case 'italic':
-        newText = text.substring(0, start) + `*${selectedText}*` + text.substring(end);
-        break;
-      case 'list':
-        newText = text.substring(0, start) + `\n- ${selectedText}` + text.substring(end);
-        break;
-      default:
-        return;
-    }
-    setProductForm({ ...productForm, description: newText });
-  };
+  const insertFormatting = (format) => {};
+
+  const quillModulesProduct = { toolbar: [['bold', 'italic', 'underline'], [{ list: 'ordered' }, { list: 'bullet' }], ['link'], ['clean']] };
+
+  const [productSearchQuery, setProductSearchQuery] = useState('');
+  const filteredProductsForAttach = products.filter(p =>
+    p.name.toLowerCase().includes(productSearchQuery.toLowerCase())
+  );
 
   if (authLoading || loading) {
     return (
@@ -1007,15 +992,7 @@ const ShopOwnerDashboard = () => {
             </div>
             <div>
               <label className="block text-xs font-medium mb-1">{t.description}</label>
-              <div className="border rounded-lg overflow-hidden bg-white">
-                <div className="flex gap-1 p-2 border-b bg-[#F8FAFC]">
-                  <Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => insertFormatting('bold')} title="Bold"><Bold className="w-4 h-4" /></Button>
-                  <Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => insertFormatting('italic')} title="Italic"><Italic className="w-4 h-4" /></Button>
-                  <Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => insertFormatting('list')} title="List"><List className="w-4 h-4" /></Button>
-                </div>
-                <Textarea value={productForm.description} onChange={(e) => setProductForm({ ...productForm, description: e.target.value })}
-                  placeholder={t.description + '...'} className="text-sm border-0 rounded-none min-h-[120px] focus-visible:ring-0" data-testid="product-description-input" />
-              </div>
+              <ReactQuill theme="snow" value={productForm.description} onChange={(val) => setProductForm({ ...productForm, description: val })} modules={quillModulesProduct} className="bg-white [&_.ql-container]:min-h-[120px]" data-testid="product-description-input" />
             </div>
             <div className="flex gap-3 pt-4">
               <Button type="button" variant="outline" className="flex-1 text-sm" onClick={() => setShowProductModal(false)}>{t.cancel}</Button>
@@ -1233,15 +1210,45 @@ const ShopOwnerDashboard = () => {
             </div>
             <div>
               <label className="block text-xs font-medium mb-2">{t.attachProducts}</label>
-              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-40 overflow-y-auto border rounded-lg p-2" data-testid="post-product-attach">
-                {products.map(prod => (
-                  <button type="button" key={prod.id} onClick={() => toggleProductAttach(prod.id)}
-                    className={`p-1.5 rounded border text-left transition-all ${(postForm.attached_products || []).includes(prod.id) ? 'border-2 shadow-sm' : 'border-[#E2E8F0] opacity-60 hover:opacity-100'}`}
-                    style={(postForm.attached_products || []).includes(prod.id) ? { borderColor: themeColor } : {}}>
-                    <img src={prod.image_url} alt={prod.name} className="w-full aspect-square object-cover rounded mb-1" />
-                    <p className="text-[9px] leading-tight line-clamp-2 text-[#0F172A]">{prod.name}</p>
-                  </button>
-                ))}
+              {(postForm.attached_products || []).length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {(postForm.attached_products || []).map(pid => {
+                    const prod = products.find(p => p.id === pid);
+                    if (!prod) return null;
+                    return (
+                      <div key={pid} className="flex items-center gap-1.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-[5px] px-2 py-1">
+                        <img src={prod.image_url} alt={prod.name} className="w-6 h-6 rounded object-cover" />
+                        <span className="text-xs text-[#0F172A] max-w-[120px] truncate">{prod.name}</span>
+                        <button type="button" onClick={() => toggleProductAttach(pid)} className="text-red-400 hover:text-red-600 ml-1"><X className="w-3 h-3" /></button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              <Input
+                placeholder={t.searchShort || 'Search...'}
+                value={productSearchQuery}
+                onChange={(e) => setProductSearchQuery(e.target.value)}
+                className="text-sm mb-2 rounded-[5px]"
+                data-testid="post-product-search"
+              />
+              <div className="max-h-40 overflow-y-auto border rounded-[5px] p-1" data-testid="post-product-attach">
+                {filteredProductsForAttach.map(prod => {
+                  const isAttached = (postForm.attached_products || []).includes(prod.id);
+                  return (
+                    <button type="button" key={prod.id} onClick={() => toggleProductAttach(prod.id)}
+                      className={`w-full flex items-center gap-2 p-1.5 rounded-[5px] text-left transition-all mb-0.5 ${isAttached ? 'bg-blue-50 border border-blue-200' : 'hover:bg-[#F8FAFC]'}`}
+                      data-testid={`attach-product-${prod.id}`}>
+                      <img src={prod.image_url} alt={prod.name} className="w-8 h-8 rounded object-cover flex-shrink-0" />
+                      <span className="text-xs text-[#0F172A] flex-1 truncate">{prod.name}</span>
+                      <span className="text-[10px] text-[#94A3B8] flex-shrink-0">{formatVND(prod.price)}</span>
+                      {isAttached && <span className="w-4 h-4 rounded-full flex items-center justify-center text-white text-[10px] flex-shrink-0" style={{ backgroundColor: themeColor }}>✓</span>}
+                    </button>
+                  );
+                })}
+                {filteredProductsForAttach.length === 0 && (
+                  <p className="text-xs text-[#94A3B8] text-center py-3">{t.noProducts}</p>
+                )}
               </div>
             </div>
             <div className="flex gap-3 pt-4">

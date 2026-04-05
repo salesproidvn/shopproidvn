@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useLanguage } from '../context/LanguageContext';
 import { formatVND } from '../utils/format';
@@ -11,6 +11,7 @@ const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const BlogPostPage = () => {
   const { slug, postId } = useParams();
   const { t } = useLanguage();
+  const navigate = useNavigate();
   const [shop, setShop] = useState(null);
   const [posts, setPosts] = useState([]);
   const [products, setProducts] = useState([]);
@@ -65,11 +66,9 @@ const BlogPostPage = () => {
         <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-lg border-b border-[#E2E8F0]">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between h-14">
-              <Link to={`/shop/${slug}/posts`}>
-                <Button variant="ghost" size="sm" className="gap-2">
-                  <ArrowLeft className="w-4 h-4" /> {t.posts}
-                </Button>
-              </Link>
+              <Button variant="ghost" size="sm" className="gap-2 rounded-[5px]" onClick={() => navigate(`/shop/${slug}/posts`)} data-testid="post-back-btn">
+                <ArrowLeft className="w-4 h-4" /> {t.posts}
+              </Button>
               <Link to={`/shop/${slug}`}>
                 <span className="font-semibold text-[#0F172A]">{shop?.name}</span>
               </Link>
@@ -78,7 +77,7 @@ const BlogPostPage = () => {
         </header>
         <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {selectedPost.thumbnail && (
-            <img src={selectedPost.thumbnail} alt={selectedPost.title} className="w-full h-64 sm:h-96 object-cover mb-6" data-testid="post-detail-thumbnail" />
+            <img src={selectedPost.thumbnail} alt={selectedPost.title} className="w-full h-64 sm:h-96 object-cover mb-6 rounded-[5px]" data-testid="post-detail-thumbnail" />
           )}
           <h1 className="text-2xl sm:text-3xl font-bold text-[#0F172A] mb-3" data-testid="post-detail-title">{selectedPost.title}</h1>
           <p className="text-sm text-[#94A3B8] mb-6 flex items-center gap-2">
@@ -88,7 +87,7 @@ const BlogPostPage = () => {
           {selectedPost.images?.length > 0 && (
             <div className="flex gap-3 mb-6 overflow-x-auto">
               {selectedPost.images.map((img, idx) => (
-                <img key={idx} src={img} alt="" className="h-40 rounded object-cover flex-shrink-0" />
+                <img key={idx} src={img} alt="" className="h-40 rounded-[5px] object-cover flex-shrink-0" />
               ))}
             </div>
           )}
@@ -96,9 +95,9 @@ const BlogPostPage = () => {
           {attachedProds.length > 0 && (
             <div className="border-t pt-8" data-testid="post-attached-products">
               <h3 className="text-lg font-bold text-[#0F172A] mb-4">{t.relatedProducts}</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {attachedProds.map(prod => (
-                  <Link key={prod.id} to={`/shop/${slug}`} className="group border border-[#E2E8F0] overflow-hidden hover:shadow-lg transition-all">
+                  <Link key={prod.id} to={`/shop/${slug}?product=${prod.id}`} className="group border border-[#E2E8F0] rounded-[5px] overflow-hidden hover:shadow-lg transition-all" data-testid={`attached-product-${prod.id}`}>
                     <div className="aspect-square bg-[#F8FAFC] overflow-hidden">
                       <img src={prod.image_url} alt={prod.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                     </div>
@@ -122,11 +121,9 @@ const BlogPostPage = () => {
       <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-lg border-b border-[#E2E8F0]">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-14">
-            <Link to={`/shop/${slug}`}>
-              <Button variant="ghost" size="sm" className="gap-2">
-                <ArrowLeft className="w-4 h-4" /> {shop?.name}
-              </Button>
-            </Link>
+            <Button variant="ghost" size="sm" className="gap-2 rounded-[5px]" onClick={() => navigate(`/shop/${slug}`)} data-testid="posts-back-btn">
+              <ArrowLeft className="w-4 h-4" /> {shop?.name}
+            </Button>
             <span className="font-bold text-[#0F172A]">{t.posts}</span>
             <div className="w-20" />
           </div>
@@ -138,9 +135,9 @@ const BlogPostPage = () => {
             <p className="text-[#64748B]">{t.noPostsYet}</p>
           </div>
         ) : (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="posts-grid">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="posts-grid">
             {posts.map(post => (
-              <Link key={post.id} to={`/shop/${slug}/posts/${post.id}`} className="bg-white overflow-hidden hover:shadow-lg transition-all group" data-testid={`post-card-${post.id}`}>
+              <Link key={post.id} to={`/shop/${slug}/posts/${post.id}`} className="bg-white rounded-[5px] overflow-hidden hover:shadow-lg transition-all group" data-testid={`post-card-${post.id}`}>
                 {post.thumbnail && (
                   <div className="aspect-video overflow-hidden">
                     <img src={post.thumbnail} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />

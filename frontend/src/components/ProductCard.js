@@ -101,7 +101,7 @@ const ProductCard = ({ product }) => {
           
           {/* Add to Cart Button - Text button below price */}
           <Button
-            className="w-full bg-[#0055FF] hover:bg-[#0040CC] text-white text-xs sm:text-sm h-9 sm:h-10 rounded-lg"
+            className="w-full bg-[#0055FF] hover:bg-[#0040CC] text-white text-xs sm:text-sm h-9 sm:h-10 rounded-[5px]"
             onClick={handleAddToCart}
             data-testid={`add-to-cart-btn-${product.id}`}
           >

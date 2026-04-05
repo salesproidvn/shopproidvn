@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
@@ -26,6 +26,7 @@ const StorefrontPage = () => {
   const { t } = useLanguage();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [shop, setShop] = useState(null);
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
@@ -53,6 +54,15 @@ const StorefrontPage = () => {
   const [postCarouselIndex, setPostCarouselIndex] = useState(0);
 
   useEffect(() => { fetchShopData(); }, [slug]);
+
+  // Auto-open product from query param (e.g., from blog attached product link)
+  useEffect(() => {
+    const productParam = searchParams.get('product');
+    if (productParam && products.length > 0) {
+      const found = products.find(p => p.id === productParam);
+      if (found) { setSelectedProduct(found); setActiveImage(0); setShowVideo(false); }
+    }
+  }, [searchParams, products]);
 
   const fetchShopData = async () => {
     try {
@@ -112,7 +122,7 @@ const StorefrontPage = () => {
   const cartTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
   const themeColor = shop?.theme_color || '#0055FF';
-  const postPosition = shop?.post_carousel_position || 'bottom';
+  const postPosition = shop?.post_carousel_position || 'top';
 
   const handleCheckout = async (e) => {
     e.preventDefault();
@@ -164,12 +174,12 @@ const StorefrontPage = () => {
       <div className="mb-8" data-testid="post-carousel">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-xl sm:text-2xl font-bold text-[#0F172A]">{t.latestPosts}</h3>
-          <Link to={`/shop/${slug}/posts`}><Button variant="ghost" size="sm" className="text-sm" style={{ color: themeColor }}>{t.readMore} &rarr;</Button></Link>
+          <Link to={`/shop/${slug}/posts`}><Button variant="ghost" size="sm" className="text-sm rounded-[5px]" style={{ color: themeColor }}>{t.readMore} &rarr;</Button></Link>
         </div>
         <div className="relative">
-          <div className="flex gap-4 overflow-hidden">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {posts.slice(postCarouselIndex, postCarouselIndex + 3).map(post => (
-              <Link key={post.id} to={`/shop/${slug}/posts/${post.id}`} className="flex-1 min-w-0 bg-white border border-[#E2E8F0] overflow-hidden hover:shadow-lg transition-all group" data-testid={`carousel-post-${post.id}`}>
+              <Link key={post.id} to={`/shop/${slug}/posts/${post.id}`} className="bg-white border border-[#E2E8F0] rounded-[5px] overflow-hidden hover:shadow-lg transition-all group" data-testid={`carousel-post-${post.id}`}>
                 {post.thumbnail && (
                   <div className="aspect-video overflow-hidden">
                     <img src={post.thumbnail} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
@@ -184,10 +194,10 @@ const StorefrontPage = () => {
           </div>
           {posts.length > 3 && (
             <div className="flex justify-center gap-2 mt-3">
-              <Button variant="outline" size="icon" className="w-8 h-8" disabled={postCarouselIndex === 0} onClick={() => setPostCarouselIndex(Math.max(0, postCarouselIndex - 3))}>
+              <Button variant="outline" size="icon" className="w-8 h-8 rounded-[5px]" disabled={postCarouselIndex === 0} onClick={() => setPostCarouselIndex(Math.max(0, postCarouselIndex - 3))}>
                 <ChevronLeft className="w-4 h-4" />
               </Button>
-              <Button variant="outline" size="icon" className="w-8 h-8" disabled={postCarouselIndex + 3 >= posts.length} onClick={() => setPostCarouselIndex(Math.min(posts.length - 3, postCarouselIndex + 3))}>
+              <Button variant="outline" size="icon" className="w-8 h-8 rounded-[5px]" disabled={postCarouselIndex + 3 >= posts.length} onClick={() => setPostCarouselIndex(Math.min(posts.length - 3, postCarouselIndex + 3))}>
                 <ChevronRight className="w-4 h-4" />
               </Button>
             </div>
@@ -199,7 +209,7 @@ const StorefrontPage = () => {
 
   // Product Card
   const ProductCard = ({ product }) => (
-    <div className="group bg-white border border-[#E2E8F0] overflow-hidden hover:shadow-lg transition-all cursor-pointer"
+    <div className="group bg-white border border-[#E2E8F0] rounded-[5px] overflow-hidden hover:shadow-lg transition-all cursor-pointer"
       onClick={() => { setSelectedProduct(product); setActiveImage(0); setShowVideo(false); }} data-testid={`product-${product.id}`}>
       <div className="aspect-square bg-[#F8FAFC] overflow-hidden">
         <img src={product.image_url} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
@@ -207,7 +217,7 @@ const StorefrontPage = () => {
       <div className="p-3 sm:p-4 text-center">
         <h3 className="font-medium text-[#0F172A] text-sm sm:text-base line-clamp-2 mb-2">{product.name}</h3>
         <p className="text-base sm:text-lg font-bold mb-2" style={{ color: themeColor }}>{formatVND(product.price)}</p>
-        <Button className="w-full hover:opacity-90 text-white text-xs sm:text-sm h-9 sm:h-10 rounded-none"
+        <Button className="w-full hover:opacity-90 text-white text-xs sm:text-sm h-9 sm:h-10 rounded-[5px]"
           style={{ backgroundColor: themeColor }}
           onClick={(e) => { e.stopPropagation(); addToCart(product); }} data-testid={`add-cart-${product.id}`}>
           {t.addToCart}
@@ -263,8 +273,8 @@ const StorefrontPage = () => {
               <h1 className="text-2xl sm:text-3xl font-bold text-[#0F172A] mb-3" data-testid="product-name">{selectedProduct.name}</h1>
               <p className="text-3xl font-bold mb-4" style={{ color: themeColor }} data-testid="product-price">{formatVND(selectedProduct.price)}</p>
               {selectedProduct.category && <p className="text-sm text-[#94A3B8] mb-4">{selectedProduct.category}</p>}
-              {selectedProduct.description && <p className="text-[#64748B] leading-relaxed mb-8 whitespace-pre-wrap" data-testid="product-description">{selectedProduct.description}</p>}
-              <Button className="w-full hover:opacity-90 py-6 text-base"
+              {selectedProduct.description && <div className="text-[#64748B] leading-relaxed mb-8 prose prose-sm max-w-none" data-testid="product-description" dangerouslySetInnerHTML={{ __html: selectedProduct.description }} />}
+              <Button className="w-full hover:opacity-90 py-6 text-base rounded-[5px]"
                 style={{ backgroundColor: themeColor }}
                 onClick={() => { addToCart(selectedProduct); setSelectedProduct(null); setActiveImage(0); setShowVideo(false); }} data-testid="product-add-cart">
                 <ShoppingCart className="w-5 h-5 mr-2" /> {t.addToCart}
@@ -384,7 +394,7 @@ const StorefrontPage = () => {
                   </div>
                   {catProducts.length > PRODUCTS_PER_CATEGORY && (
                     <div className="text-center mt-4">
-                      <Button variant="outline" onClick={() => toggleCategoryExpand(cat.id)} className="text-sm px-6" style={{ borderColor: themeColor, color: themeColor }} data-testid={`load-more-${cat.id}`}>
+                      <Button variant="outline" onClick={() => toggleCategoryExpand(cat.id)} className="text-sm px-6 rounded-[5px]" style={{ borderColor: themeColor, color: themeColor }} data-testid={`load-more-${cat.id}`}>
                         {isExpanded ? t.close : `${t.loadMore} (${catProducts.length - PRODUCTS_PER_CATEGORY})`}
                       </Button>
                     </div>
@@ -506,7 +516,7 @@ const StorefrontPage = () => {
                   <span className="text-[#64748B]">{t.total}:</span>
                   <span className="font-bold" style={{ color: themeColor }}>{formatVND(cartTotal)}</span>
                 </div>
-                <Button className="w-full hover:opacity-90 py-6" style={{ backgroundColor: themeColor }}
+                <Button className="w-full hover:opacity-90 py-6 rounded-[5px]" style={{ backgroundColor: themeColor }}
                   onClick={() => { setShowCart(false); setShowCheckout(true); }} data-testid="checkout-btn">
                   {t.orderNow}
                 </Button>
@@ -583,7 +593,7 @@ const StorefrontPage = () => {
                       <span style={{ color: themeColor }}>{formatVND(cartTotal)}</span>
                     </div>
                   </div>
-                  <Button form="checkout-form" type="submit" className="w-full hover:opacity-90 rounded-xl py-6 mt-6 text-base" style={{ backgroundColor: themeColor }} data-testid="place-order-btn">
+                  <Button form="checkout-form" type="submit" className="w-full hover:opacity-90 rounded-[5px] py-6 mt-6 text-base" style={{ backgroundColor: themeColor }} data-testid="place-order-btn">
                     {t.placeOrder}
                   </Button>
                 </div>
