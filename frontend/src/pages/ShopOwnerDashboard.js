@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { 
   LayoutDashboard, Package, FolderOpen, ShoppingCart, Settings, 
   LogOut, Menu, X, Plus, Pencil, Trash2, TrendingUp, Clock, Eye, Palette, Upload, ExternalLink,
-  Bold, Italic, List
+  Bold, Italic, List, ChevronUp, ChevronDown
 } from 'lucide-react';
 import { toast } from 'sonner';
 import NotificationBell from '../components/NotificationBell';
@@ -47,7 +47,7 @@ const ShopOwnerDashboard = () => {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [selectedProduct, setSelectedProduct] = useState(null);
 
-  const [productForm, setProductForm] = useState({ name: '', price: '', category_id: '', description: '', image_url: '', stock: '' });
+  const [productForm, setProductForm] = useState({ name: '', price: '', category_id: '', description: '', image_url: '', stock: '', position: '' });
   const [categoryForm, setCategoryForm] = useState({ name: '', description: '' });
   const [shopForm, setShopForm] = useState({});
 
@@ -110,6 +110,7 @@ const ShopOwnerDashboard = () => {
         ...productForm, 
         price: parseInt(productForm.price), 
         stock: parseInt(productForm.stock) || 0,
+        position: parseInt(productForm.position) || 0,
         category_id: productForm.category_id === "none" ? null : productForm.category_id || null
       };
       if (editingProduct) {
@@ -146,7 +147,8 @@ const ShopOwnerDashboard = () => {
       category_id: product.category_id || 'none',
       description: product.description || '',
       image_url: product.image_url,
-      stock: (product.stock || 0).toString()
+      stock: (product.stock || 0).toString(),
+      position: (product.position || 0).toString()
     });
     setShowProductModal(true);
   };
@@ -224,6 +226,25 @@ const ShopOwnerDashboard = () => {
   const handleLogout = async () => {
     await logout();
     navigate('/');
+  };
+
+  const handleMoveCategoryPosition = async (catId, direction) => {
+    const sorted = [...categories].sort((a, b) => (a.position || 0) - (b.position || 0));
+    const idx = sorted.findIndex(c => c.id === catId);
+    if ((direction === 'up' && idx === 0) || (direction === 'down' && idx === sorted.length - 1)) return;
+    const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+    const tempPos = sorted[idx].position;
+    sorted[idx].position = sorted[swapIdx].position;
+    sorted[swapIdx].position = tempPos;
+    try {
+      await axios.put(`${API}/dashboard/categories/positions`, {
+        positions: sorted.map(c => ({ id: c.id, position: c.position }))
+      }, { withCredentials: true });
+      toast.success(t.positionSaved);
+      fetchData();
+    } catch (err) {
+      toast.error(t.failedToUpdate);
+    }
   };
 
   const menuItems = [
@@ -486,35 +507,70 @@ const ShopOwnerDashboard = () => {
 
           {/* Categories Tab */}
           {activeTab === 'categories' && (
-            <Card className="border-0 shadow-sm">
-              <CardContent className="p-4">
-                {categories.length === 0 ? (
-                  <div className="text-center py-12">
-                    <FolderOpen className="w-12 h-12 text-[#E2E8F0] mx-auto mb-4" />
-                    <p className="text-[#64748B] text-sm">{t.noCategoriesYet}</p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3" data-testid="categories-grid">
-                    {categories.map((cat) => (
-                      <div key={cat.id} className="p-3 border rounded-lg bg-white flex justify-between items-center">
-                        <div>
-                          <h3 className="font-medium text-[#0F172A] text-sm">{cat.name}</h3>
-                          <p className="text-xs text-[#64748B]">{cat.description || t.noDescription}</p>
+            <div className="space-y-6">
+              {/* Category Position Manager */}
+              {categories.length > 0 && (
+                <Card className="border-0 shadow-sm">
+                  <CardHeader className="p-4">
+                    <CardTitle className="text-base">{t.manageCategoryPositions}</CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-4 pt-0">
+                    <div className="space-y-2" data-testid="category-position-list">
+                      {[...categories].sort((a, b) => (a.position || 0) - (b.position || 0)).map((cat, idx) => (
+                        <div key={cat.id} className="flex items-center gap-3 p-3 bg-[#F8FAFC] rounded-lg" data-testid={`cat-position-${cat.id}`}>
+                          <span className="w-8 h-8 bg-white rounded-lg flex items-center justify-center font-bold text-sm text-[#0055FF] border">{idx + 1}</span>
+                          <span className="flex-1 font-medium text-sm text-[#0F172A]">{cat.name}</span>
+                          <div className="flex gap-1">
+                            <Button variant="outline" size="icon" className="h-8 w-8" disabled={idx === 0}
+                              onClick={() => handleMoveCategoryPosition(cat.id, 'up')} data-testid={`cat-move-up-${cat.id}`}>
+                              <ChevronUp className="w-4 h-4" />
+                            </Button>
+                            <Button variant="outline" size="icon" className="h-8 w-8" disabled={idx === categories.length - 1}
+                              onClick={() => handleMoveCategoryPosition(cat.id, 'down')} data-testid={`cat-move-down-${cat.id}`}>
+                              <ChevronDown className="w-4 h-4" />
+                            </Button>
+                          </div>
                         </div>
-                        <div className="flex gap-1">
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditingCategory(cat); setCategoryForm({ name: cat.name, description: cat.description || '' }); setShowCategoryModal(true); }}>
-                            <Pencil className="w-4 h-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500" onClick={() => handleDeleteCategory(cat.id)}>
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Category Cards */}
+              <Card className="border-0 shadow-sm">
+                <CardContent className="p-4">
+                  {categories.length === 0 ? (
+                    <div className="text-center py-12">
+                      <FolderOpen className="w-12 h-12 text-[#E2E8F0] mx-auto mb-4" />
+                      <p className="text-[#64748B] text-sm">{t.noCategoriesYet}</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3" data-testid="categories-grid">
+                      {[...categories].sort((a, b) => (a.position || 0) - (b.position || 0)).map((cat) => (
+                        <div key={cat.id} className="p-3 border rounded-lg bg-white flex justify-between items-center">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-mono text-[#94A3B8]">#{cat.position || 0}</span>
+                              <h3 className="font-medium text-[#0F172A] text-sm">{cat.name}</h3>
+                            </div>
+                            <p className="text-xs text-[#64748B]">{cat.description || t.noDescription}</p>
+                          </div>
+                          <div className="flex gap-1">
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditingCategory(cat); setCategoryForm({ name: cat.name, description: cat.description || '' }); setShowCategoryModal(true); }}>
+                              <Pencil className="w-4 h-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500" onClick={() => handleDeleteCategory(cat.id)}>
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           )}
 
           {/* Orders Tab */}
@@ -648,7 +704,7 @@ const ShopOwnerDashboard = () => {
               <label className="block text-xs font-medium mb-1">{t.productName} *</label>
               <Input value={productForm.name} onChange={(e) => setProductForm({ ...productForm, name: e.target.value })} required className="text-sm" data-testid="product-name-input" />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div>
                 <label className="block text-xs font-medium mb-1">{t.productPrice} *</label>
                 <Input type="number" value={productForm.price} onChange={(e) => setProductForm({ ...productForm, price: e.target.value })} required className="text-sm" data-testid="product-price-input" />
@@ -656,6 +712,10 @@ const ShopOwnerDashboard = () => {
               <div>
                 <label className="block text-xs font-medium mb-1">{t.stock}</label>
                 <Input type="number" value={productForm.stock} onChange={(e) => setProductForm({ ...productForm, stock: e.target.value })} className="text-sm" data-testid="product-stock-input" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium mb-1">{t.position}</label>
+                <Input type="number" value={productForm.position} onChange={(e) => setProductForm({ ...productForm, position: e.target.value })} className="text-sm" placeholder="0" data-testid="product-position-input" />
               </div>
             </div>
             <div>

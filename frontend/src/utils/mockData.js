@@ -24,26 +24,26 @@ export let mockShops = [
 
 // ── Categories ─────────────────────────────────────────
 export let mockCategories = [
-  { id: 'cat-1', shop_id: 'shop-1', name: 'Electronics', description: 'Gadgets and devices' },
-  { id: 'cat-2', shop_id: 'shop-1', name: 'Fashion', description: 'Clothing and accessories' },
-  { id: 'cat-3', shop_id: 'shop-1', name: 'Home & Garden', description: 'Home decor and plants' },
-  { id: 'cat-4', shop_id: 'shop-1', name: 'Kitchen', description: 'Kitchen tools and equipment' },
+  { id: 'cat-1', shop_id: 'shop-1', name: 'Electronics', description: 'Gadgets and devices', position: 1 },
+  { id: 'cat-2', shop_id: 'shop-1', name: 'Fashion', description: 'Clothing and accessories', position: 2 },
+  { id: 'cat-3', shop_id: 'shop-1', name: 'Home & Garden', description: 'Home decor and plants', position: 3 },
+  { id: 'cat-4', shop_id: 'shop-1', name: 'Kitchen', description: 'Kitchen tools and equipment', position: 4 },
 ];
 
 // ── Products ───────────────────────────────────────────
 export let mockProducts = [
-  { id: 'prod-1', shop_id: 'shop-1', name: 'Sony Wireless Headphones', price: 2490000, category: 'Electronics', category_id: 'cat-1', stock: 25, is_active: true, image_url: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&h=400&fit=crop', description: 'Premium wireless headphones with active noise cancellation and 30h battery life.' },
-  { id: 'prod-2', shop_id: 'shop-1', name: 'Black Studio Headphones', price: 1850000, category: 'Electronics', category_id: 'cat-1', stock: 18, is_active: true, image_url: 'https://images.unsplash.com/photo-1583394838336-acd977736f90?w=400&h=400&fit=crop', description: 'Professional studio-grade headphones for music production.' },
-  { id: 'prod-3', shop_id: 'shop-1', name: 'Grey Casual Sneakers', price: 1200000, category: 'Fashion', category_id: 'cat-2', stock: 40, is_active: true, image_url: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&h=400&fit=crop', description: 'Comfortable grey sneakers perfect for everyday wear.' },
-  { id: 'prod-4', shop_id: 'shop-1', name: 'Minimalist Smartphone', price: 14500000, category: 'Electronics', category_id: 'cat-1', stock: 10, is_active: true, image_url: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=400&h=400&fit=crop', description: 'Sleek smartphone with edge-to-edge display and triple camera system.' },
-  { id: 'prod-5', shop_id: 'shop-1', name: 'Minimalist Succulent Pot', price: 320000, category: 'Home & Garden', category_id: 'cat-3', stock: 60, is_active: true, image_url: 'https://images.unsplash.com/photo-1485955900006-10f4d324d411?w=400&h=400&fit=crop', description: 'Modern ceramic pot perfect for small succulents and cacti.' },
-  { id: 'prod-6', shop_id: 'shop-1', name: 'Handwoven Rattan Baskets', price: 450000, category: 'Home & Garden', category_id: 'cat-3', stock: 30, is_active: true, image_url: 'https://images.unsplash.com/photo-1616486029423-aaa4789e8c9a?w=400&h=400&fit=crop', description: 'Beautifully handwoven rattan baskets for storage and decoration.' },
-  { id: 'prod-7', shop_id: 'shop-1', name: 'Ceramic Coffee Set', price: 380000, category: 'Kitchen', category_id: 'cat-4', stock: 20, is_active: true, image_url: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefda?w=400&h=400&fit=crop', description: 'Elegant ceramic coffee cup and saucer set, handmade.' },
-  { id: 'prod-8', shop_id: 'shop-1', name: 'Smart Watch Pro', price: 3200000, category: 'Electronics', category_id: 'cat-1', stock: 15, is_active: true, image_url: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&h=400&fit=crop', description: 'Feature-packed smartwatch with health tracking and GPS.' },
-  { id: 'prod-9', shop_id: 'shop-1', name: 'Leather Crossbody Bag', price: 890000, category: 'Fashion', category_id: 'cat-2', stock: 35, is_active: true, image_url: 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=400&h=400&fit=crop', description: 'Genuine leather crossbody bag with adjustable strap.' },
-  { id: 'prod-10', shop_id: 'shop-1', name: 'AirPods Pro Max', price: 6500000, category: 'Electronics', category_id: 'cat-1', stock: 8, is_active: true, image_url: 'https://images.unsplash.com/photo-1606220588913-b3aacb4d2f46?w=400&h=400&fit=crop', description: 'Over-ear headphones with spatial audio and transparency mode.' },
-  { id: 'prod-11', shop_id: 'shop-1', name: 'Designer Sunglasses', price: 1650000, category: 'Fashion', category_id: 'cat-2', stock: 22, is_active: true, image_url: 'https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=400&h=400&fit=crop', description: 'UV-protected designer sunglasses with polarized lenses.' },
-  { id: 'prod-12', shop_id: 'shop-1', name: 'Japanese Kitchen Knife Set', price: 2100000, category: 'Kitchen', category_id: 'cat-4', stock: 12, is_active: true, image_url: 'https://images.unsplash.com/photo-1593618998160-e34014e67546?w=400&h=400&fit=crop', description: 'Professional-grade Japanese steel knife set with wooden block.' },
+  { id: 'prod-1', shop_id: 'shop-1', name: 'Sony Wireless Headphones', price: 2490000, category: 'Electronics', category_id: 'cat-1', stock: 25, position: 1, is_active: true, image_url: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&h=400&fit=crop', description: 'Premium wireless headphones with active noise cancellation and 30h battery life.' },
+  { id: 'prod-2', shop_id: 'shop-1', name: 'Black Studio Headphones', price: 1850000, category: 'Electronics', category_id: 'cat-1', stock: 18, position: 2, is_active: true, image_url: 'https://images.unsplash.com/photo-1583394838336-acd977736f90?w=400&h=400&fit=crop', description: 'Professional studio-grade headphones for music production.' },
+  { id: 'prod-3', shop_id: 'shop-1', name: 'Grey Casual Sneakers', price: 1200000, category: 'Fashion', category_id: 'cat-2', stock: 40, position: 1, is_active: true, image_url: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&h=400&fit=crop', description: 'Comfortable grey sneakers perfect for everyday wear.' },
+  { id: 'prod-4', shop_id: 'shop-1', name: 'Minimalist Smartphone', price: 14500000, category: 'Electronics', category_id: 'cat-1', stock: 10, position: 3, is_active: true, image_url: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=400&h=400&fit=crop', description: 'Sleek smartphone with edge-to-edge display and triple camera system.' },
+  { id: 'prod-5', shop_id: 'shop-1', name: 'Minimalist Succulent Pot', price: 320000, category: 'Home & Garden', category_id: 'cat-3', stock: 60, position: 1, is_active: true, image_url: 'https://images.unsplash.com/photo-1485955900006-10f4d324d411?w=400&h=400&fit=crop', description: 'Modern ceramic pot perfect for small succulents and cacti.' },
+  { id: 'prod-6', shop_id: 'shop-1', name: 'Handwoven Rattan Baskets', price: 450000, category: 'Home & Garden', category_id: 'cat-3', stock: 30, position: 2, is_active: true, image_url: 'https://images.unsplash.com/photo-1616486029423-aaa4789e8c9a?w=400&h=400&fit=crop', description: 'Beautifully handwoven rattan baskets for storage and decoration.' },
+  { id: 'prod-7', shop_id: 'shop-1', name: 'Ceramic Coffee Set', price: 380000, category: 'Kitchen', category_id: 'cat-4', stock: 20, position: 1, is_active: true, image_url: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefda?w=400&h=400&fit=crop', description: 'Elegant ceramic coffee cup and saucer set, handmade.' },
+  { id: 'prod-8', shop_id: 'shop-1', name: 'Smart Watch Pro', price: 3200000, category: 'Electronics', category_id: 'cat-1', stock: 15, position: 4, is_active: true, image_url: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&h=400&fit=crop', description: 'Feature-packed smartwatch with health tracking and GPS.' },
+  { id: 'prod-9', shop_id: 'shop-1', name: 'Leather Crossbody Bag', price: 890000, category: 'Fashion', category_id: 'cat-2', stock: 35, position: 2, is_active: true, image_url: 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=400&h=400&fit=crop', description: 'Genuine leather crossbody bag with adjustable strap.' },
+  { id: 'prod-10', shop_id: 'shop-1', name: 'AirPods Pro Max', price: 6500000, category: 'Electronics', category_id: 'cat-1', stock: 8, position: 5, is_active: true, image_url: 'https://images.unsplash.com/photo-1606220588913-b3aacb4d2f46?w=400&h=400&fit=crop', description: 'Over-ear headphones with spatial audio and transparency mode.' },
+  { id: 'prod-11', shop_id: 'shop-1', name: 'Designer Sunglasses', price: 1650000, category: 'Fashion', category_id: 'cat-2', stock: 22, position: 3, is_active: true, image_url: 'https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=400&h=400&fit=crop', description: 'UV-protected designer sunglasses with polarized lenses.' },
+  { id: 'prod-12', shop_id: 'shop-1', name: 'Japanese Kitchen Knife Set', price: 2100000, category: 'Kitchen', category_id: 'cat-4', stock: 12, position: 2, is_active: true, image_url: 'https://images.unsplash.com/photo-1593618998160-e34014e67546?w=400&h=400&fit=crop', description: 'Professional-grade Japanese steel knife set with wooden block.' },
 ];
 
 // ── Orders ─────────────────────────────────────────────
@@ -153,7 +153,7 @@ export const handleMockRequest = (method, path, body) => {
   }
 
   if (m === 'get' && path === '/dashboard/categories') {
-    return { data: mockCategories.filter(c => c.shop_id === 'shop-1').map(c => ({ ...c })) };
+    return { data: mockCategories.filter(c => c.shop_id === 'shop-1').sort((a, b) => (a.position || 0) - (b.position || 0)).map(c => ({ ...c })) };
   }
 
   if (m === 'get' && path === '/dashboard/orders') {
@@ -184,9 +184,20 @@ export const handleMockRequest = (method, path, body) => {
   }
 
   if (m === 'post' && path === '/dashboard/categories') {
-    const newCat = { id: genId('cat'), shop_id: 'shop-1', ...body };
+    const maxPos = mockCategories.filter(c => c.shop_id === 'shop-1').reduce((m, c) => Math.max(m, c.position || 0), 0);
+    const newCat = { id: genId('cat'), shop_id: 'shop-1', position: maxPos + 1, ...body };
     mockCategories.push(newCat);
     return { data: newCat };
+  }
+
+  // Category positions bulk update
+  if (m === 'put' && path === '/dashboard/categories/positions') {
+    const positions = body.positions || [];
+    positions.forEach(({ id, position }) => {
+      const idx = mockCategories.findIndex(c => c.id === id);
+      if (idx !== -1) mockCategories[idx].position = position;
+    });
+    return { data: { ok: true } };
   }
 
   const catMatch = path.match(/^\/dashboard\/categories\/(.+)$/);
@@ -305,7 +316,7 @@ export const handleMockRequest = (method, path, body) => {
   if (shopProductsMatch && m === 'get') {
     const shop = mockShops.find(s => s.slug === shopProductsMatch[1]);
     if (!shop) return { error: 'Shop not found', status: 404 };
-    let prods = mockProducts.filter(p => p.shop_id === shop.id);
+    let prods = mockProducts.filter(p => p.shop_id === shop.id).sort((a, b) => (a.position || 0) - (b.position || 0));
     if (body._params?.category) prods = prods.filter(p => p.category_id === body._params.category);
     if (body._params?.search) {
       const q = body._params.search.toLowerCase();
@@ -318,7 +329,7 @@ export const handleMockRequest = (method, path, body) => {
   if (shopCatsMatch && m === 'get') {
     const shop = mockShops.find(s => s.slug === shopCatsMatch[1]);
     if (!shop) return { error: 'Shop not found', status: 404 };
-    return { data: mockCategories.filter(c => c.shop_id === shop.id) };
+    return { data: mockCategories.filter(c => c.shop_id === shop.id).sort((a, b) => (a.position || 0) - (b.position || 0)) };
   }
 
   const shopOrderMatch = path.match(/^\/shop\/([^/]+)\/orders$/);
