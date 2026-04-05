@@ -62,6 +62,29 @@ Create a desktop UI for a Micro-SaaS E-commerce Platform with multi-tenant setup
 - Admin: GET /api/admin/stats, /api/admin/shops, /api/admin/users
 - Upload: POST /api/upload/image
 
+### Checkout & Orders (DONE — Feb 2026)
+- Full-screen checkout overlay with shipping form and order summary
+- Thank you page with order confirmation, order ID, and item details
+- Cart drawer with quantity controls
+
+### Shop Expiry System (DONE — Feb 2026)
+- Super Admin can set expiry date per shop via date picker in Shops table
+- Expired shops show blocking overlay preventing storefront access
+
+### Product Filters (DONE — Feb 2026)
+- Price bracket filters (Under 500K, 500K-1M, 1M-5M, Over 5M)
+- Custom price range input (min-max)
+- Applied on both HomePage and StorefrontPage
+
+### Social Login (DONE — Feb 2026)
+- Google and Facebook mock login buttons in Auth modal (MOCKED — UI only)
+
+### Contact Page (DONE — Feb 2026)
+- Full shop contact info: phone, email, address, business hours
+- Social links (Facebook, Instagram)
+- Contact message form
+- Linked from floating action Info button
+
 ## Backlog
 - P1: Order notifications (email/SMS)
 - P2: Inventory alerts for low stock
