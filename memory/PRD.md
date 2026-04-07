@@ -61,6 +61,10 @@ Create an admin dashboard for a Micro-SaaS E-commerce Platform. Multi-tenant set
 - **Second Mock Shop**: Added "Green Living" eco-friendly shop (6 products, 3 categories, 2 orders, 1 blog post) owned by Minh Tran (green@thewishop.com / green123).
 - **Full CRUD**: Admin can manage any shop's products, categories, orders, posts, pages, menu, settings while viewing their dashboard.
 
+### Phase 9 - Storefront UI Polish (Complete - Feb 2026)
+- **Removed Price Filter**: Removed PriceFilter component from storefront, only category dropdown remains.
+- **Redesigned Bottom Bar**: Taller bar (h-16), bigger icons (w-5 h-5), readable text (text-xs font-medium), grid layout, MapPin and Grid3X3 icons for clarity.
+
 ## Backlog
 - P1: Sales analytics charts on dashboards
 - P2: Refactor ShopOwnerDashboard.js (2000+ lines) and StorefrontPage.js (880+ lines)

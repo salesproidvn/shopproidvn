@@ -9,7 +9,6 @@ import { Input } from '../components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '../components/ui/sheet';
 import { ScrollArea } from '../components/ui/scroll-area';
-import PriceFilter from '../components/PriceFilter';
 import { 
   Search, ShoppingCart, Phone, Mail, MapPin, Facebook, Instagram, 
   Plus, Minus, Trash2, ArrowLeft, LayoutDashboard, X, AlertTriangle, Play,
@@ -35,7 +34,6 @@ const StorefrontPage = () => {
   const [posts, setPosts] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [priceFilter, setPriceFilter] = useState({ id: 'all', min: 0, max: Infinity });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isExpired, setIsExpired] = useState(false);
@@ -115,9 +113,8 @@ const StorefrontPage = () => {
       result = result.filter(p => matchIds.includes(p.category_id));
     }
     if (searchQuery) { const q = searchQuery.toLowerCase(); result = result.filter(p => p.name.toLowerCase().includes(q)); }
-    if (priceFilter.id !== 'all') result = result.filter(p => p.price >= priceFilter.min && p.price <= priceFilter.max);
     setFilteredProducts(result);
-  }, [selectedCategory, searchQuery, priceFilter, products]);
+  }, [selectedCategory, searchQuery, products]);
 
   const addToCart = (product) => {
     const existing = cart.find(item => item.product_id === product.id);
@@ -329,7 +326,7 @@ const StorefrontPage = () => {
       <>
         {filteredProducts.length === 0 ? (
           <div className="text-center py-24"><p className="text-[#64748B] text-lg">{t.noProducts}</p></div>
-        ) : selectedCategory === 'all' && !searchQuery && priceFilter.id === 'all' ? (
+        ) : selectedCategory === 'all' && !searchQuery ? (
           <div className="space-y-10" data-testid="grouped-product-view">
             {categories.filter(c => !c.parent_id).map(cat => {
               const subCatIds = categories.filter(c => c.parent_id === cat.id).map(c => c.id);
@@ -654,7 +651,6 @@ const StorefrontPage = () => {
               </SelectContent>
             </Select>
           </div>
-          <PriceFilter onFilter={setPriceFilter} activeFilter={priceFilter} />
         </div>
 
         {/* Products section */}
@@ -727,30 +723,30 @@ const StorefrontPage = () => {
         </div>
       </footer>
 
-      {/* Bottom Bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-[#E2E8F0] shadow-lg" data-testid="bottom-bar">
-        <div className="max-w-7xl mx-auto flex items-center justify-around h-12">
-          {shop.contact_phone && (
-            <a href={`tel:${shop.contact_phone}`} className="flex flex-col items-center gap-0.5 text-[#64748B] hover:text-green-600 transition-colors" data-testid="bottom-call">
-              <Phone className="w-4 h-4" />
-              <span className="text-[10px]">{t.call}</span>
+      {/* Bottom Contact Bar */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-[#E2E8F0] shadow-[0_-4px_20px_rgba(0,0,0,0.08)]" data-testid="bottom-bar">
+        <div className="max-w-7xl mx-auto grid grid-cols-4 h-16">
+          {shop.contact_phone ? (
+            <a href={`tel:${shop.contact_phone}`} className="flex flex-col items-center justify-center gap-1 text-[#475569] active:bg-[#F1F5F9] transition-colors" data-testid="bottom-call">
+              <Phone className="w-5 h-5" />
+              <span className="text-xs font-medium">{t.call}</span>
             </a>
-          )}
-          {shop.contact_phone && (
-            <a href={`sms:${shop.contact_phone}`} className="flex flex-col items-center gap-0.5 text-[#64748B] hover:text-blue-600 transition-colors" data-testid="bottom-message">
-              <MessageCircle className="w-4 h-4" />
-              <span className="text-[10px]">{t.message}</span>
+          ) : <div />}
+          {shop.contact_phone ? (
+            <a href={`sms:${shop.contact_phone}`} className="flex flex-col items-center justify-center gap-1 text-[#475569] active:bg-[#F1F5F9] transition-colors" data-testid="bottom-message">
+              <MessageCircle className="w-5 h-5" />
+              <span className="text-xs font-medium">{t.message}</span>
             </a>
-          )}
-          {shop.address && (
-            <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(shop.address)}`} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-0.5 text-[#64748B] hover:text-purple-600 transition-colors" data-testid="bottom-map">
-              <Map className="w-4 h-4" />
-              <span className="text-[10px]">{t.map}</span>
+          ) : <div />}
+          {shop.address ? (
+            <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(shop.address)}`} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center justify-center gap-1 text-[#475569] active:bg-[#F1F5F9] transition-colors" data-testid="bottom-map">
+              <MapPin className="w-5 h-5" />
+              <span className="text-xs font-medium">{t.map}</span>
             </a>
-          )}
-          <button onClick={() => setShowCategoryMenu(!showCategoryMenu)} className="flex flex-col items-center gap-0.5 text-[#64748B] hover:text-[#0055FF] transition-colors relative" data-testid="bottom-categories">
-            <FolderOpen className="w-4 h-4" />
-            <span className="text-[10px]">{t.productCategories}</span>
+          ) : <div />}
+          <button onClick={() => setShowCategoryMenu(!showCategoryMenu)} className="flex flex-col items-center justify-center gap-1 text-[#475569] active:bg-[#F1F5F9] transition-colors relative" data-testid="bottom-categories">
+            <Grid3X3 className="w-5 h-5" />
+            <span className="text-xs font-medium">{t.productCategories}</span>
           </button>
         </div>
       </div>
@@ -759,7 +755,7 @@ const StorefrontPage = () => {
       {showCategoryMenu && (
         <>
           <div className="fixed inset-0 z-[41]" onClick={() => setShowCategoryMenu(false)} />
-          <div className="fixed bottom-14 left-0 right-0 z-[42] bg-white border-t border-[#E2E8F0] shadow-xl p-4 max-h-64 overflow-y-auto" data-testid="category-menu-popup">
+          <div className="fixed bottom-[68px] left-0 right-0 z-[42] bg-white border-t border-[#E2E8F0] shadow-xl p-4 max-h-64 overflow-y-auto" data-testid="category-menu-popup">
             <div className="max-w-7xl mx-auto grid grid-cols-2 sm:grid-cols-3 gap-2">
               {categories.map(cat => (
                 <button key={cat.id} onClick={() => scrollToCategory(cat.id)} className="text-left p-3 bg-[#F8FAFC] hover:bg-[#EFF6FF] rounded-lg transition-colors text-sm font-medium text-[#0F172A]" data-testid={`cat-menu-${cat.id}`}>
