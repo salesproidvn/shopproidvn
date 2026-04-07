@@ -87,7 +87,7 @@ const CategoryPage = () => {
                     <h2 className="text-lg sm:text-xl font-bold text-[#0F172A]">{cat.name}</h2>
                     <span className="text-xs px-2 py-0.5 rounded-full bg-[#F1F5F9] text-[#64748B]">{catProducts.length} {t.productsCount}</span>
                   </div>
-                  <Link to={`/shop/${slug}?category=${cat.id}`}>
+                  <Link to={`/shop/${slug}/category/${cat.id}`}>
                     <Button variant="ghost" size="sm" className="text-xs gap-1" style={{ color: themeColor }}>
                       {t.viewCategory} <ChevronRight className="w-3 h-3" />
                     </Button>
@@ -97,7 +97,7 @@ const CategoryPage = () => {
                 {subs.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 mb-3">
                     {subs.map(sub => (
-                      <Link key={sub.id} to={`/shop/${slug}?category=${sub.id}`}
+                      <Link key={sub.id} to={`/shop/${slug}/category/${cat.id}`}
                         className="text-xs px-2.5 py-1 rounded-full border border-[#E2E8F0] text-[#64748B] hover:border-[#94A3B8] transition-colors">
                         {sub.name}
                       </Link>
@@ -122,7 +122,7 @@ const CategoryPage = () => {
                 </div>
                 {catProducts.length > 5 && (
                   <div className="text-center mt-3">
-                    <Link to={`/shop/${slug}?category=${cat.id}`}>
+                    <Link to={`/shop/${slug}/category/${cat.id}`}>
                       <Button variant="outline" size="sm" className="text-xs px-6 rounded-[5px]" style={{ borderColor: themeColor, color: themeColor }}>
                         {t.loadMore} ({catProducts.length - 5})
                       </Button>

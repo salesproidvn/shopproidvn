@@ -793,9 +793,9 @@ const StorefrontPage = () => {
           <div className="fixed bottom-[68px] left-0 right-0 z-[42] bg-white border-t border-[#E2E8F0] shadow-xl p-4 max-h-64 overflow-y-auto" data-testid="category-menu-popup">
             <div className="max-w-7xl mx-auto grid grid-cols-2 sm:grid-cols-3 gap-2">
               {categories.map(cat => (
-                <button key={cat.id} onClick={() => scrollToCategory(cat.id)} className="text-left p-3 bg-[#F8FAFC] hover:bg-[#EFF6FF] rounded-lg transition-colors text-sm font-medium text-[#0F172A]" data-testid={`cat-menu-${cat.id}`}>
+                <Link key={cat.id} to={`/shop/${slug}/category/${cat.parent_id || cat.id}`} className="text-left p-3 bg-[#F8FAFC] hover:bg-[#EFF6FF] rounded-lg transition-colors text-sm font-medium text-[#0F172A]" data-testid={`cat-menu-${cat.id}`}>
                   {cat.name}
-                </button>
+                </Link>
               ))}
             </div>
           </div>
