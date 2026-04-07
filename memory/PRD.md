@@ -12,7 +12,7 @@ Create an admin dashboard for a Micro-SaaS E-commerce Platform. Multi-tenant set
 ## Core Architecture
 ```
 /app/frontend/src/
-  pages/ - StorefrontPage, ShopOwnerDashboard, SuperAdminDashboard, HomePage, BlogPostPage, ContactPage, CategoryPage
+  pages/ - StorefrontPage, ShopOwnerDashboard, SuperAdminDashboard, HomePage, BlogPostPage, ContactPage, CategoryPage, CustomPage
   components/ - Header, ProductCard, ProductModal, PriceFilter, NotificationBell
   context/ - AuthContext, CartContext, WishlistContext, LanguageContext, NotificationContext
   utils/ - mockAdapter.js, mockData.js, i18n.js, format.js
@@ -25,45 +25,41 @@ Create an admin dashboard for a Micro-SaaS E-commerce Platform. Multi-tenant set
 - Product CRUD with categories, drag-and-drop position ordering
 - Order management with status tracking
 - Vietnamese (vi) and English (en) language support
-- JWT authentication (Bearer token in localStorage)
-- Dynamic theme color from shop settings
-- Custom domain mapping
+- JWT authentication, dynamic theme color, custom domain mapping
 
 ### Phase 2 - Product Enhancements (Complete)
-- Multi-image product gallery
-- Video URL support (YouTube embed)
-- Thumbnail image selection
-- Product grouping by category on storefront
-- 42 total products across 6 categories
+- Multi-image product gallery, video URL support, thumbnail selection
+- Product grouping by category, 42 products across 6 categories
 
-### Phase 3 - Blog & Navigation Features (Complete - Feb 2026)
-- Blog Posts with WYSIWYG editor (react-quill-new), thumbnails, attached products
-- Post Slider Carousel with arrows/dots
-- Banner Slider (up to 3 banners, auto-slide)
-- Full-page Product View with red close button
-- Product Description WYSIWYG editor
-- Bottom Bar (Call, Message, Map, Categories)
-- Category Pagination with Load More
-- Contact Page
-- Display Layout reordering (Banner, Blog, Featured, Products)
-- Super Admin limits (max products/posts)
-- SKU field and Featured Product toggle
+### Phase 3 - Blog & Navigation Features (Complete)
+- Blog Posts with WYSIWYG editor, thumbnails, attached products
+- Post Slider Carousel, Banner Slider (up to 3)
+- Full-page Product View, Bottom Bar, Category Pagination
+- Display Layout reordering, SKU field, Featured Product toggle
 
-### Phase 4 - Storefront Navigation & Footer (Complete - Feb 2026)
-- **Menu Bar**: Full navigation bar in storefront header with Home, Shop, Categories, Blog, Contact links (desktop + mobile hamburger menu)
-- **Related Products**: Shows up to 4 products from the same category in the product detail view
-- **Category Page**: Standalone `/shop/:slug/categories` route listing all categories with descriptions, product counts, product previews, and links
-- **Editable Footer**: 4-column configurable footer managed from Dashboard Layout tab, rendered dynamically on storefront
-- **Footer Links**: Each footer item supports optional URL - renders as clickable `<a>` link on storefront. External links (https://) open in new tab, internal links in same tab. Dashboard editor provides per-item text + URL inputs with add/remove controls.
+### Phase 4 - Storefront Navigation & Footer (Complete)
+- Menu Bar (dynamic from shop.menu_items), Related Products
+- Category Page (`/shop/:slug/categories`)
+- Editable Footer with link-attachable items (`items: [{text, url}]`)
 
-## Footer Data Model
+### Phase 5 - Custom Pages & Menu Manager (Complete - Feb 2026)
+- **Custom Page Builder**: Shop owners can create up to 10 custom pages with section-based builder (Text/WYSIWYG, Image, Link, Video URL). Pages published at `/shop/:slug/page/:pageSlug`. Draft pages return 404 publicly.
+- **Menu Manager**: Dashboard tab for adding/removing/reordering up to 10 menu items. Each item has label, URL, type, and visibility toggle. Quick Link dropdown for linking to existing posts, custom pages, and built-in pages.
+- **Copy Link**: Each custom page card in dashboard has a Copy Link button.
+- **Share Button**: Added to blog post detail view header.
+- **Mobile 2-column**: Attached products in post detail view now 2-column on mobile.
+- **Mock Data**: 7 custom pages (About Us, Shipping Policy, Size Guide, Loyalty Program, FAQ, Store Locations, Careers[draft])
+
+## Key Data Models
 ```js
-footer_columns: [
-  { title: 'Column Title', items: [
-    { text: 'Link Text', url: 'https://...' },   // renders as <a>
-    { text: 'Plain text', url: '' }               // renders as <p>
-  ]}
-]
+// Custom Page
+{ id, shop_id, title, slug, sections: [{type, content, url, text, caption}], is_published, created_at, updated_at }
+
+// Menu Item
+{ id, label, url, type: 'internal'|'external'|'scroll_shop'|'custom_page', enabled, position }
+
+// Footer Column
+{ title, items: [{text, url}] }
 ```
 
 ## Credentials
