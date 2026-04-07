@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { 
   LayoutDashboard, Package, FolderOpen, ShoppingCart, Settings, 
   LogOut, Menu, X, Plus, Pencil, Trash2, TrendingUp, Clock, Eye, Palette, Upload, ExternalLink,
-  Bold, Italic, List, ChevronUp, ChevronDown, Play, FileText, Image, Calendar, Search
+  Bold, Italic, List, ChevronUp, ChevronDown, Play, FileText, Image, Calendar, Search, LayoutGrid, GripVertical
 } from 'lucide-react';
 import { toast } from 'sonner';
 import NotificationBell from '../components/NotificationBell';
@@ -406,12 +406,58 @@ const ShopOwnerDashboard = () => {
     } catch { toast.error(t.failedToSave); }
   };
 
+  const sectionLabels = {
+    banner: t.sectionBanner,
+    blog: t.sectionBlog,
+    featured: t.sectionFeatured,
+    products: t.sectionProducts,
+  };
+
+  const sectionIcons = {
+    banner: Image,
+    blog: FileText,
+    featured: TrendingUp,
+    products: Package,
+  };
+
+  const getLayoutSections = () => {
+    return shopForm.layout_sections || [
+      { id: 'banner', label: 'Banner', enabled: true },
+      { id: 'blog', label: 'Blog', enabled: true },
+      { id: 'featured', label: 'Featured Products', enabled: true },
+      { id: 'products', label: 'Products', enabled: true }
+    ];
+  };
+
+  const moveSection = async (idx, direction) => {
+    const sections = [...getLayoutSections()];
+    const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (swapIdx < 0 || swapIdx >= sections.length) return;
+    [sections[idx], sections[swapIdx]] = [sections[swapIdx], sections[idx]];
+    setShopForm({ ...shopForm, layout_sections: sections });
+    try {
+      await axios.put(`${API}/dashboard/shop`, { layout_sections: sections });
+      toast.success(t.shopUpdated);
+    } catch { toast.error(t.failedToSave); }
+  };
+
+  const toggleSection = async (idx) => {
+    const sections = [...getLayoutSections()];
+    sections[idx] = { ...sections[idx], enabled: !sections[idx].enabled };
+    setShopForm({ ...shopForm, layout_sections: sections });
+    try {
+      await axios.put(`${API}/dashboard/shop`, { layout_sections: sections });
+      toast.success(t.shopUpdated);
+    } catch { toast.error(t.failedToSave); }
+  };
+
   const menuItems = [
     { id: 'overview', label: t.overview, icon: LayoutDashboard },
     { id: 'products', label: t.products, icon: Package },
     { id: 'categories', label: t.categories, icon: FolderOpen },
     { id: 'posts', label: t.posts, icon: FileText },
     { id: 'orders', label: t.orders, icon: ShoppingCart },
+    { id: 'layout', label: t.displayLayout, icon: LayoutGrid },
     { id: 'settings', label: t.settings, icon: Settings },
   ];
 
@@ -525,6 +571,7 @@ const ShopOwnerDashboard = () => {
                   {activeTab === 'categories' && t.categories}
                   {activeTab === 'posts' && t.posts}
                   {activeTab === 'orders' && t.orders}
+                  {activeTab === 'layout' && t.displayLayout}
                   {activeTab === 'settings' && t.settings}
                 </h1>
                 <p className="text-sm text-[#64748B] mt-1">{t.welcomeBack}, {user?.name}</p>
@@ -830,6 +877,86 @@ const ShopOwnerDashboard = () => {
                 )}
               </CardContent>
             </Card>
+          )}
+
+
+          {/* Layout Tab */}
+          {activeTab === 'layout' && (
+            <div className="space-y-6">
+              <Card className="border-0 shadow-sm">
+                <CardHeader className="p-4">
+                  <CardTitle className="text-base flex items-center gap-2"><LayoutGrid className="w-4 h-4" /> {t.displayLayout}</CardTitle>
+                  <p className="text-sm text-[#64748B] mt-1">{t.layoutDescription}</p>
+                </CardHeader>
+                <CardContent className="p-4 pt-0">
+                  <div className="space-y-2" data-testid="layout-sections">
+                    {getLayoutSections().map((section, idx) => {
+                      const IconComp = sectionIcons[section.id] || Package;
+                      return (
+                        <div key={section.id} className={`flex items-center gap-3 p-3 rounded-[5px] border transition-all ${section.enabled ? 'bg-white border-[#E2E8F0]' : 'bg-[#F8FAFC] border-dashed border-[#E2E8F0] opacity-60'}`} data-testid={`layout-section-${section.id}`}>
+                          <GripVertical className="w-4 h-4 text-[#94A3B8] flex-shrink-0" />
+                          <div className="w-8 h-8 rounded-[5px] flex items-center justify-center flex-shrink-0" style={{ backgroundColor: section.enabled ? themeColor + '15' : '#F1F5F9' }}>
+                            <IconComp className="w-4 h-4" style={{ color: section.enabled ? themeColor : '#94A3B8' }} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm text-[#0F172A]">{sectionLabels[section.id] || section.label}</p>
+                            <p className="text-[10px] text-[#94A3B8]">{t.position}: {idx + 1}</p>
+                          </div>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <div className="flex flex-col gap-0.5">
+                              <Button variant="ghost" size="icon" className="w-6 h-6" disabled={idx === 0} onClick={() => moveSection(idx, 'up')} data-testid={`move-up-${section.id}`}>
+                                <ChevronUp className="w-3 h-3" />
+                              </Button>
+                              <Button variant="ghost" size="icon" className="w-6 h-6" disabled={idx === getLayoutSections().length - 1} onClick={() => moveSection(idx, 'down')} data-testid={`move-down-${section.id}`}>
+                                <ChevronDown className="w-3 h-3" />
+                              </Button>
+                            </div>
+                            <button onClick={() => toggleSection(idx)}
+                              className={`w-11 h-6 rounded-full transition-colors relative ${section.enabled ? '' : 'bg-[#E2E8F0]'}`}
+                              style={section.enabled ? { backgroundColor: themeColor } : {}}
+                              data-testid={`toggle-section-${section.id}`}>
+                              <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${section.enabled ? 'translate-x-[22px]' : 'translate-x-0.5'}`} />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-0 shadow-sm">
+                <CardHeader className="p-4">
+                  <CardTitle className="text-base flex items-center gap-2"><Image className="w-4 h-4" /> {t.bannerSettings}</CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 pt-0 space-y-4">
+                  <div>
+                    <label className="block text-xs font-medium mb-2">{t.banners} ({(shopForm.banners || []).length}/3)</label>
+                    <div className="flex gap-3 flex-wrap">
+                      {(shopForm.banners || []).map((url, idx) => (
+                        <div key={idx} className="relative w-40 h-20 rounded-[5px] overflow-hidden bg-[#F8FAFC] border">
+                          <img src={url} alt="" className="w-full h-full object-cover" />
+                          <button onClick={() => removeBanner(idx)} className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs" data-testid={`layout-remove-banner-${idx}`}>
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                      {(shopForm.banners || []).length < 3 && (
+                        <>
+                          <input type="file" ref={bannerInputRef} onChange={handleBannerUpload} accept="image/*" className="hidden" />
+                          <button onClick={() => bannerInputRef.current?.click()}
+                            className="w-40 h-20 rounded-[5px] border-2 border-dashed border-[#E2E8F0] flex flex-col items-center justify-center gap-1 text-[#94A3B8] hover:border-[#94A3B8] transition-colors"
+                            data-testid="layout-add-banner-btn">
+                            <Upload className="w-5 h-5" />
+                            <span className="text-[10px]">{t.addBanner}</span>
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           )}
 
           {/* Settings Tab */}

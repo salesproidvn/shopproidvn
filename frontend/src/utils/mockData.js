@@ -27,6 +27,12 @@ export let mockShops = [
     ],
     banner_enabled: true,
     blog_enabled: true,
+    layout_sections: [
+      { id: 'banner', label: 'Banner', enabled: true },
+      { id: 'blog', label: 'Blog', enabled: true },
+      { id: 'featured', label: 'Featured Products', enabled: true },
+      { id: 'products', label: 'Products', enabled: true }
+    ],
     created_at: '2025-12-01T00:00:00Z'
   }
 ];

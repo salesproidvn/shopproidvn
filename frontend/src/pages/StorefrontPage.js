@@ -134,6 +134,18 @@ const StorefrontPage = () => {
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
   const themeColor = shop?.theme_color || '#0055FF';
 
+  const layoutSections = shop?.layout_sections || [
+    { id: 'banner', enabled: true },
+    { id: 'blog', enabled: true },
+    { id: 'featured', enabled: true },
+    { id: 'products', enabled: true }
+  ];
+
+  const isSectionEnabled = (id) => {
+    const section = layoutSections.find(s => s.id === id);
+    return section ? section.enabled : true;
+  };
+
   const handleCheckout = async (e) => {
     e.preventDefault();
     try {
@@ -272,7 +284,8 @@ const StorefrontPage = () => {
         <img src={product.image_url} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
       </div>
       <div className="p-3 sm:p-4 text-center">
-        <h3 className="font-medium text-[#0F172A] text-sm sm:text-base line-clamp-2 mb-2">{product.name}</h3>
+        <h3 className="font-medium text-[#0F172A] text-sm sm:text-base line-clamp-2 mb-1">{product.name}</h3>
+        {product.sku && <p className="text-[10px] text-[#94A3B8] mb-1">SKU: {product.sku}</p>}
         <p className="text-base sm:text-lg font-bold mb-2" style={{ color: themeColor }}>{formatVND(product.price)}</p>
         <Button className="w-full hover:opacity-90 text-white text-xs sm:text-sm h-9 sm:h-10 rounded-[5px]"
           style={{ backgroundColor: themeColor }}
@@ -282,6 +295,77 @@ const StorefrontPage = () => {
       </div>
     </div>
   );
+
+  // Featured Products Section (first 4 products from top categories)
+  const FeaturedProducts = () => {
+    if (!isSectionEnabled('featured')) return null;
+    const featured = products.slice(0, 8);
+    if (!featured.length) return null;
+    return (
+      <div className="mb-8" data-testid="featured-products">
+        <h3 className="text-xl sm:text-2xl font-bold text-[#0F172A] mb-4">{t.featuredProducts}</h3>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 lg:gap-5">
+          {featured.map((product) => (<ProductCard key={product.id} product={product} />))}
+        </div>
+      </div>
+    );
+  };
+
+  // Products Section
+  const ProductsSection = () => {
+    if (!isSectionEnabled('products')) return null;
+    return (
+      <>
+        {filteredProducts.length === 0 ? (
+          <div className="text-center py-24"><p className="text-[#64748B] text-lg">{t.noProducts}</p></div>
+        ) : selectedCategory === 'all' && !searchQuery && priceFilter.id === 'all' ? (
+          <div className="space-y-10" data-testid="grouped-product-view">
+            {categories.map(cat => {
+              const catProducts = filteredProducts.filter(p => p.category_id === cat.id).sort((a, b) => (a.position || 0) - (b.position || 0));
+              if (catProducts.length === 0) return null;
+              const isExpanded = expandedCategories[cat.id];
+              const visibleProducts = isExpanded ? catProducts : catProducts.slice(0, PRODUCTS_PER_CATEGORY);
+              return (
+                <div key={cat.id} id={`cat-section-${cat.id}`} data-testid={`category-section-${cat.id}`}>
+                  <div className="flex items-center gap-3 mb-5">
+                    <h3 className="text-xl sm:text-2xl font-bold text-[#0F172A]">{cat.name}</h3>
+                    <div className="flex-1 h-px bg-[#E2E8F0]" />
+                    <span className="text-sm text-[#94A3B8]">{catProducts.length}</span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 lg:gap-5">
+                    {visibleProducts.map((product) => (<ProductCard key={product.id} product={product} />))}
+                  </div>
+                  {catProducts.length > PRODUCTS_PER_CATEGORY && (
+                    <div className="text-center mt-4">
+                      <Button variant="outline" onClick={() => toggleCategoryExpand(cat.id)} className="text-sm px-6 rounded-[5px]" style={{ borderColor: themeColor, color: themeColor }} data-testid={`load-more-${cat.id}`}>
+                        {isExpanded ? t.close : `${t.loadMore} (${catProducts.length - PRODUCTS_PER_CATEGORY})`}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 lg:gap-5" data-testid="product-grid">
+            {filteredProducts.map((product) => (<ProductCard key={product.id} product={product} />))}
+          </div>
+        )}
+      </>
+    );
+  };
+
+  // Section renderer based on layout order
+  const renderSection = (section) => {
+    if (!section.enabled) return null;
+    switch (section.id) {
+      case 'banner': return <BannerSlider key="banner" />;
+      case 'blog': return <PostCarousel key="blog" />;
+      case 'featured': return <FeaturedProducts key="featured" />;
+      case 'products': return null; // products rendered separately below filters
+      default: return null;
+    }
+  };
 
   // Full-page product view
   if (selectedProduct) {
@@ -406,13 +490,10 @@ const StorefrontPage = () => {
 
       {/* Products */}
       <main className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* 1. Banner */}
-        <BannerSlider />
+        {/* Dynamic sections (banner, blog, featured) in layout order */}
+        {layoutSections.filter(s => s.id !== 'products').map(section => renderSection(section))}
 
-        {/* 2. Blog post carousel */}
-        <PostCarousel />
-
-        {/* 3. Mobile search */}
+        {/* Filters (always before products) */}
         <div className="md:hidden mb-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#64748B]" />
@@ -420,7 +501,6 @@ const StorefrontPage = () => {
           </div>
         </div>
 
-        {/* 4. Filters */}
         <div className="flex flex-col gap-3 mb-6">
           <div className="flex flex-col sm:flex-row gap-3">
             <Select value={selectedCategory} onValueChange={setSelectedCategory}>
@@ -436,42 +516,8 @@ const StorefrontPage = () => {
           <PriceFilter onFilter={setPriceFilter} activeFilter={priceFilter} />
         </div>
 
-        {/* 5. Products */}
-        {filteredProducts.length === 0 ? (
-          <div className="text-center py-24"><p className="text-[#64748B] text-lg">{t.noProducts}</p></div>
-        ) : selectedCategory === 'all' && !searchQuery && priceFilter.id === 'all' ? (
-          <div className="space-y-10" data-testid="grouped-product-view">
-            {categories.map(cat => {
-              const catProducts = filteredProducts.filter(p => p.category_id === cat.id).sort((a, b) => (a.position || 0) - (b.position || 0));
-              if (catProducts.length === 0) return null;
-              const isExpanded = expandedCategories[cat.id];
-              const visibleProducts = isExpanded ? catProducts : catProducts.slice(0, PRODUCTS_PER_CATEGORY);
-              return (
-                <div key={cat.id} id={`cat-section-${cat.id}`} data-testid={`category-section-${cat.id}`}>
-                  <div className="flex items-center gap-3 mb-5">
-                    <h3 className="text-xl sm:text-2xl font-bold text-[#0F172A]">{cat.name}</h3>
-                    <div className="flex-1 h-px bg-[#E2E8F0]" />
-                    <span className="text-sm text-[#94A3B8]">{catProducts.length}</span>
-                  </div>
-                  <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 lg:gap-5">
-                    {visibleProducts.map((product) => (<ProductCard key={product.id} product={product} />))}
-                  </div>
-                  {catProducts.length > PRODUCTS_PER_CATEGORY && (
-                    <div className="text-center mt-4">
-                      <Button variant="outline" onClick={() => toggleCategoryExpand(cat.id)} className="text-sm px-6 rounded-[5px]" style={{ borderColor: themeColor, color: themeColor }} data-testid={`load-more-${cat.id}`}>
-                        {isExpanded ? t.close : `${t.loadMore} (${catProducts.length - PRODUCTS_PER_CATEGORY})`}
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 lg:gap-5" data-testid="product-grid">
-            {filteredProducts.map((product) => (<ProductCard key={product.id} product={product} />))}
-          </div>
-        )}
+        {/* Products section */}
+        <ProductsSection />
       </main>
 
       {/* Footer */}

@@ -346,6 +346,19 @@ export const vi = {
   enableBlog: 'Bật bài viết',
   bannerMaxReached: 'Tối đa 3 banner',
   bannerUploaded: 'Banner đã được tải lên',
+
+  // Layout
+  displayLayout: 'Bố cục hiển thị',
+  layoutDescription: 'Kéo để sắp xếp thứ tự hiển thị trên trang cửa hàng',
+  moveUp: 'Lên',
+  moveDown: 'Xuống',
+  sectionBanner: 'Banner',
+  sectionBlog: 'Bài viết',
+  sectionFeatured: 'Sản phẩm nổi bật',
+  sectionProducts: 'Sản phẩm',
+  enabled: 'Bật',
+  disabled: 'Tắt',
+  featuredProducts: 'Sản phẩm nổi bật',
 };
 
 export const en = {
@@ -674,6 +687,19 @@ export const en = {
   enableBlog: 'Enable Blog',
   bannerMaxReached: 'Maximum 3 banners',
   bannerUploaded: 'Banner uploaded',
+
+  // Layout
+  displayLayout: 'Display Layout',
+  layoutDescription: 'Drag to reorder sections on your shop page',
+  moveUp: 'Up',
+  moveDown: 'Down',
+  sectionBanner: 'Banner',
+  sectionBlog: 'Blog',
+  sectionFeatured: 'Featured Products',
+  sectionProducts: 'Products',
+  enabled: 'On',
+  disabled: 'Off',
+  featuredProducts: 'Featured Products',
 };
 
 export const translations = { vi, en };
