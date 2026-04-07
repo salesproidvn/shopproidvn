@@ -48,10 +48,18 @@ Create an admin dashboard for a Micro-SaaS E-commerce Platform. Multi-tenant set
 
 ## Credentials
 - Admin: admin@thewishop.com / admin123
-- Shop Owner: demo@thewishop.com / demo123
+- Shop Owner 1: demo@thewishop.com / demo123 (The Elite Shop)
+- Shop Owner 2: green@thewishop.com / green123 (Green Living)
 
 ### Phase 7 - UI Polish (Complete - Feb 2026)
 - **Storefront Banner Width**: Banner slider now uses full container width (`w-full`) instead of `max-w-4xl`, aligning perfectly with blog, featured products, and product grid sections.
+
+### Phase 8 - Super Admin View Shop (Complete - Feb 2026)
+- **Admin View Shop**: Super Admin can click "View Shop" in the Shops table to navigate to any shop owner's full dashboard (`/dashboard?shop=<shop-id>`).
+- **Admin Banner**: Amber-colored banner at top shows which shop is being viewed, with "Preview Shop" link and "Back to Admin" button.
+- **Data Isolation**: All dashboard API routes dynamically resolve shop_id (admin view context > query param > user's shop_id), ensuring each shop only sees its own products, categories, orders, and settings.
+- **Second Mock Shop**: Added "Green Living" eco-friendly shop (6 products, 3 categories, 2 orders, 1 blog post) owned by Minh Tran (green@thewishop.com / green123).
+- **Full CRUD**: Admin can manage any shop's products, categories, orders, posts, pages, menu, settings while viewing their dashboard.
 
 ## Backlog
 - P1: Sales analytics charts on dashboards
