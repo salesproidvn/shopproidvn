@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { useLanguage } from '../context/LanguageContext';
@@ -108,7 +108,12 @@ const StorefrontPage = () => {
 
   useEffect(() => {
     let result = [...products];
-    if (selectedCategory && selectedCategory !== 'all') result = result.filter(p => p.category_id === selectedCategory);
+    if (selectedCategory && selectedCategory !== 'all') {
+      // Include sub-category products when parent is selected
+      const subCatIds = categories.filter(c => c.parent_id === selectedCategory).map(c => c.id);
+      const matchIds = [selectedCategory, ...subCatIds];
+      result = result.filter(p => matchIds.includes(p.category_id));
+    }
     if (searchQuery) { const q = searchQuery.toLowerCase(); result = result.filter(p => p.name.toLowerCase().includes(q)); }
     if (priceFilter.id !== 'all') result = result.filter(p => p.price >= priceFilter.min && p.price <= priceFilter.max);
     setFilteredProducts(result);
@@ -326,18 +331,32 @@ const StorefrontPage = () => {
           <div className="text-center py-24"><p className="text-[#64748B] text-lg">{t.noProducts}</p></div>
         ) : selectedCategory === 'all' && !searchQuery && priceFilter.id === 'all' ? (
           <div className="space-y-10" data-testid="grouped-product-view">
-            {categories.map(cat => {
-              const catProducts = filteredProducts.filter(p => p.category_id === cat.id).sort((a, b) => (a.position || 0) - (b.position || 0));
+            {categories.filter(c => !c.parent_id).map(cat => {
+              const subCatIds = categories.filter(c => c.parent_id === cat.id).map(c => c.id);
+              const catProducts = filteredProducts.filter(p => p.category_id === cat.id || subCatIds.includes(p.category_id)).sort((a, b) => (a.position || 0) - (b.position || 0));
               if (catProducts.length === 0) return null;
               const isExpanded = expandedCategories[cat.id];
               const visibleProducts = isExpanded ? catProducts : catProducts.slice(0, PRODUCTS_PER_CATEGORY);
+              const subs = categories.filter(c => c.parent_id === cat.id);
               return (
                 <div key={cat.id} id={`cat-section-${cat.id}`} data-testid={`category-section-${cat.id}`}>
-                  <div className="flex items-center gap-3 mb-5">
+                  <div className="flex items-center gap-3 mb-2">
                     <h3 className="text-xl sm:text-2xl font-bold text-[#0F172A]">{cat.name}</h3>
                     <div className="flex-1 h-px bg-[#E2E8F0]" />
                     <span className="text-sm text-[#94A3B8]">{catProducts.length}</span>
                   </div>
+                  {subs.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mb-4" data-testid={`subcats-${cat.id}`}>
+                      {subs.map(sub => (
+                        <button key={sub.id} onClick={() => setSelectedCategory(sub.id)}
+                          className="text-xs px-2.5 py-1 rounded-full border border-[#E2E8F0] text-[#64748B] hover:border-current transition-colors"
+                          style={{ '--tw-border-opacity': 1 }}
+                          data-testid={`subcat-chip-${sub.id}`}>
+                          {sub.name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 lg:gap-5">
                     {visibleProducts.map((product) => (<ProductCard key={product.id} product={product} />))}
                   </div>
@@ -371,6 +390,18 @@ const StorefrontPage = () => {
       case 'products': return null; // products rendered separately below filters
       default: return null;
     }
+  };
+
+  // Helper: Get embed URL from YouTube or TikTok links
+  const getVideoEmbed = (url) => {
+    if (!url) return null;
+    // YouTube
+    const ytMatch = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+    if (ytMatch) return { type: 'youtube', embed: `https://www.youtube.com/embed/${ytMatch[1]}` };
+    // TikTok
+    const ttMatch = url.match(/tiktok\.com\/@[^/]+\/video\/(\d+)/);
+    if (ttMatch) return { type: 'tiktok', embed: `https://www.tiktok.com/embed/v2/${ttMatch[1]}` };
+    return null;
   };
 
   // Full-page product view
@@ -443,6 +474,27 @@ const StorefrontPage = () => {
               </div>
             </div>
           </div>
+          {/* Video Grid */}
+          {(() => {
+            const videoLinks = (selectedProduct.video_links || []).filter(v => v && getVideoEmbed(v));
+            if (videoLinks.length === 0) return null;
+            return (
+              <div className="mt-10 border-t border-[#E2E8F0] pt-8" data-testid="product-video-grid">
+                <h2 className="text-xl font-bold text-[#0F172A] mb-4">{t.productVideos}</h2>
+                <div className="grid grid-cols-2 gap-3 lg:gap-5">
+                  {videoLinks.map((vl, idx) => {
+                    const embed = getVideoEmbed(vl);
+                    if (!embed) return null;
+                    return (
+                      <div key={idx} className="aspect-[9/16] sm:aspect-video rounded-[5px] overflow-hidden bg-black" data-testid={`product-video-${idx}`}>
+                        <iframe src={embed.embed} title={`Video ${idx + 1}`} className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowFullScreen />
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
           {/* Related Products */}
           {(() => {
             const related = products.filter(p => p.category_id === selectedProduct.category_id && p.id !== selectedProduct.id).slice(0, 4);
@@ -591,7 +643,14 @@ const StorefrontPage = () => {
               </SelectTrigger>
               <SelectContent className="bg-white">
                 <SelectItem value="all">{t.allCategories}</SelectItem>
-                {categories.map((cat) => (<SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>))}
+                {categories.filter(c => !c.parent_id).map((cat) => (
+                  <React.Fragment key={cat.id}>
+                    <SelectItem value={cat.id}>{cat.name}</SelectItem>
+                    {categories.filter(c => c.parent_id === cat.id).map(sub => (
+                      <SelectItem key={sub.id} value={sub.id}>&nbsp;&nbsp;└ {sub.name}</SelectItem>
+                    ))}
+                  </React.Fragment>
+                ))}
               </SelectContent>
             </Select>
           </div>

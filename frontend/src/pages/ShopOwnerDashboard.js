@@ -56,8 +56,8 @@ const ShopOwnerDashboard = () => {
   const [detailShowVideo, setDetailShowVideo] = useState(false);
   const [posts, setPosts] = useState([]);
 
-  const [productForm, setProductForm] = useState({ name: '', price: '', category_id: '', description: '', image_url: '', images: [], stock: '', position: '', video_url: '', sku: '', is_featured: false });
-  const [categoryForm, setCategoryForm] = useState({ name: '', description: '' });
+  const [productForm, setProductForm] = useState({ name: '', price: '', category_id: '', description: '', image_url: '', images: [], stock: '', position: '', video_url: '', video_links: [], sku: '', is_featured: false });
+  const [categoryForm, setCategoryForm] = useState({ name: '', description: '', parent_id: '' });
   const [shopForm, setShopForm] = useState({});
   const [postForm, setPostForm] = useState({ title: '', description: '', thumbnail: '', images: [], attached_products: [] });
   const postFileInputRef = useRef(null);
@@ -161,6 +161,7 @@ const ShopOwnerDashboard = () => {
         category_id: productForm.category_id === "none" ? null : productForm.category_id || null,
         images: productForm.images || [],
         video_url: productForm.video_url || '',
+        video_links: (productForm.video_links || []).filter(v => v.trim()),
         sku: productForm.sku || '',
         is_featured: productForm.is_featured || false,
         image_url: productForm.images?.length > 0 ? productForm.images[0] : productForm.image_url
@@ -203,6 +204,7 @@ const ShopOwnerDashboard = () => {
       stock: (product.stock || 0).toString(),
       position: (product.position || 0).toString(),
       video_url: product.video_url || '',
+      video_links: product.video_links || [],
       sku: product.sku || '',
       is_featured: product.is_featured || false
     });
@@ -218,7 +220,7 @@ const ShopOwnerDashboard = () => {
 
   const resetProductForm = () => {
     setEditingProduct(null);
-    setProductForm({ name: '', price: '', category_id: '', description: '', image_url: '', images: [], stock: '', position: '', video_url: '', sku: '', is_featured: false });
+    setProductForm({ name: '', price: '', category_id: '', description: '', image_url: '', images: [], stock: '', position: '', video_url: '', video_links: [], sku: '', is_featured: false });
   };
 
   const handleSaveCategory = async (e) => {
@@ -252,7 +254,7 @@ const ShopOwnerDashboard = () => {
 
   const resetCategoryForm = () => {
     setEditingCategory(null);
-    setCategoryForm({ name: '', description: '' });
+    setCategoryForm({ name: '', description: '', parent_id: '' });
   };
 
   const handleSaveShop = async (e) => {
@@ -802,25 +804,50 @@ const ShopOwnerDashboard = () => {
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3" data-testid="categories-grid">
-                      {[...categories].sort((a, b) => (a.position || 0) - (b.position || 0)).map((cat) => (
-                        <div key={cat.id} className="p-3 border rounded-lg bg-white flex justify-between items-center">
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs font-mono text-[#94A3B8]">#{cat.position || 0}</span>
-                              <h3 className="font-medium text-[#0F172A] text-sm">{cat.name}</h3>
+                      {[...categories].filter(c => !c.parent_id).sort((a, b) => (a.position || 0) - (b.position || 0)).map((cat) => {
+                        const subs = categories.filter(c => c.parent_id === cat.id).sort((a, b) => (a.position || 0) - (b.position || 0));
+                        return (
+                          <div key={cat.id} className="space-y-1">
+                            <div className="p-3 border rounded-lg bg-white flex justify-between items-center">
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs font-mono text-[#94A3B8]">#{cat.position || 0}</span>
+                                  <h3 className="font-medium text-[#0F172A] text-sm">{cat.name}</h3>
+                                </div>
+                                <p className="text-xs text-[#64748B]">{cat.description || t.noDescription}</p>
+                                {subs.length > 0 && <p className="text-[10px] text-[#94A3B8] mt-1">{subs.length} {t.subCategories.toLowerCase()}</p>}
+                              </div>
+                              <div className="flex gap-1">
+                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditingCategory(cat); setCategoryForm({ name: cat.name, description: cat.description || '', parent_id: cat.parent_id || '' }); setShowCategoryModal(true); }}>
+                                  <Pencil className="w-4 h-4" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500" onClick={() => handleDeleteCategory(cat.id)}>
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
                             </div>
-                            <p className="text-xs text-[#64748B]">{cat.description || t.noDescription}</p>
+                            {subs.map(sub => (
+                              <div key={sub.id} className="p-2.5 ml-4 border border-dashed rounded-lg bg-[#F8FAFC] flex justify-between items-center" data-testid={`sub-cat-${sub.id}`}>
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-[10px] text-[#94A3B8]">└</span>
+                                    <h3 className="font-medium text-[#0F172A] text-xs">{sub.name}</h3>
+                                  </div>
+                                  {sub.description && <p className="text-[10px] text-[#64748B] ml-4">{sub.description}</p>}
+                                </div>
+                                <div className="flex gap-1">
+                                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditingCategory(sub); setCategoryForm({ name: sub.name, description: sub.description || '', parent_id: sub.parent_id || '' }); setShowCategoryModal(true); }}>
+                                    <Pencil className="w-3 h-3" />
+                                  </Button>
+                                  <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500" onClick={() => handleDeleteCategory(sub.id)}>
+                                    <Trash2 className="w-3 h-3" />
+                                  </Button>
+                                </div>
+                              </div>
+                            ))}
                           </div>
-                          <div className="flex gap-1">
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditingCategory(cat); setCategoryForm({ name: cat.name, description: cat.description || '' }); setShowCategoryModal(true); }}>
-                              <Pencil className="w-4 h-4" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500" onClick={() => handleDeleteCategory(cat.id)}>
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </CardContent>
@@ -1547,8 +1574,33 @@ const ShopOwnerDashboard = () => {
               </div>
             </div>
             <div>
-              <label className="block text-xs font-medium mb-1">{t.videoUrl}</label>
-              <Input value={productForm.video_url} onChange={(e) => setProductForm({ ...productForm, video_url: e.target.value })} placeholder={t.videoUrlPlaceholder} className="text-sm" data-testid="product-video-input" />
+              <label className="block text-xs font-medium mb-1">{t.videoLinks}</label>
+              <p className="text-[10px] text-[#94A3B8] mb-2">{t.videoLinksDesc}</p>
+              <div className="space-y-2">
+                {(productForm.video_links || []).map((vl, idx) => (
+                  <div key={idx} className="flex gap-2">
+                    <Input value={vl} onChange={(e) => {
+                      const newLinks = [...(productForm.video_links || [])];
+                      newLinks[idx] = e.target.value;
+                      setProductForm({ ...productForm, video_links: newLinks });
+                    }} placeholder={t.videoLinkPlaceholder} className="text-sm flex-1" data-testid={`product-video-link-${idx}`} />
+                    <Button variant="ghost" size="icon" className="h-9 w-9 text-red-400" onClick={() => {
+                      const newLinks = (productForm.video_links || []).filter((_, i) => i !== idx);
+                      setProductForm({ ...productForm, video_links: newLinks });
+                    }} data-testid={`remove-video-link-${idx}`}><X className="w-3 h-3" /></Button>
+                  </div>
+                ))}
+                {(productForm.video_links || []).length < 4 && (
+                  <Button variant="outline" size="sm" className="text-xs" onClick={() => {
+                    setProductForm({ ...productForm, video_links: [...(productForm.video_links || []), ''] });
+                  }} data-testid="add-video-link-btn">
+                    <Plus className="w-3 h-3 mr-1" /> {t.addVideoLink}
+                  </Button>
+                )}
+                {(productForm.video_links || []).length >= 4 && (
+                  <span className="text-[10px] text-yellow-600">{t.maxVideoLinks}</span>
+                )}
+              </div>
             </div>
             <div>
               <label className="block text-xs font-medium mb-1">{t.description}</label>
@@ -1577,6 +1629,18 @@ const ShopOwnerDashboard = () => {
             <div>
               <label className="block text-xs font-medium mb-1">{t.categoryDescription}</label>
               <Textarea value={categoryForm.description} onChange={(e) => setCategoryForm({ ...categoryForm, description: e.target.value })} rows={2} className="text-sm" data-testid="category-description-input" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium mb-1">{t.parentCategory}</label>
+              <Select value={categoryForm.parent_id || '__none__'} onValueChange={(val) => setCategoryForm({ ...categoryForm, parent_id: val === '__none__' ? '' : val })}>
+                <SelectTrigger className="text-sm" data-testid="category-parent-select"><SelectValue /></SelectTrigger>
+                <SelectContent className="bg-white">
+                  <SelectItem value="__none__">{t.noParent}</SelectItem>
+                  {categories.filter(c => !c.parent_id && c.id !== editingCategory?.id).map(c => (
+                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="flex gap-3 pt-4">
               <Button type="button" variant="outline" className="flex-1 text-sm" onClick={() => setShowCategoryModal(false)}>{t.cancel}</Button>

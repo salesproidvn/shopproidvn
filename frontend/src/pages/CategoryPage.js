@@ -75,12 +75,14 @@ const CategoryPage = () => {
         <h1 className="text-2xl sm:text-3xl font-bold text-[#0F172A] mb-6" data-testid="categories-title">{t.allCategoriesPage}</h1>
 
         <div className="space-y-8">
-          {categories.map(cat => {
-            const catProducts = products.filter(p => p.category_id === cat.id).sort((a, b) => (a.position || 0) - (b.position || 0));
+          {categories.filter(c => !c.parent_id).map(cat => {
+            const subCatIds = categories.filter(c => c.parent_id === cat.id).map(c => c.id);
+            const catProducts = products.filter(p => p.category_id === cat.id || subCatIds.includes(p.category_id)).sort((a, b) => (a.position || 0) - (b.position || 0));
+            const subs = categories.filter(c => c.parent_id === cat.id);
             if (catProducts.length === 0) return null;
             return (
               <div key={cat.id} data-testid={`catpage-section-${cat.id}`}>
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-3">
                     <h2 className="text-lg sm:text-xl font-bold text-[#0F172A]">{cat.name}</h2>
                     <span className="text-xs px-2 py-0.5 rounded-full bg-[#F1F5F9] text-[#64748B]">{catProducts.length} {t.productsCount}</span>
@@ -91,7 +93,17 @@ const CategoryPage = () => {
                     </Button>
                   </Link>
                 </div>
-                {cat.description && <p className="text-sm text-[#64748B] mb-3">{cat.description}</p>}
+                {cat.description && <p className="text-sm text-[#64748B] mb-2">{cat.description}</p>}
+                {subs.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mb-3">
+                    {subs.map(sub => (
+                      <Link key={sub.id} to={`/shop/${slug}?category=${sub.id}`}
+                        className="text-xs px-2.5 py-1 rounded-full border border-[#E2E8F0] text-[#64748B] hover:border-[#94A3B8] transition-colors">
+                        {sub.name}
+                      </Link>
+                    ))}
+                  </div>
+                )}
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 lg:gap-5">
                   {catProducts.slice(0, 5).map(product => (
                     <Link key={product.id} to={`/shop/${slug}?product=${product.id}`}

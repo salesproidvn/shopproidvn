@@ -1,0 +1,92 @@
+{
+  "summary": "Frontend-only testing of Sub-categories and Product Video Links features. ALL 14 FEATURES TESTED AND WORKING CORRECTLY. App runs in MOCK MODE with all APIs intercepted by mockAdapter.js.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "passed_tests": [
+    "Storefront grouped view shows sub-category chips under Electronics (Headphones, Smartphones, Wearables) - subcats-cat-1 with subcat-chip-cat-7/8/9",
+    "Storefront grouped view shows sub-category chips under Fashion (Shoes, Bags, Accessories) - subcats-cat-2 with subcat-chip-cat-10/11/12",
+    "Clicking a sub-category chip filters products (shows 'no products' as expected since mock data assigns to parent categories)",
+    "Category dropdown filter shows parent categories with sub-categories indented with └ symbol",
+    "Product detail view (prod-1) shows Video Grid section with 2-column layout (product-video-grid)",
+    "Video grid embeds YouTube videos as iframes (product-video-0, product-video-1, product-video-2)",
+    "TikTok embed shows 'Video currently unavailable' - expected for mock URLs",
+    "Product detail for prod-4 shows video grid with 2 videos",
+    "Product detail for prod-2 has no video grid (empty video_links) - correctly hidden",
+    "Dashboard Categories tab shows parent categories with sub-categories nested underneath (dashed border, indented) - sub-cat-cat-7 through sub-cat-cat-12",
+    "Dashboard Category modal has Parent Category dropdown (category-parent-select) showing all root categories",
+    "Dashboard Product modal shows video links section with Add Video button (add-video-link-btn)",
+    "Maximum 4 video links enforced in product modal (shows 'Tối đa 4 video' text)",
+    "Category page (/shop/the-elite-shop/categories) shows sub-category chips under each parent (Headphones, Smartphones, Wearables under Electronics; Shoes, Bags, Accessories under Fashion)"
+  ],
+  "test_report_links": [
+    "/app/test_reports/iteration_18.json"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "All sub-category and video links features implemented correctly",
+    "Sub-category chips use data-testid format: subcat-chip-cat-{id}",
+    "Video grid uses 2-column layout with grid-cols-2 class",
+    "Parent category dropdown in category modal correctly shows 'Không có (Danh mục gốc)' for no parent option",
+    "Video links section shows 'Thêm tối đa 4 liên kết video (YouTube, TikTok)' description"
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "N/A (frontend-only testing, mock mode active)",
+    "frontend": "100% (14/14 tests passed)"
+  },
+  "test_credentials": {
+    "shop_owner": "demo@thewishop.com / demo123"
+  },
+  "seed_data_creation": "None - using existing mock data with 12 categories (6 root + 6 sub) and products with video_links (prod-1 has 3, prod-4 has 2)",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Sub-categories and video links features fully tested. Key test IDs: subcats-cat-1/2, subcat-chip-cat-7/8/9/10/11/12, product-video-grid, product-video-0/1/2, category-parent-select, add-video-link-btn, product-video-link-0/1/2/3, sub-cat-cat-7 through sub-cat-cat-12. Mock data has products assigned to parent categories (cat-1, cat-2) not sub-categories, so filtering by sub-category shows 'no products' - this is expected data behavior, not a bug.",
+  "mocked_api": {
+    "has_mocked_apis": true,
+    "mocked_apis_list": ["ALL endpoints via axios-mock-adapter in /app/frontend/src/utils/mockAdapter.js"],
+    "note": "Mock mode is intentional for standalone frontend development/demo"
+  },
+  "features_tested": {
+    "sub_categories_storefront": {
+      "grouped_view_chips": {
+        "electronics": ["subcat-chip-cat-7 (Headphones)", "subcat-chip-cat-8 (Smartphones)", "subcat-chip-cat-9 (Wearables)"],
+        "fashion": ["subcat-chip-cat-10 (Shoes)", "subcat-chip-cat-11 (Bags)", "subcat-chip-cat-12 (Accessories)"]
+      },
+      "category_dropdown_indentation": "└ prefix for sub-categories",
+      "status": "WORKING"
+    },
+    "sub_categories_dashboard": {
+      "nested_display": "sub-cat-cat-7 through sub-cat-cat-12 shown with dashed border under parents",
+      "parent_dropdown": "category-parent-select shows all root categories",
+      "status": "WORKING"
+    },
+    "sub_categories_category_page": {
+      "chips_under_parents": "Headphones, Smartphones, Wearables under Electronics; Shoes, Bags, Accessories under Fashion",
+      "status": "WORKING"
+    },
+    "product_video_links_storefront": {
+      "video_grid": "product-video-grid with grid-cols-2 layout",
+      "video_iframes": "product-video-0, product-video-1, product-video-2",
+      "prod_1_videos": 3,
+      "prod_4_videos": 2,
+      "prod_2_videos": 0,
+      "youtube_embed": "WORKING",
+      "tiktok_embed": "Shows 'Video currently unavailable' - expected for mock URLs",
+      "status": "WORKING"
+    },
+    "product_video_links_dashboard": {
+      "add_button": "add-video-link-btn",
+      "inputs": "product-video-link-0 through product-video-link-3",
+      "max_limit": "4 videos enforced",
+      "status": "WORKING"
+    }
+  },
+  "test_viewport": "Desktop (1920x1080)"
+}

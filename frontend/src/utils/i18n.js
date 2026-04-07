@@ -440,6 +440,19 @@ export const vi = {
   menuEnabled: 'Hiển thị',
   maxMenuItemsReached: 'Đã đạt tối đa 10 mục menu',
   quickLink: 'Liên kết nhanh',
+
+  // Sub-categories
+  parentCategory: 'Danh mục cha',
+  noParent: 'Không có (Danh mục gốc)',
+  subCategories: 'Danh mục con',
+
+  // Video Links
+  videoLinks: 'Video sản phẩm',
+  videoLinksDesc: 'Thêm tối đa 4 liên kết video (YouTube, TikTok)',
+  addVideoLink: 'Thêm video',
+  videoLinkPlaceholder: 'URL video (YouTube hoặc TikTok)',
+  maxVideoLinks: 'Tối đa 4 video',
+  productVideos: 'Video sản phẩm',
 };
 
 export const en = {
@@ -862,6 +875,19 @@ export const en = {
   menuEnabled: 'Visible',
   maxMenuItemsReached: 'Maximum 10 menu items reached',
   quickLink: 'Quick Link',
+
+  // Sub-categories
+  parentCategory: 'Parent Category',
+  noParent: 'None (Root Category)',
+  subCategories: 'Sub-categories',
+
+  // Video Links
+  videoLinks: 'Product Videos',
+  videoLinksDesc: 'Add up to 4 video links (YouTube, TikTok)',
+  addVideoLink: 'Add Video',
+  videoLinkPlaceholder: 'Video URL (YouTube or TikTok)',
+  maxVideoLinks: 'Maximum 4 videos',
+  productVideos: 'Product Videos',
 };
 
 export const translations = { vi, en };
