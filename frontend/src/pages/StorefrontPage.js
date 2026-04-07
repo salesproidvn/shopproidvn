@@ -537,7 +537,7 @@ const StorefrontPage = () => {
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 lg:gap-5">
                   {related.map(rp => (
                     <div key={rp.id} className="group bg-white border border-[#E2E8F0] rounded-[5px] overflow-hidden hover:shadow-lg transition-all cursor-pointer"
-                      onClick={() => { setSelectedProduct(rp); setActiveImage(0); setShowVideo(false); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                      onClick={() => { setSelectedProduct(rp); setActiveImage(0); setShowVideo(false); setTimeout(() => { document.querySelector('[data-testid="product-fullpage"]')?.scrollTo({ top: 0, behavior: 'smooth' }); }, 50); }}
                       data-testid={`related-product-${rp.id}`}>
                       <div className="aspect-square bg-[#F8FAFC] overflow-hidden">
                         <img src={rp.image_url} alt={rp.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
@@ -583,7 +583,7 @@ const StorefrontPage = () => {
                   <span className="text-white font-bold text-sm">{shop.name[0]}</span>
                 </div>
               )}
-              <span className="font-bold text-base text-[#0F172A] hidden sm:block">{shop.name}</span>
+              <span className="font-bold text-base text-[#0F172A]">{shop.name}</span>
             </div>
 
             {/* Desktop Menu - Dynamic */}
