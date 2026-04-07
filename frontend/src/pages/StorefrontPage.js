@@ -144,6 +144,7 @@ const StorefrontPage = () => {
 
   const layoutSections = shop?.layout_sections || [
     { id: 'banner', enabled: true },
+    { id: 'categories', enabled: true },
     { id: 'blog', enabled: true },
     { id: 'featured', enabled: true },
     { id: 'products', enabled: true }
@@ -377,11 +378,43 @@ const StorefrontPage = () => {
     );
   };
 
+  // Category Grid Component
+  const CategoryGrid = () => {
+    const parentCats = categories.filter(c => !c.parent_id);
+    if (!parentCats.length) return null;
+    return (
+      <div className="mb-8" data-testid="category-grid-section">
+        <div className="flex justify-center">
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+            {parentCats.map(cat => (
+              <button
+                key={cat.id}
+                onClick={() => { setSelectedCategory(cat.id); window.scrollTo({ top: document.getElementById('products-section')?.offsetTop - 80, behavior: 'smooth' }); }}
+                className="flex flex-col items-center gap-2 p-3 rounded-xl bg-white border border-[#E2E8F0] hover:border-current hover:shadow-sm transition-all group"
+                data-testid={`cat-grid-${cat.id}`}
+              >
+                <div className="w-14 h-14 rounded-full overflow-hidden bg-[#F1F5F9] flex items-center justify-center shrink-0">
+                  {cat.image_url ? (
+                    <img src={cat.image_url} alt={cat.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <FolderOpen className="w-6 h-6 text-[#94A3B8]" />
+                  )}
+                </div>
+                <span className="text-xs font-medium text-[#334155] text-center leading-tight line-clamp-2">{cat.name}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   // Section renderer based on layout order
   const renderSection = (section) => {
     if (!section.enabled) return null;
     switch (section.id) {
       case 'banner': return <BannerSlider key="banner" />;
+      case 'categories': return <CategoryGrid key="categories" />;
       case 'blog': return <PostCarousel key="blog" />;
       case 'featured': return <FeaturedProducts key="featured" />;
       case 'products': return null; // products rendered separately below filters
@@ -625,6 +658,7 @@ const StorefrontPage = () => {
         {layoutSections.filter(s => s.id !== 'products').map(section => renderSection(section))}
 
         {/* Filters (always before products) */}
+        <div id="products-section">
         <div className="md:hidden mb-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#64748B]" />
@@ -655,6 +689,7 @@ const StorefrontPage = () => {
 
         {/* Products section */}
         <ProductsSection />
+        </div>
       </main>
 
       {/* Footer */}
@@ -724,27 +759,27 @@ const StorefrontPage = () => {
       </footer>
 
       {/* Bottom Contact Bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-[#E2E8F0] shadow-[0_-4px_20px_rgba(0,0,0,0.08)]" data-testid="bottom-bar">
+      <div className="fixed bottom-0 left-0 right-0 z-40 shadow-[0_-4px_20px_rgba(0,0,0,0.12)]" style={{ backgroundColor: themeColor }} data-testid="bottom-bar">
         <div className="max-w-7xl mx-auto grid grid-cols-4 h-16">
           {shop.contact_phone ? (
-            <a href={`tel:${shop.contact_phone}`} className="flex flex-col items-center justify-center gap-1 text-[#475569] active:bg-[#F1F5F9] transition-colors" data-testid="bottom-call">
+            <a href={`tel:${shop.contact_phone}`} className="flex flex-col items-center justify-center gap-1 text-white/80 hover:text-white active:bg-white/10 transition-colors" data-testid="bottom-call">
               <Phone className="w-5 h-5" />
               <span className="text-xs font-medium">{t.call}</span>
             </a>
           ) : <div />}
           {shop.contact_phone ? (
-            <a href={`sms:${shop.contact_phone}`} className="flex flex-col items-center justify-center gap-1 text-[#475569] active:bg-[#F1F5F9] transition-colors" data-testid="bottom-message">
+            <a href={`sms:${shop.contact_phone}`} className="flex flex-col items-center justify-center gap-1 text-white/80 hover:text-white active:bg-white/10 transition-colors" data-testid="bottom-message">
               <MessageCircle className="w-5 h-5" />
               <span className="text-xs font-medium">{t.message}</span>
             </a>
           ) : <div />}
           {shop.address ? (
-            <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(shop.address)}`} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center justify-center gap-1 text-[#475569] active:bg-[#F1F5F9] transition-colors" data-testid="bottom-map">
+            <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(shop.address)}`} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center justify-center gap-1 text-white/80 hover:text-white active:bg-white/10 transition-colors" data-testid="bottom-map">
               <MapPin className="w-5 h-5" />
               <span className="text-xs font-medium">{t.map}</span>
             </a>
           ) : <div />}
-          <button onClick={() => setShowCategoryMenu(!showCategoryMenu)} className="flex flex-col items-center justify-center gap-1 text-[#475569] active:bg-[#F1F5F9] transition-colors relative" data-testid="bottom-categories">
+          <button onClick={() => setShowCategoryMenu(!showCategoryMenu)} className="flex flex-col items-center justify-center gap-1 text-white/80 hover:text-white active:bg-white/10 transition-colors relative" data-testid="bottom-categories">
             <Grid3X3 className="w-5 h-5" />
             <span className="text-xs font-medium">{t.productCategories}</span>
           </button>

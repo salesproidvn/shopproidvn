@@ -101,6 +101,7 @@ export const vi = {
   editCategory: 'Sửa danh mục',
   categoryName: 'Tên danh mục',
   categoryDescription: 'Mô tả danh mục',
+  categoryImage: 'Ảnh danh mục',
   noCategoriesYet: 'Chưa có danh mục. Tạo danh mục đầu tiên!',
   noDescription: 'Không có mô tả',
   
@@ -553,6 +554,7 @@ export const en = {
   editCategory: 'Edit Category',
   categoryName: 'Category Name',
   categoryDescription: 'Category Description',
+  categoryImage: 'Category Image',
   noCategoriesYet: 'No categories yet. Create your first category!',
   noDescription: 'No description',
   

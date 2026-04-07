@@ -65,7 +65,7 @@ const ShopOwnerDashboard = () => {
   const [posts, setPosts] = useState([]);
 
   const [productForm, setProductForm] = useState({ name: '', price: '', category_id: '', description: '', image_url: '', images: [], stock: '', position: '', video_url: '', video_links: [], sku: '', is_featured: false });
-  const [categoryForm, setCategoryForm] = useState({ name: '', description: '', parent_id: '' });
+  const [categoryForm, setCategoryForm] = useState({ name: '', description: '', parent_id: '', image_url: '' });
   const [shopForm, setShopForm] = useState({});
   const [postForm, setPostForm] = useState({ title: '', description: '', thumbnail: '', images: [], attached_products: [] });
   const postFileInputRef = useRef(null);
@@ -268,7 +268,7 @@ const ShopOwnerDashboard = () => {
 
   const resetCategoryForm = () => {
     setEditingCategory(null);
-    setCategoryForm({ name: '', description: '', parent_id: '' });
+    setCategoryForm({ name: '', description: '', parent_id: '', image_url: '' });
   };
 
   const handleSaveShop = async (e) => {
@@ -456,6 +456,7 @@ const ShopOwnerDashboard = () => {
   const getLayoutSections = () => {
     return shopForm.layout_sections || [
       { id: 'banner', label: 'Banner', enabled: true },
+      { id: 'categories', label: 'Categories', enabled: true },
       { id: 'blog', label: 'Blog', enabled: true },
       { id: 'featured', label: 'Featured Products', enabled: true },
       { id: 'products', label: 'Products', enabled: true }
@@ -853,7 +854,7 @@ const ShopOwnerDashboard = () => {
                                 {subs.length > 0 && <p className="text-[10px] text-[#94A3B8] mt-1">{subs.length} {t.subCategories.toLowerCase()}</p>}
                               </div>
                               <div className="flex gap-1">
-                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditingCategory(cat); setCategoryForm({ name: cat.name, description: cat.description || '', parent_id: cat.parent_id || '' }); setShowCategoryModal(true); }}>
+                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditingCategory(cat); setCategoryForm({ name: cat.name, description: cat.description || '', parent_id: cat.parent_id || '', image_url: cat.image_url || '' }); setShowCategoryModal(true); }}>
                                   <Pencil className="w-4 h-4" />
                                 </Button>
                                 <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500" onClick={() => handleDeleteCategory(cat.id)}>
@@ -871,7 +872,7 @@ const ShopOwnerDashboard = () => {
                                   {sub.description && <p className="text-[10px] text-[#64748B] ml-4">{sub.description}</p>}
                                 </div>
                                 <div className="flex gap-1">
-                                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditingCategory(sub); setCategoryForm({ name: sub.name, description: sub.description || '', parent_id: sub.parent_id || '' }); setShowCategoryModal(true); }}>
+                                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditingCategory(sub); setCategoryForm({ name: sub.name, description: sub.description || '', parent_id: sub.parent_id || '', image_url: sub.image_url || '' }); setShowCategoryModal(true); }}>
                                     <Pencil className="w-3 h-3" />
                                   </Button>
                                   <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500" onClick={() => handleDeleteCategory(sub.id)}>
@@ -1676,6 +1677,15 @@ const ShopOwnerDashboard = () => {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium mb-1">{t.categoryImage}</label>
+              <Input value={categoryForm.image_url} onChange={(e) => setCategoryForm({ ...categoryForm, image_url: e.target.value })} placeholder="https://..." className="text-sm" data-testid="category-image-input" />
+              {categoryForm.image_url && (
+                <div className="mt-2 w-16 h-16 rounded-lg overflow-hidden border">
+                  <img src={categoryForm.image_url} alt="" className="w-full h-full object-cover" />
+                </div>
+              )}
             </div>
             <div className="flex gap-3 pt-4">
               <Button type="button" variant="outline" className="flex-1 text-sm" onClick={() => setShowCategoryModal(false)}>{t.cancel}</Button>

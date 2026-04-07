@@ -30,6 +30,7 @@ export let mockShops = [
     blog_enabled: true,
     layout_sections: [
       { id: 'banner', label: 'Banner', enabled: true },
+      { id: 'categories', label: 'Categories', enabled: true },
       { id: 'blog', label: 'Blog', enabled: true },
       { id: 'featured', label: 'Featured Products', enabled: true },
       { id: 'products', label: 'Products', enabled: true }
@@ -145,6 +146,7 @@ export let mockShops = [
     banner_enabled: true, blog_enabled: true,
     layout_sections: [
       { id: 'banner', label: 'Banner', enabled: true },
+      { id: 'categories', label: 'Categories', enabled: true },
       { id: 'blog', label: 'Blog', enabled: false },
       { id: 'featured', label: 'Featured Products', enabled: true },
       { id: 'products', label: 'Products', enabled: true }
@@ -165,22 +167,22 @@ export let mockShops = [
   }
 ];
 export let mockCategories = [
-  { id: 'cat-1', shop_id: 'shop-1', name: 'Electronics', description: 'Gadgets and devices', position: 1, parent_id: null },
-  { id: 'cat-2', shop_id: 'shop-1', name: 'Fashion', description: 'Clothing and accessories', position: 2, parent_id: null },
-  { id: 'cat-3', shop_id: 'shop-1', name: 'Home & Garden', description: 'Home decor and plants', position: 3, parent_id: null },
-  { id: 'cat-4', shop_id: 'shop-1', name: 'Kitchen', description: 'Kitchen tools and equipment', position: 4, parent_id: null },
-  { id: 'cat-5', shop_id: 'shop-1', name: 'Beauty & Health', description: 'Skincare, wellness and self-care', position: 5, parent_id: null },
-  { id: 'cat-6', shop_id: 'shop-1', name: 'Sports & Outdoors', description: 'Fitness gear and outdoor equipment', position: 6, parent_id: null },
-  { id: 'cat-7', shop_id: 'shop-1', name: 'Headphones', description: 'Wireless and wired headphones', position: 1, parent_id: 'cat-1' },
-  { id: 'cat-8', shop_id: 'shop-1', name: 'Smartphones', description: 'Latest smartphones and accessories', position: 2, parent_id: 'cat-1' },
-  { id: 'cat-9', shop_id: 'shop-1', name: 'Wearables', description: 'Smartwatches and fitness trackers', position: 3, parent_id: 'cat-1' },
-  { id: 'cat-10', shop_id: 'shop-1', name: 'Shoes', description: 'Sneakers, boots and sandals', position: 1, parent_id: 'cat-2' },
-  { id: 'cat-11', shop_id: 'shop-1', name: 'Bags', description: 'Bags, backpacks and wallets', position: 2, parent_id: 'cat-2' },
-  { id: 'cat-12', shop_id: 'shop-1', name: 'Accessories', description: 'Sunglasses, watches and jewelry', position: 3, parent_id: 'cat-2' },
+  { id: 'cat-1', shop_id: 'shop-1', name: 'Electronics', description: 'Gadgets and devices', position: 1, parent_id: null, image_url: 'https://images.unsplash.com/photo-1498049794561-7780e7231661?w=200&h=200&fit=crop' },
+  { id: 'cat-2', shop_id: 'shop-1', name: 'Fashion', description: 'Clothing and accessories', position: 2, parent_id: null, image_url: 'https://images.unsplash.com/photo-1445205170230-053b83016050?w=200&h=200&fit=crop' },
+  { id: 'cat-3', shop_id: 'shop-1', name: 'Home & Garden', description: 'Home decor and plants', position: 3, parent_id: null, image_url: 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=200&h=200&fit=crop' },
+  { id: 'cat-4', shop_id: 'shop-1', name: 'Kitchen', description: 'Kitchen tools and equipment', position: 4, parent_id: null, image_url: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=200&h=200&fit=crop' },
+  { id: 'cat-5', shop_id: 'shop-1', name: 'Beauty & Health', description: 'Skincare, wellness and self-care', position: 5, parent_id: null, image_url: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=200&h=200&fit=crop' },
+  { id: 'cat-6', shop_id: 'shop-1', name: 'Sports & Outdoors', description: 'Fitness gear and outdoor equipment', position: 6, parent_id: null, image_url: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=200&h=200&fit=crop' },
+  { id: 'cat-7', shop_id: 'shop-1', name: 'Headphones', description: 'Wireless and wired headphones', position: 1, parent_id: 'cat-1', image_url: '' },
+  { id: 'cat-8', shop_id: 'shop-1', name: 'Smartphones', description: 'Latest smartphones and accessories', position: 2, parent_id: 'cat-1', image_url: '' },
+  { id: 'cat-9', shop_id: 'shop-1', name: 'Wearables', description: 'Smartwatches and fitness trackers', position: 3, parent_id: 'cat-1', image_url: '' },
+  { id: 'cat-10', shop_id: 'shop-1', name: 'Shoes', description: 'Sneakers, boots and sandals', position: 1, parent_id: 'cat-2', image_url: '' },
+  { id: 'cat-11', shop_id: 'shop-1', name: 'Bags', description: 'Bags, backpacks and wallets', position: 2, parent_id: 'cat-2', image_url: '' },
+  { id: 'cat-12', shop_id: 'shop-1', name: 'Accessories', description: 'Sunglasses, watches and jewelry', position: 3, parent_id: 'cat-2', image_url: '' },
   // Shop 2 categories
-  { id: 'cat-g1', shop_id: 'shop-2', name: 'Organic Food', description: 'Organic snacks and beverages', position: 1, parent_id: null },
-  { id: 'cat-g2', shop_id: 'shop-2', name: 'Eco Home', description: 'Sustainable home products', position: 2, parent_id: null },
-  { id: 'cat-g3', shop_id: 'shop-2', name: 'Zero Waste', description: 'Reusable and zero-waste essentials', position: 3, parent_id: null },
+  { id: 'cat-g1', shop_id: 'shop-2', name: 'Organic Food', description: 'Organic snacks and beverages', position: 1, parent_id: null, image_url: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=200&h=200&fit=crop' },
+  { id: 'cat-g2', shop_id: 'shop-2', name: 'Eco Home', description: 'Sustainable home products', position: 2, parent_id: null, image_url: 'https://images.unsplash.com/photo-1524758631624-e2822e304c36?w=200&h=200&fit=crop' },
+  { id: 'cat-g3', shop_id: 'shop-2', name: 'Zero Waste', description: 'Reusable and zero-waste essentials', position: 3, parent_id: null, image_url: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=200&h=200&fit=crop' },
 ];
 
 // ── Products ───────────────────────────────────────────
