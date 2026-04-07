@@ -13,7 +13,8 @@ import PriceFilter from '../components/PriceFilter';
 import { 
   Search, ShoppingCart, Phone, Mail, MapPin, Facebook, Instagram, 
   Plus, Minus, Trash2, ArrowLeft, LayoutDashboard, X, AlertTriangle, Play,
-  MessageCircle, Map, FolderOpen, ChevronLeft, ChevronRight, FileText, Calendar, Share2
+  MessageCircle, Map, FolderOpen, ChevronLeft, ChevronRight, FileText, Calendar, Share2,
+  Home, Store, Grid3X3, BookOpen, PhoneCall, Menu as MenuIcon
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { emitNotification } from '../context/NotificationContext';
@@ -53,6 +54,7 @@ const StorefrontPage = () => {
   const [expandedCategories, setExpandedCategories] = useState({});
   const [postCarouselIndex, setPostCarouselIndex] = useState(0);
   const [bannerIndex, setBannerIndex] = useState(0);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => { fetchShopData(); }, [slug]);
 
@@ -73,7 +75,11 @@ const StorefrontPage = () => {
       const found = products.find(p => p.id === productParam);
       if (found) { setSelectedProduct(found); setActiveImage(0); setShowVideo(false); }
     }
-  }, [searchParams, products]);
+    const categoryParam = searchParams.get('category');
+    if (categoryParam && categories.length > 0) {
+      setSelectedCategory(categoryParam);
+    }
+  }, [searchParams, products, categories]);
 
   const fetchShopData = async () => {
     try {
@@ -437,6 +443,31 @@ const StorefrontPage = () => {
               </div>
             </div>
           </div>
+          {/* Related Products */}
+          {(() => {
+            const related = products.filter(p => p.category_id === selectedProduct.category_id && p.id !== selectedProduct.id).slice(0, 4);
+            if (related.length === 0) return null;
+            return (
+              <div className="mt-10 border-t border-[#E2E8F0] pt-8" data-testid="related-products-section">
+                <h2 className="text-xl font-bold text-[#0F172A] mb-4">{t.relatedProductsTitle}</h2>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 lg:gap-5">
+                  {related.map(rp => (
+                    <div key={rp.id} className="group bg-white border border-[#E2E8F0] rounded-[5px] overflow-hidden hover:shadow-lg transition-all cursor-pointer"
+                      onClick={() => { setSelectedProduct(rp); setActiveImage(0); setShowVideo(false); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                      data-testid={`related-product-${rp.id}`}>
+                      <div className="aspect-square bg-[#F8FAFC] overflow-hidden">
+                        <img src={rp.image_url} alt={rp.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                      </div>
+                      <div className="p-3 text-center">
+                        <h3 className="font-medium text-[#0F172A] text-sm line-clamp-2 mb-1">{rp.name}</h3>
+                        <p className="text-base font-bold" style={{ color: themeColor }}>{formatVND(rp.price)}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
         </div>
       </div>
     );
@@ -470,21 +501,35 @@ const StorefrontPage = () => {
               )}
               <span className="font-bold text-base text-[#0F172A] hidden sm:block">{shop.name}</span>
             </div>
-            <div className="hidden md:flex flex-1 max-w-md mx-6">
-              <div className="relative w-full">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#64748B]" />
-                <Input type="text" placeholder={t.search} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9 rounded-full bg-[#F8FAFC] h-9 text-sm" data-testid="search-input" />
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
+
+            {/* Desktop Menu */}
+            <nav className="hidden md:flex items-center gap-1" data-testid="storefront-menu-bar">
+              <Link to={`/shop/${slug}`}>
+                <Button variant="ghost" size="sm" className="text-sm gap-1.5"><Home className="w-3.5 h-3.5" /> {t.menuHome}</Button>
+              </Link>
+              <Button variant="ghost" size="sm" className="text-sm gap-1.5" onClick={() => { setSelectedCategory('all'); window.scrollTo({ top: 400, behavior: 'smooth' }); }}>
+                <Store className="w-3.5 h-3.5" /> {t.menuShop}
+              </Button>
+              <Link to={`/shop/${slug}/categories`} data-testid="menu-categories">
+                <Button variant="ghost" size="sm" className="text-sm gap-1.5"><Grid3X3 className="w-3.5 h-3.5" /> {t.menuCategories}</Button>
+              </Link>
               {shop?.blog_enabled !== false && (
-                <Link to={`/shop/${slug}/posts`} className="hidden sm:block" data-testid="menu-posts">
-                  <Button variant="ghost" size="sm" className="text-sm gap-1"><FileText className="w-4 h-4" /> {t.posts}</Button>
+                <Link to={`/shop/${slug}/posts`} data-testid="menu-posts">
+                  <Button variant="ghost" size="sm" className="text-sm gap-1.5"><BookOpen className="w-3.5 h-3.5" /> {t.menuBlog}</Button>
                 </Link>
               )}
-              <Link to={`/shop/${slug}/contact`} className="hidden sm:block" data-testid="menu-contact">
-                <Button variant="ghost" size="sm" className="text-sm gap-1"><Mail className="w-4 h-4" /> {t.contact}</Button>
+              <Link to={`/shop/${slug}/contact`} data-testid="menu-contact">
+                <Button variant="ghost" size="sm" className="text-sm gap-1.5"><PhoneCall className="w-3.5 h-3.5" /> {t.menuContact}</Button>
               </Link>
+            </nav>
+
+            <div className="flex items-center gap-2">
+              <div className="hidden lg:flex max-w-xs">
+                <div className="relative w-full">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#64748B]" />
+                  <Input type="text" placeholder={t.search} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9 rounded-full bg-[#F8FAFC] h-9 text-sm" data-testid="search-input" />
+                </div>
+              </div>
               {user && (user.role === 'shop_owner' || user.role === 'super_admin') && (
                 <Link to={user.role === 'super_admin' ? '/admin' : '/dashboard'} data-testid="storefront-dashboard-btn">
                   <Button variant="outline" size="sm" className="rounded-full text-xs hover:text-white" style={{ borderColor: themeColor, color: themeColor }} onMouseEnter={(e) => { e.target.style.backgroundColor = themeColor; e.target.style.color = 'white'; }} onMouseLeave={(e) => { e.target.style.backgroundColor = 'transparent'; e.target.style.color = themeColor; }}>
@@ -498,9 +543,35 @@ const StorefrontPage = () => {
                   <span className="absolute -top-1.5 -right-1.5 w-4 h-4 text-white text-[10px] rounded-full flex items-center justify-center" style={{ backgroundColor: themeColor }}>{cartCount}</span>
                 )}
               </Button>
+              {/* Mobile menu toggle */}
+              <Button variant="ghost" size="icon" className="md:hidden h-9 w-9" onClick={() => setMobileMenuOpen(!mobileMenuOpen)} data-testid="mobile-menu-toggle">
+                <MenuIcon className="w-5 h-5" />
+              </Button>
             </div>
           </div>
         </div>
+        {/* Mobile Menu Dropdown */}
+        {mobileMenuOpen && (
+          <div className="md:hidden border-t border-[#E2E8F0] bg-white px-4 py-2 space-y-1" data-testid="mobile-menu-dropdown">
+            <Link to={`/shop/${slug}`} onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 py-2 text-sm text-[#0F172A] hover:bg-[#F8FAFC] px-2 rounded-[5px]">
+              <Home className="w-4 h-4 text-[#64748B]" /> {t.menuHome}
+            </Link>
+            <button onClick={() => { setMobileMenuOpen(false); setSelectedCategory('all'); window.scrollTo({ top: 300, behavior: 'smooth' }); }} className="flex items-center gap-2 py-2 text-sm text-[#0F172A] hover:bg-[#F8FAFC] px-2 rounded-[5px] w-full text-left">
+              <Store className="w-4 h-4 text-[#64748B]" /> {t.menuShop}
+            </button>
+            <Link to={`/shop/${slug}/categories`} onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 py-2 text-sm text-[#0F172A] hover:bg-[#F8FAFC] px-2 rounded-[5px]">
+              <Grid3X3 className="w-4 h-4 text-[#64748B]" /> {t.menuCategories}
+            </Link>
+            {shop?.blog_enabled !== false && (
+              <Link to={`/shop/${slug}/posts`} onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 py-2 text-sm text-[#0F172A] hover:bg-[#F8FAFC] px-2 rounded-[5px]">
+                <BookOpen className="w-4 h-4 text-[#64748B]" /> {t.menuBlog}
+              </Link>
+            )}
+            <Link to={`/shop/${slug}/contact`} onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 py-2 text-sm text-[#0F172A] hover:bg-[#F8FAFC] px-2 rounded-[5px]">
+              <PhoneCall className="w-4 h-4 text-[#64748B]" /> {t.menuContact}
+            </Link>
+          </div>
+        )}
       </header>
 
       {/* Products */}
@@ -536,24 +607,59 @@ const StorefrontPage = () => {
       </main>
 
       {/* Footer */}
-      <footer className="bg-[#0F172A] text-white py-12">
+      <footer className="bg-[#0F172A] text-white py-12" data-testid="storefront-footer">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-2 gap-8">
-            <div>
-              <h3 className="font-bold text-xl mb-4">{shop.name}</h3>
-              {shop.description && <p className="text-[#94A3B8] mb-4">{shop.description}</p>}
-              <div className="flex gap-4">
-                {shop.social_facebook && (<a href={shop.social_facebook} target="_blank" rel="noopener noreferrer" className="hover:text-[#0055FF]"><Facebook className="w-6 h-6" /></a>)}
-                {shop.social_instagram && (<a href={shop.social_instagram} target="_blank" rel="noopener noreferrer" className="hover:text-[#0055FF]"><Instagram className="w-6 h-6" /></a>)}
+          {/* Editable footer columns */}
+          {shop.footer_columns && shop.footer_columns.length > 0 ? (
+            <div className={`grid gap-8 ${shop.footer_columns.length === 1 ? 'grid-cols-1' : shop.footer_columns.length === 2 ? 'grid-cols-1 sm:grid-cols-2' : shop.footer_columns.length === 3 ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4'}`}>
+              {shop.footer_columns.map((col, idx) => (
+                <div key={idx} data-testid={`footer-column-${idx}`}>
+                  <h4 className="font-semibold text-base mb-3">{col.title}</h4>
+                  <div className="space-y-1.5 text-[#94A3B8] text-sm">
+                    {col.content.split('\n').map((line, lineIdx) => (
+                      <p key={lineIdx}>{line}</p>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-2 gap-8">
+              <div>
+                <h3 className="font-bold text-xl mb-4">{shop.name}</h3>
+                {shop.description && <p className="text-[#94A3B8] mb-4">{shop.description}</p>}
+                <div className="flex gap-4">
+                  {shop.social_facebook && (<a href={shop.social_facebook} target="_blank" rel="noopener noreferrer" className="hover:text-[#0055FF]"><Facebook className="w-6 h-6" /></a>)}
+                  {shop.social_instagram && (<a href={shop.social_instagram} target="_blank" rel="noopener noreferrer" className="hover:text-[#0055FF]"><Instagram className="w-6 h-6" /></a>)}
+                </div>
+              </div>
+              <div>
+                <h4 className="font-semibold mb-4">{t.contact}</h4>
+                <div className="space-y-2 text-[#94A3B8]">
+                  {shop.contact_phone && <p className="flex items-center gap-2"><Phone className="w-4 h-4" /> {shop.contact_phone}</p>}
+                  {shop.contact_email && <p className="flex items-center gap-2"><Mail className="w-4 h-4" /> {shop.contact_email}</p>}
+                  {shop.address && <p className="flex items-center gap-2"><MapPin className="w-4 h-4" /> {shop.address}</p>}
+                </div>
               </div>
             </div>
-            <div>
-              <h4 className="font-semibold mb-4">{t.contact}</h4>
-              <div className="space-y-2 text-[#94A3B8]">
-                {shop.contact_phone && <p className="flex items-center gap-2"><Phone className="w-4 h-4" /> {shop.contact_phone}</p>}
-                {shop.contact_email && <p className="flex items-center gap-2"><Mail className="w-4 h-4" /> {shop.contact_email}</p>}
-                {shop.address && <p className="flex items-center gap-2"><MapPin className="w-4 h-4" /> {shop.address}</p>}
-              </div>
+          )}
+          {/* Social + Contact row always shown below */}
+          <div className="mt-8 pt-6 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              {shop.logo_url ? (
+                <img src={shop.logo_url} alt={shop.name} className="w-8 h-8 rounded-full object-cover" />
+              ) : (
+                <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: themeColor }}>
+                  <span className="text-white font-bold text-xs">{shop.name[0]}</span>
+                </div>
+              )}
+              <span className="font-semibold text-sm">{shop.name}</span>
+            </div>
+            <div className="flex items-center gap-4">
+              {shop.social_facebook && (<a href={shop.social_facebook} target="_blank" rel="noopener noreferrer" className="text-[#94A3B8] hover:text-white transition-colors"><Facebook className="w-5 h-5" /></a>)}
+              {shop.social_instagram && (<a href={shop.social_instagram} target="_blank" rel="noopener noreferrer" className="text-[#94A3B8] hover:text-white transition-colors"><Instagram className="w-5 h-5" /></a>)}
+              {shop.contact_phone && (<a href={`tel:${shop.contact_phone}`} className="text-[#94A3B8] hover:text-white transition-colors"><Phone className="w-5 h-5" /></a>)}
+              {shop.contact_email && (<a href={`mailto:${shop.contact_email}`} className="text-[#94A3B8] hover:text-white transition-colors"><Mail className="w-5 h-5" /></a>)}
             </div>
           </div>
         </div>

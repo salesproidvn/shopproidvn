@@ -14,6 +14,7 @@ import StorefrontPage from "./pages/StorefrontPage";
 import ContactPage from "./pages/ContactPage";
 import ThankYouPage from "./pages/ThankYouPage";
 import BlogPostPage from "./pages/BlogPostPage";
+import CategoryPage from "./pages/CategoryPage";
 
 function App() {
   return (
@@ -29,6 +30,7 @@ function App() {
                 <Route path="/admin" element={<SuperAdminDashboard />} />
                 <Route path="/dashboard" element={<ShopOwnerDashboard />} />
                 <Route path="/shop/:slug" element={<StorefrontPage />} />
+                <Route path="/shop/:slug/categories" element={<CategoryPage />} />
                 <Route path="/shop/:slug/contact" element={<ContactPage />} />
                 <Route path="/shop/:slug/posts" element={<BlogPostPage />} />
                 <Route path="/shop/:slug/posts/:postId" element={<BlogPostPage />} />

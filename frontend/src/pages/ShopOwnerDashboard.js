@@ -963,6 +963,75 @@ const ShopOwnerDashboard = () => {
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Footer Settings */}
+              <Card className="border-0 shadow-sm">
+                <CardHeader className="p-4">
+                  <CardTitle className="text-base flex items-center gap-2"><LayoutGrid className="w-4 h-4" /> {t.footerSettings}</CardTitle>
+                  <p className="text-sm text-[#64748B] mt-1">{t.footerDescription}</p>
+                </CardHeader>
+                <CardContent className="p-4 pt-0 space-y-4" data-testid="footer-settings">
+                  {(shopForm.footer_columns || []).map((col, idx) => (
+                    <div key={idx} className="p-3 border border-[#E2E8F0] rounded-[5px] space-y-2" data-testid={`footer-col-editor-${idx}`}>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-medium text-[#64748B]">{t.footerColumn} {idx + 1}</span>
+                        <Button variant="ghost" size="sm" className="h-6 text-xs text-red-500 hover:text-red-700" onClick={async () => {
+                          const newCols = (shopForm.footer_columns || []).filter((_, i) => i !== idx);
+                          setShopForm({ ...shopForm, footer_columns: newCols });
+                          try {
+                            await axios.put(`${API}/dashboard/shop`, { footer_columns: newCols });
+                            toast.success(t.footerSaved);
+                          } catch { toast.error(t.failedToSave); }
+                        }} data-testid={`remove-footer-col-${idx}`}>
+                          <Trash2 className="w-3 h-3 mr-1" /> {t.removeFooterColumn}
+                        </Button>
+                      </div>
+                      <Input
+                        value={col.title}
+                        onChange={(e) => {
+                          const newCols = [...(shopForm.footer_columns || [])];
+                          newCols[idx] = { ...newCols[idx], title: e.target.value };
+                          setShopForm({ ...shopForm, footer_columns: newCols });
+                        }}
+                        placeholder={t.footerColumnTitle}
+                        className="text-sm"
+                        data-testid={`footer-col-title-${idx}`}
+                      />
+                      <Textarea
+                        value={col.content}
+                        onChange={(e) => {
+                          const newCols = [...(shopForm.footer_columns || [])];
+                          newCols[idx] = { ...newCols[idx], content: e.target.value };
+                          setShopForm({ ...shopForm, footer_columns: newCols });
+                        }}
+                        placeholder={t.footerColumnContent}
+                        rows={3}
+                        className="text-sm"
+                        data-testid={`footer-col-content-${idx}`}
+                      />
+                    </div>
+                  ))}
+                  <div className="flex gap-3">
+                    {(shopForm.footer_columns || []).length < 4 && (
+                      <Button variant="outline" size="sm" className="text-xs" onClick={() => {
+                        const newCols = [...(shopForm.footer_columns || []), { title: '', content: '' }];
+                        setShopForm({ ...shopForm, footer_columns: newCols });
+                      }} data-testid="add-footer-col-btn">
+                        <Plus className="w-3 h-3 mr-1" /> {t.addFooterColumn}
+                      </Button>
+                    )}
+                    <Button size="sm" className="text-xs hover:opacity-90" style={{ backgroundColor: themeColor }} onClick={async () => {
+                      try {
+                        await axios.put(`${API}/dashboard/shop`, { footer_columns: shopForm.footer_columns || [] });
+                        toast.success(t.footerSaved);
+                        fetchData();
+                      } catch { toast.error(t.failedToSave); }
+                    }} data-testid="save-footer-btn">
+                      {t.saveChanges}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           )}
 

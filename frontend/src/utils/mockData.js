@@ -33,6 +33,12 @@ export let mockShops = [
       { id: 'featured', label: 'Featured Products', enabled: true },
       { id: 'products', label: 'Products', enabled: true }
     ],
+    footer_columns: [
+      { title: 'About Us', content: 'The Elite Shop - Premium products curated for the modern lifestyle. Quality and style in every item.' },
+      { title: 'Customer Service', content: 'Shipping & Returns\nOrder Tracking\nFAQ\nSize Guide' },
+      { title: 'Quick Links', content: 'New Arrivals\nBest Sellers\nSale Items\nGift Cards' },
+      { title: 'Follow Us', content: 'Facebook\nInstagram\nTikTok\nYouTube' }
+    ],
     created_at: '2025-12-01T00:00:00Z'
   }
 ];

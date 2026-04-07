@@ -360,6 +360,32 @@ export const vi = {
   disabled: 'Tắt',
   featuredProducts: 'Sản phẩm nổi bật',
   linkCopied: 'Đã sao chép liên kết',
+
+  // Menu Bar
+  menuHome: 'Trang chủ',
+  menuShop: 'Cửa hàng',
+  menuCategories: 'Danh mục sản phẩm',
+  menuBlog: 'Bài viết',
+  menuContact: 'Liên hệ',
+
+  // Related Products
+  relatedProductsTitle: 'Sản phẩm liên quan',
+
+  // Category Page
+  allCategoriesPage: 'Tất cả danh mục',
+  viewCategory: 'Xem danh mục',
+  productsCount: 'sản phẩm',
+  browseByCategory: 'Duyệt theo danh mục',
+
+  // Footer Settings
+  footerSettings: 'Cài đặt chân trang',
+  footerColumn: 'Cột',
+  footerColumnTitle: 'Tiêu đề cột',
+  footerColumnContent: 'Nội dung cột',
+  footerDescription: 'Tùy chỉnh nội dung chân trang cửa hàng (tối đa 4 cột)',
+  footerSaved: 'Chân trang đã được cập nhật',
+  addFooterColumn: 'Thêm cột',
+  removeFooterColumn: 'Xóa cột',
 };
 
 export const en = {
@@ -702,6 +728,32 @@ export const en = {
   disabled: 'Off',
   featuredProducts: 'Featured Products',
   linkCopied: 'Link copied!',
+
+  // Menu Bar
+  menuHome: 'Home',
+  menuShop: 'Shop',
+  menuCategories: 'Categories',
+  menuBlog: 'Blog',
+  menuContact: 'Contact',
+
+  // Related Products
+  relatedProductsTitle: 'Related Products',
+
+  // Category Page
+  allCategoriesPage: 'All Categories',
+  viewCategory: 'View Category',
+  productsCount: 'products',
+  browseByCategory: 'Browse by Category',
+
+  // Footer Settings
+  footerSettings: 'Footer Settings',
+  footerColumn: 'Column',
+  footerColumnTitle: 'Column Title',
+  footerColumnContent: 'Column Content',
+  footerDescription: 'Customize your shop footer content (up to 4 columns)',
+  footerSaved: 'Footer updated',
+  addFooterColumn: 'Add Column',
+  removeFooterColumn: 'Remove Column',
 };
 
 export const translations = { vi, en };
