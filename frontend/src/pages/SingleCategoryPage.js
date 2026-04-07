@@ -5,7 +5,9 @@ import { useLanguage } from '../context/LanguageContext';
 import { useCart } from '../context/CartContext';
 import { formatVND } from '../utils/format';
 import { Button } from '../components/ui/button';
-import { ArrowLeft, ShoppingCart, FolderOpen, Plus } from 'lucide-react';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '../components/ui/sheet';
+import { ScrollArea } from '../components/ui/scroll-area';
+import { ArrowLeft, ShoppingCart, FolderOpen, Plus, Minus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -14,7 +16,7 @@ const SingleCategoryPage = () => {
   const { slug, categoryId } = useParams();
   const { t } = useLanguage();
   const navigate = useNavigate();
-  const { addToCart } = useCart();
+  const { addToCart, cart, cartCount, cartTotal, updateCartQuantity, removeFromCart } = useCart();
   const [shop, setShop] = useState(null);
   const [category, setCategory] = useState(null);
   const [subCategories, setSubCategories] = useState([]);
@@ -22,6 +24,7 @@ const SingleCategoryPage = () => {
   const [allCategories, setAllCategories] = useState([]);
   const [activeSubFilter, setActiveSubFilter] = useState('all');
   const [loading, setLoading] = useState(true);
+  const [showCart, setShowCart] = useState(false);
 
   useEffect(() => { fetchData(); }, [slug, categoryId]);
 
@@ -101,9 +104,12 @@ const SingleCategoryPage = () => {
                 <span className="font-semibold text-sm text-white">{shop?.name}</span>
               </div>
             </div>
-            <Link to={`/shop/${slug}`} className="text-white/80 hover:text-white">
+            <button onClick={() => setShowCart(true)} className="text-white/80 hover:text-white relative" data-testid="cat-cart-button">
               <ShoppingCart className="w-5 h-5" />
-            </Link>
+              {cartCount > 0 && (
+                <span className="absolute -top-2 -right-2 w-5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center text-white" style={{ backgroundColor: '#EF4444' }}>{cartCount}</span>
+              )}
+            </button>
           </div>
         </div>
       </header>
@@ -185,6 +191,51 @@ const SingleCategoryPage = () => {
           </div>
         )}
       </main>
+
+      {/* Cart Drawer */}
+      <Sheet open={showCart} onOpenChange={setShowCart}>
+        <SheetContent className="w-full sm:max-w-md flex flex-col bg-white" data-testid="cat-cart-drawer">
+          <SheetHeader>
+            <SheetTitle>{t.cart} ({cartCount})</SheetTitle>
+            <SheetDescription>{t.cartItems}</SheetDescription>
+          </SheetHeader>
+          {cart.length === 0 ? (
+            <div className="flex-1 flex items-center justify-center"><p className="text-[#64748B]">{t.cartEmpty}</p></div>
+          ) : (
+            <>
+              <ScrollArea className="flex-1 -mx-6 px-6">
+                <div className="space-y-4 py-4">
+                  {cart.map((item) => (
+                    <div key={item.product_id} className="flex gap-4 p-3 bg-[#F8FAFC] rounded-xl">
+                      <img src={item.image_url} alt={item.name} className="w-16 h-16 rounded-lg object-cover" />
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-medium text-[#0F172A] text-sm truncate">{item.name}</h4>
+                        <p className="font-semibold text-sm" style={{ color: themeColor }}>{formatVND(item.price)}</p>
+                        <div className="flex items-center gap-2 mt-2">
+                          <Button variant="outline" size="icon" className="w-7 h-7" onClick={() => updateCartQuantity(item.product_id, -1)}><Minus className="w-3 h-3" /></Button>
+                          <span className="w-6 text-center text-sm">{item.quantity}</span>
+                          <Button variant="outline" size="icon" className="w-7 h-7" onClick={() => updateCartQuantity(item.product_id, 1)}><Plus className="w-3 h-3" /></Button>
+                          <Button variant="ghost" size="icon" className="w-7 h-7 ml-auto text-red-500" onClick={() => removeFromCart(item.product_id)}><Trash2 className="w-4 h-4" /></Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+              <div className="border-t pt-4 space-y-4">
+                <div className="flex justify-between text-lg">
+                  <span className="text-[#64748B]">{t.total}:</span>
+                  <span className="font-bold" style={{ color: themeColor }}>{formatVND(cartTotal)}</span>
+                </div>
+                <Button className="w-full hover:opacity-90 py-6 rounded-[5px]" style={{ backgroundColor: themeColor }}
+                  onClick={() => { setShowCart(false); navigate(`/shop/${slug}?checkout=1`); }} data-testid="cat-checkout-btn">
+                  {t.orderNow}
+                </Button>
+              </div>
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };
