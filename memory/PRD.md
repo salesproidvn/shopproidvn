@@ -70,6 +70,10 @@ Create an admin dashboard for a Micro-SaaS E-commerce Platform. Multi-tenant set
 - **Single Category Page** (`/shop/:slug/category/:categoryId`): Dedicated page showing all products of a category with sub-category filter chips, category hero with image, add-to-cart buttons.
 - **Layout Position Editable**: Categories section added to Display Layout settings for position reordering and toggle.
 
+### Phase 10 - Chợ Xanh 365 Shop & Cart Fix (Complete - Feb 2026)
+- **New Shop "Chợ Xanh 365"**: Vietnamese organic grocery store with 100 products across 8 categories (32 total with sub-categories), 8 orders, 2 blog posts. Green theme. Login: choxanh@thewishop.com / choxanh123.
+- **Cart Bug Fix**: Fixed `addToCart(product, 1)` → `addToCart(product.id, product, 1)` in SingleCategoryPage — was passing wrong arguments to CartContext.
+
 ## Backlog
 - P1: Sales analytics charts on dashboards
 - P2: Refactor ShopOwnerDashboard.js (2000+ lines) and StorefrontPage.js (880+ lines)

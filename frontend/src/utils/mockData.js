@@ -1,4 +1,5 @@
 // Mock data for fully standalone frontend - no backend/database needed
+import { shop3User, shop3Data, shop3Categories, shop3Products, shop3Orders, shop3Posts } from './shop3Data';
 
 let currentUser = JSON.parse(localStorage.getItem('mockUser') || 'null');
 
@@ -7,6 +8,7 @@ export let mockUsers = [
   { id: 'user-admin', email: 'admin@thewishop.com', password: 'admin123', name: 'Admin', role: 'super_admin', status: 'active', shop_name: null },
   { id: 'user-demo', email: 'demo@thewishop.com', password: 'demo123', name: 'Demo Shop Owner', role: 'shop_owner', shop_id: 'shop-1', status: 'active', shop_name: 'The Elite Shop' },
   { id: 'user-green', email: 'green@thewishop.com', password: 'green123', name: 'Minh Tran', role: 'shop_owner', shop_id: 'shop-2', status: 'active', shop_name: 'Green Living' },
+  shop3User,
 ];
 
 // ── Shops ──────────────────────────────────────────────
@@ -164,7 +166,8 @@ export let mockShops = [
       { id: 'mi-g3', label: 'Contact', url: '/shop/green-living/contact', type: 'internal', enabled: true, position: 2 }
     ],
     custom_pages: []
-  }
+  },
+  shop3Data,
 ];
 export let mockCategories = [
   { id: 'cat-1', shop_id: 'shop-1', name: 'Electronics', description: 'Gadgets and devices', position: 1, parent_id: null, image_url: 'https://images.unsplash.com/photo-1498049794561-7780e7231661?w=400&h=400&fit=crop' },
@@ -183,6 +186,7 @@ export let mockCategories = [
   { id: 'cat-g1', shop_id: 'shop-2', name: 'Organic Food', description: 'Organic snacks and beverages', position: 1, parent_id: null, image_url: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=400&h=400&fit=crop' },
   { id: 'cat-g2', shop_id: 'shop-2', name: 'Eco Home', description: 'Sustainable home products', position: 2, parent_id: null, image_url: 'https://images.unsplash.com/photo-1524758631624-e2822e304c36?w=400&h=400&fit=crop' },
   { id: 'cat-g3', shop_id: 'shop-2', name: 'Zero Waste', description: 'Reusable and zero-waste essentials', position: 3, parent_id: null, image_url: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=400&h=400&fit=crop' },
+  ...shop3Categories,
 ];
 
 // ── Products ───────────────────────────────────────────
@@ -242,6 +246,7 @@ export let mockProducts = [
   { id: 'prod-g4', shop_id: 'shop-2', name: 'Recycled Glass Vase', price: 290000, category: 'Eco Home', category_id: 'cat-g2', stock: 25, position: 1, is_active: true, is_featured: true, image_url: 'https://images.unsplash.com/photo-1581783898377-1c85bf937427?w=400&h=400&fit=crop', images: ['https://images.unsplash.com/photo-1581783898377-1c85bf937427?w=400&h=400&fit=crop'], video_url: '', video_links: [], description: 'Handblown vase made from 100% recycled glass.' },
   { id: 'prod-g5', shop_id: 'shop-2', name: 'Coconut Bowl Set', price: 220000, category: 'Eco Home', category_id: 'cat-g2', stock: 40, position: 2, is_active: true, image_url: 'https://images.unsplash.com/photo-1490474418585-ba9bad8fd0ea?w=400&h=400&fit=crop', images: ['https://images.unsplash.com/photo-1490474418585-ba9bad8fd0ea?w=400&h=400&fit=crop'], video_url: '', video_links: [], description: 'Set of 2 polished coconut shell bowls, perfect for smoothie bowls.' },
   { id: 'prod-g6', shop_id: 'shop-2', name: 'Organic Honey Raw', price: 250000, category: 'Organic Food', category_id: 'cat-g1', stock: 35, position: 2, is_active: true, image_url: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=400&h=400&fit=crop', images: ['https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=400&h=400&fit=crop'], video_url: '', video_links: [], description: 'Pure raw honey sourced from organic farms in Da Lat.' },
+  ...shop3Products,
 ];
 
 // ── Banners ────────────────────────────────────────────
@@ -306,6 +311,7 @@ export let mockOrders = [
     items: [{ product_id: 'prod-g4', name: 'Recycled Glass Vase', price: 290000, quantity: 1, subtotal: 290000 }],
     created_at: '2026-02-06T15:30:00Z'
   },
+  ...shop3Orders,
 ];
 
 // ── Blog Posts ─────────────────────────────────────────
@@ -342,6 +348,7 @@ export let mockPosts = [
     attached_products: ['prod-g2', 'prod-g3'],
     created_at: '2026-02-04T10:00:00Z'
   },
+  ...shop3Posts,
 ];
 
 // ── Session helpers ────────────────────────────────────

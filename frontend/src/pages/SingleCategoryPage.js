@@ -59,7 +59,7 @@ const SingleCategoryPage = () => {
     : products.filter(p => p.category_id === activeSubFilter);
 
   const handleAddToCart = (product) => {
-    addToCart(product, 1);
+    addToCart(product.id, product, 1);
     toast.success(`${product.name} ${t.addedToCart || 'added'}`);
   };
 
