@@ -14,7 +14,7 @@ import {
   LayoutDashboard, Package, FolderOpen, ShoppingCart, Settings, 
   LogOut, Menu, X, Plus, Pencil, Trash2, TrendingUp, Clock, Eye, Palette, Upload, ExternalLink,
   Bold, Italic, List, ChevronUp, ChevronDown, Play, FileText, Image, Calendar, Search, LayoutGrid, GripVertical,
-  Globe, Navigation, Link2, Video, Type, ArrowUp, ArrowDown, EyeOff
+  Globe, Navigation, Link2, Video, Type, ArrowUp, ArrowDown, EyeOff, Copy
 } from 'lucide-react';
 import { toast } from 'sonner';
 import NotificationBell from '../components/NotificationBell';
@@ -944,6 +944,11 @@ const ShopOwnerDashboard = () => {
                             </a>
                           )}
                           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => {
+                            const url = `${window.location.origin}/shop/${shop?.slug}/page/${pg.slug}`;
+                            navigator.clipboard.writeText(url);
+                            toast.success(t.linkCopied);
+                          }} data-testid={`copy-page-link-${pg.id}`}><Copy className="w-3.5 h-3.5 text-[#64748B]" /></Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => {
                             setEditingPage(pg);
                             setPageForm({ title: pg.title, sections: JSON.parse(JSON.stringify(pg.sections || [])), is_published: pg.is_published });
                             setShowPageModal(true);
@@ -995,18 +1000,37 @@ const ShopOwnerDashboard = () => {
                       <Input value={item.label} onChange={(e) => {
                         const items = [...shopMenuItems]; items[idx] = { ...items[idx], label: e.target.value }; setShopMenuItems(items);
                       }} placeholder={t.menuItemLabel} className="text-sm h-8" data-testid={`menu-label-${idx}`} />
-                      <Input value={item.url} onChange={(e) => {
-                        const items = [...shopMenuItems]; items[idx] = { ...items[idx], url: e.target.value }; setShopMenuItems(items);
-                      }} placeholder={t.menuItemUrl} className="text-sm h-8" data-testid={`menu-url-${idx}`} />
-                      <Select value={item.type} onValueChange={(val) => {
-                        const items = [...shopMenuItems]; items[idx] = { ...items[idx], type: val }; setShopMenuItems(items);
+                      <div className="relative">
+                        <Input value={item.url} onChange={(e) => {
+                          const items = [...shopMenuItems]; items[idx] = { ...items[idx], url: e.target.value }; setShopMenuItems(items);
+                        }} placeholder={t.menuItemUrl} className="text-sm h-8 pr-8" data-testid={`menu-url-${idx}`} />
+                      </div>
+                      <Select value={item.url || '__pick__'} onValueChange={(val) => {
+                        if (val === '__pick__') return;
+                        const items = [...shopMenuItems];
+                        const entry = val.startsWith('/shop/') ? val : val;
+                        items[idx] = { ...items[idx], url: entry };
+                        // Auto-set label if empty
+                        if (!items[idx].label) {
+                          const pg = customPages.find(p => `/shop/${shop?.slug}/page/${p.slug}` === val);
+                          const po = posts.find(p => `/shop/${shop?.slug}/posts/${p.id}` === val);
+                          if (pg) items[idx].label = pg.title;
+                          if (po) items[idx].label = po.title;
+                        }
+                        setShopMenuItems(items);
                       }}>
-                        <SelectTrigger className="h-8 text-xs" data-testid={`menu-type-${idx}`}><SelectValue /></SelectTrigger>
-                        <SelectContent className="bg-white">
-                          <SelectItem value="internal">{t.menuInternal}</SelectItem>
-                          <SelectItem value="external">{t.menuExternal}</SelectItem>
-                          <SelectItem value="scroll_shop">{t.menuScrollShop}</SelectItem>
-                          <SelectItem value="custom_page">{t.menuCustomPage}</SelectItem>
+                        <SelectTrigger className="h-8 text-xs" data-testid={`menu-link-picker-${idx}`}><SelectValue placeholder={t.quickLink} /></SelectTrigger>
+                        <SelectContent className="bg-white max-h-60">
+                          <SelectItem value="__pick__" disabled className="text-[#94A3B8]">— {t.quickLink} —</SelectItem>
+                          <SelectItem value={`/shop/${shop?.slug}`}>🏠 {t.menuHome}</SelectItem>
+                          <SelectItem value={`/shop/${shop?.slug}/categories`}>📂 {t.menuCategories}</SelectItem>
+                          <SelectItem value={`/shop/${shop?.slug}/contact`}>📞 {t.menuContact}</SelectItem>
+                          {posts.length > 0 && posts.map(po => (
+                            <SelectItem key={po.id} value={`/shop/${shop?.slug}/posts/${po.id}`}>📝 {po.title}</SelectItem>
+                          ))}
+                          {customPages.length > 0 && customPages.map(pg => (
+                            <SelectItem key={pg.id} value={`/shop/${shop?.slug}/page/${pg.slug}`}>📄 {pg.title}</SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>

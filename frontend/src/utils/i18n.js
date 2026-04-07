@@ -439,6 +439,7 @@ export const vi = {
   noMenuItems: 'Chưa có mục menu',
   menuEnabled: 'Hiển thị',
   maxMenuItemsReached: 'Đã đạt tối đa 10 mục menu',
+  quickLink: 'Liên kết nhanh',
 };
 
 export const en = {
@@ -860,6 +861,7 @@ export const en = {
   noMenuItems: 'No menu items yet',
   menuEnabled: 'Visible',
   maxMenuItemsReached: 'Maximum 10 menu items reached',
+  quickLink: 'Quick Link',
 };
 
 export const translations = { vi, en };

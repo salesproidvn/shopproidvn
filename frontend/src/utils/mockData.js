@@ -93,6 +93,42 @@ export let mockShops = [
           { type: 'text', content: '<h3>How to Measure</h3><p><strong>Chest:</strong> Measure around the fullest part of your chest, keeping the tape level.</p><p><strong>Waist:</strong> Measure around your natural waistline, keeping the tape comfortably loose.</p><p><strong>Hips:</strong> Stand with feet together and measure around the fullest part of your hips.</p>' }
         ],
         created_at: '2026-01-05T00:00:00Z', updated_at: '2026-01-05T00:00:00Z'
+      },
+      {
+        id: 'page-4', shop_id: 'shop-1', title: 'Loyalty Program', slug: 'loyalty-program', is_published: true,
+        sections: [
+          { type: 'text', content: '<h2>Elite Rewards Program</h2><p>Join our loyalty program and earn points on every purchase. Redeem your points for exclusive discounts, early access to new products, and special member-only deals.</p>' },
+          { type: 'image', url: 'https://picsum.photos/seed/loyalty-rewards/800/400', caption: 'Earn rewards with every purchase' },
+          { type: 'text', content: '<h3>Membership Tiers</h3><ul><li><strong>Silver</strong> — 0-499 points: 5% off all orders</li><li><strong>Gold</strong> — 500-1499 points: 10% off + free shipping</li><li><strong>Platinum</strong> — 1500+ points: 15% off + priority support + early access</li></ul><p>Points never expire as long as your account is active.</p>' },
+          { type: 'link', text: 'Sign Up Now', url: '/shop/the-elite-shop/contact' }
+        ],
+        created_at: '2026-01-10T00:00:00Z', updated_at: '2026-01-10T00:00:00Z'
+      },
+      {
+        id: 'page-5', shop_id: 'shop-1', title: 'FAQ', slug: 'faq', is_published: true,
+        sections: [
+          { type: 'text', content: '<h2>Frequently Asked Questions</h2><h3>How do I place an order?</h3><p>Browse our catalog, add items to your cart, and proceed to checkout. We accept all major payment methods including credit cards and bank transfers.</p><h3>How long does shipping take?</h3><p>Standard shipping takes 3-5 business days. Express shipping is available for 1-2 day delivery.</p><h3>Can I return an item?</h3><p>Yes! We offer 30-day returns on all unused items in their original packaging. Simply contact our support team to initiate a return.</p><h3>Do you ship internationally?</h3><p>Currently we ship within Vietnam. International shipping is coming soon.</p>' },
+          { type: 'link', text: 'Still have questions? Contact us', url: '/shop/the-elite-shop/contact' }
+        ],
+        created_at: '2026-01-12T00:00:00Z', updated_at: '2026-01-12T00:00:00Z'
+      },
+      {
+        id: 'page-6', shop_id: 'shop-1', title: 'Store Locations', slug: 'store-locations', is_published: true,
+        sections: [
+          { type: 'text', content: '<h2>Our Store Locations</h2><p>Visit us at one of our physical locations for a hands-on shopping experience.</p>' },
+          { type: 'text', content: '<h3>Ho Chi Minh City - Flagship Store</h3><p>123 Nguyen Hue Boulevard, District 1<br/>Open Mon-Sun: 9:00 AM - 9:00 PM</p><h3>Hanoi - Premium Outlet</h3><p>456 Trang Tien Street, Hoan Kiem District<br/>Open Mon-Sun: 9:30 AM - 8:30 PM</p><h3>Da Nang - Concept Store</h3><p>789 Bach Dang Street, Hai Chau District<br/>Open Mon-Sat: 10:00 AM - 8:00 PM</p>' },
+          { type: 'image', url: 'https://picsum.photos/seed/store-hcm/800/400', caption: 'Ho Chi Minh City flagship store' },
+          { type: 'video', url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' }
+        ],
+        created_at: '2026-01-15T00:00:00Z', updated_at: '2026-01-15T00:00:00Z'
+      },
+      {
+        id: 'page-7', shop_id: 'shop-1', title: 'Careers', slug: 'careers', is_published: false,
+        sections: [
+          { type: 'text', content: '<h2>Join Our Team</h2><p>We are always looking for talented people to join The Elite Shop family. Check out our open positions below.</p><h3>Open Positions</h3><ul><li>Senior Frontend Developer — Ho Chi Minh City</li><li>Marketing Manager — Hanoi</li><li>Customer Support Lead — Remote</li><li>Warehouse Operations — Da Nang</li></ul>' },
+          { type: 'link', text: 'Send your resume', url: 'mailto:careers@theeliteshop.com' }
+        ],
+        created_at: '2026-01-18T00:00:00Z', updated_at: '2026-01-18T00:00:00Z'
       }
     ]
   }

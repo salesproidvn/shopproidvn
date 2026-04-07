@@ -1,0 +1,99 @@
+{
+  "summary": "Frontend-only testing of 3 new features: Copy Link button for custom pages, 4 additional mock custom pages (total 7), and Quick Link dropdown in Menu Manager. ALL 10 FEATURES TESTED AND WORKING CORRECTLY. App runs in MOCK MODE.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "passed_tests": [
+    "Dashboard Pages tab shows 7 custom pages (About Us, Shipping Policy, Size Guide, Loyalty Program, FAQ, Store Locations, Careers)",
+    "Careers page shows 'Bản nháp' (Draft) status since is_published=false",
+    "6 pages show 'Đã xuất bản' (Published) status",
+    "Copy Link button (copy-page-link-*) exists on each of the 7 page cards",
+    "Copy Link button triggers toast message 'Đã sao chép liên kết' (Link copied)",
+    "Draft page (Careers) does NOT have View button (only published pages have it)",
+    "Published pages have View button (view-page-*)",
+    "Custom page /shop/the-elite-shop/page/loyalty-program renders correctly with Elite Rewards content",
+    "Custom page /shop/the-elite-shop/page/faq renders correctly with FAQ content",
+    "Custom page /shop/the-elite-shop/page/store-locations renders correctly with 3 store locations",
+    "Draft page /shop/the-elite-shop/page/careers returns 'Page not found' (404 behavior)",
+    "Dashboard Menu Manager has Quick Link dropdown (menu-link-picker-*) for each menu item",
+    "Quick Link dropdown shows built-in links: Home (🏠), Categories (📂), Contact (📞)",
+    "Quick Link dropdown shows 3 blog posts with 📝 prefix",
+    "Quick Link dropdown shows 7 custom pages with 📄 prefix",
+    "Selecting a page from Quick Link auto-fills the URL field (/shop/the-elite-shop/page/about-us)",
+    "Selecting a page from Quick Link auto-fills the label if empty (About Us)",
+    "Menu Manager allows typing custom URLs manually (tested with https://example.com/custom-url)",
+    "Menu items max 10 limit enforced - Add button hidden at 10 items",
+    "Max limit message 'Đã đạt tối đa 10 mục menu' shown when at 10 items"
+  ],
+  "test_report_links": [
+    "/app/test_reports/iteration_16.json"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "All 3 new features implemented correctly and working as expected",
+    "Copy Link button uses navigator.clipboard.writeText() - works in browser but may fail in headless test environments due to permissions",
+    "Quick Link dropdown properly lists built-in pages, blog posts, and custom pages with appropriate emoji prefixes",
+    "Draft pages correctly excluded from public view (returns 404)",
+    "Menu Manager properly enforces 10 item limit"
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "N/A (frontend-only testing, mock mode active)",
+    "frontend": "100% (20/20 tests passed)"
+  },
+  "test_credentials": {
+    "shop_owner": "demo@thewishop.com / demo123",
+    "super_admin": "admin@thewishop.com / admin123"
+  },
+  "seed_data_creation": "None - using existing mock data from mockData.js with 7 custom pages",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "All 3 new features tested and working: (1) Copy Link button on page cards in dashboard Pages tab, (2) 7 custom pages total with Careers as draft, (3) Quick Link dropdown in Menu Manager with auto-fill. Login page may appear blank in Playwright - use localStorage.setItem('auth_token', 'mock-token-user-demo') and navigate to /dashboard. The app runs in MOCK MODE with all APIs intercepted by mockAdapter.js.",
+  "mocked_api": {
+    "has_mocked_apis": true,
+    "mocked_apis_list": ["ALL endpoints via axios-mock-adapter in /app/frontend/src/utils/mockAdapter.js"],
+    "note": "Mock mode is intentional for standalone frontend development/demo"
+  },
+  "features_tested": {
+    "copy_link_button": {
+      "location": "Dashboard > Pages tab > each page card",
+      "test_id": "copy-page-link-{page_id}",
+      "behavior": "Copies page URL to clipboard, shows toast 'Đã sao chép liên kết'",
+      "status": "WORKING"
+    },
+    "custom_pages": {
+      "total_count": 7,
+      "pages": ["About Us", "Shipping Policy", "Size Guide", "Loyalty Program", "FAQ", "Store Locations", "Careers"],
+      "draft_page": "Careers (page-7, is_published=false)",
+      "published_pages": 6,
+      "public_urls_tested": ["/shop/the-elite-shop/page/loyalty-program", "/shop/the-elite-shop/page/faq", "/shop/the-elite-shop/page/store-locations"],
+      "draft_404_tested": "/shop/the-elite-shop/page/careers returns 'Page not found'",
+      "status": "WORKING"
+    },
+    "quick_link_dropdown": {
+      "location": "Dashboard > Menu tab > each menu item row",
+      "test_id": "menu-link-picker-{idx}",
+      "options": {
+        "built_in": ["🏠 Home", "📂 Categories", "📞 Contact"],
+        "blog_posts": "3 posts with 📝 prefix",
+        "custom_pages": "7 pages with 📄 prefix"
+      },
+      "auto_fill_url": "WORKING - fills URL field with page path",
+      "auto_fill_label": "WORKING - fills label if empty",
+      "manual_url_typing": "WORKING - can type custom URLs",
+      "status": "WORKING"
+    },
+    "menu_max_limit": {
+      "limit": 10,
+      "enforcement": "Add button hidden at 10 items",
+      "message": "Đã đạt tối đa 10 mục menu",
+      "status": "WORKING"
+    }
+  }
+}
