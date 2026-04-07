@@ -4,7 +4,8 @@ import axios from 'axios';
 import { useLanguage } from '../context/LanguageContext';
 import { formatVND } from '../utils/format';
 import { Button } from '../components/ui/button';
-import { ArrowLeft, Calendar, ShoppingCart } from 'lucide-react';
+import { ArrowLeft, Calendar, ShoppingCart, Share2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -80,6 +81,17 @@ const BlogPostPage = () => {
               <Link to={`/shop/${slug}`}>
                 <span className="font-semibold text-[#0F172A]">{shop?.name}</span>
               </Link>
+              <Button variant="ghost" size="sm" className="gap-2 rounded-[5px]" onClick={() => {
+                const url = window.location.href;
+                if (navigator.share) {
+                  navigator.share({ title: selectedPost.title, text: selectedPost.title, url });
+                } else {
+                  navigator.clipboard.writeText(url);
+                  toast.success(t.linkCopied || 'Link copied!');
+                }
+              }} data-testid="post-share-btn">
+                <Share2 className="w-4 h-4" />
+              </Button>
             </div>
           </div>
         </header>
@@ -103,7 +115,7 @@ const BlogPostPage = () => {
           {attachedProds.length > 0 && (
             <div className="border-t pt-8" data-testid="post-attached-products">
               <h3 className="text-lg font-bold text-[#0F172A] mb-4">{t.relatedProducts}</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {attachedProds.map(prod => (
                   <Link key={prod.id} to={`/shop/${slug}?product=${prod.id}`} className="group border border-[#E2E8F0] rounded-[5px] overflow-hidden hover:shadow-lg transition-all" data-testid={`attached-product-${prod.id}`}>
                     <div className="aspect-square bg-[#F8FAFC] overflow-hidden">

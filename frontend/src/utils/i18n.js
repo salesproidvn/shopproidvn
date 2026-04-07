@@ -438,6 +438,7 @@ export const vi = {
   menuCustomPage: 'Trang tùy chỉnh',
   noMenuItems: 'Chưa có mục menu',
   menuEnabled: 'Hiển thị',
+  maxMenuItemsReached: 'Đã đạt tối đa 10 mục menu',
 };
 
 export const en = {
@@ -858,6 +859,7 @@ export const en = {
   menuCustomPage: 'Custom Page',
   noMenuItems: 'No menu items yet',
   menuEnabled: 'Visible',
+  maxMenuItemsReached: 'Maximum 10 menu items reached',
 };
 
 export const translations = { vi, en };

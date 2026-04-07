@@ -1021,12 +1021,17 @@ const ShopOwnerDashboard = () => {
                   </div>
                 ))}
                 <div className="flex gap-3 pt-2">
-                  <Button variant="outline" size="sm" className="text-xs" onClick={() => {
-                    const newItem = { id: `mi-${Date.now()}`, label: '', url: '', type: 'internal', enabled: true, position: shopMenuItems.length };
-                    setShopMenuItems([...shopMenuItems, newItem]);
-                  }} data-testid="add-menu-item-btn">
-                    <Plus className="w-3 h-3 mr-1" /> {t.addMenuItem}
-                  </Button>
+                  {shopMenuItems.length < 10 && (
+                    <Button variant="outline" size="sm" className="text-xs" onClick={() => {
+                      const newItem = { id: `mi-${Date.now()}`, label: '', url: '', type: 'internal', enabled: true, position: shopMenuItems.length };
+                      setShopMenuItems([...shopMenuItems, newItem]);
+                    }} data-testid="add-menu-item-btn">
+                      <Plus className="w-3 h-3 mr-1" /> {t.addMenuItem}
+                    </Button>
+                  )}
+                  {shopMenuItems.length >= 10 && (
+                    <span className="text-xs text-yellow-600">{t.maxMenuItemsReached}</span>
+                  )}
                   <Button size="sm" className="text-xs hover:opacity-90" style={{ backgroundColor: themeColor }} onClick={async () => {
                     try {
                       await axios.put(`${API}/dashboard/menu`, { items: shopMenuItems });

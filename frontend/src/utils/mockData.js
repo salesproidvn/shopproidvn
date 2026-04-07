@@ -64,7 +64,37 @@ export let mockShops = [
       { id: 'mi-4', label: 'Bài viết', url: '/shop/the-elite-shop/posts', type: 'internal', enabled: true, position: 3 },
       { id: 'mi-5', label: 'Liên hệ', url: '/shop/the-elite-shop/contact', type: 'internal', enabled: true, position: 4 }
     ],
-    custom_pages: []
+    custom_pages: [
+      {
+        id: 'page-1', shop_id: 'shop-1', title: 'About Us', slug: 'about-us', is_published: true,
+        sections: [
+          { type: 'text', content: '<h2>Welcome to The Elite Shop</h2><p>We are a premium e-commerce destination curated for the modern lifestyle. Founded in 2024, our mission is to bring you the best products at competitive prices with exceptional customer service.</p><p>Our team handpicks every item in our catalog to ensure quality, durability, and style. Whether you\'re looking for cutting-edge electronics, fashionable accessories, or fitness equipment, we\'ve got you covered.</p>' },
+          { type: 'image', url: 'https://picsum.photos/seed/about-team/800/400', caption: 'Our dedicated team' },
+          { type: 'text', content: '<h3>Our Values</h3><ul><li><strong>Quality First</strong> - Every product is tested and verified</li><li><strong>Customer Satisfaction</strong> - 30-day hassle-free returns</li><li><strong>Fast Shipping</strong> - Free delivery on orders over 500,000đ</li><li><strong>Secure Shopping</strong> - 100% secure payment processing</li></ul>' },
+          { type: 'link', text: 'Contact Us', url: '/shop/the-elite-shop/contact' }
+        ],
+        created_at: '2025-12-15T00:00:00Z', updated_at: '2025-12-15T00:00:00Z'
+      },
+      {
+        id: 'page-2', shop_id: 'shop-1', title: 'Shipping Policy', slug: 'shipping-policy', is_published: true,
+        sections: [
+          { type: 'text', content: '<h2>Shipping & Delivery</h2><p>We offer fast and reliable shipping across Vietnam. All orders are processed within 1-2 business days.</p><h3>Shipping Rates</h3><ul><li>Standard Shipping (3-5 days): 30,000đ</li><li>Express Shipping (1-2 days): 60,000đ</li><li>Free Shipping on orders over 500,000đ</li></ul><h3>Tracking Your Order</h3><p>Once your order ships, you will receive an email with tracking information. You can also track your order status in your account dashboard.</p>' },
+          { type: 'video', url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' },
+          { type: 'text', content: '<h3>Return Policy</h3><p>Not satisfied? We offer 30-day returns on all unused items in original packaging. Contact our support team to initiate a return.</p>' },
+          { type: 'link', text: 'Start a Return Request', url: '/shop/the-elite-shop/contact' }
+        ],
+        created_at: '2025-12-20T00:00:00Z', updated_at: '2025-12-20T00:00:00Z'
+      },
+      {
+        id: 'page-3', shop_id: 'shop-1', title: 'Size Guide', slug: 'size-guide', is_published: true,
+        sections: [
+          { type: 'text', content: '<h2>Size Guide</h2><p>Finding the perfect fit is essential. Use our comprehensive size guide below to find your ideal size across all our clothing categories.</p>' },
+          { type: 'image', url: 'https://picsum.photos/seed/size-chart/800/500', caption: 'Size chart for all categories' },
+          { type: 'text', content: '<h3>How to Measure</h3><p><strong>Chest:</strong> Measure around the fullest part of your chest, keeping the tape level.</p><p><strong>Waist:</strong> Measure around your natural waistline, keeping the tape comfortably loose.</p><p><strong>Hips:</strong> Stand with feet together and measure around the fullest part of your hips.</p>' }
+        ],
+        created_at: '2026-01-05T00:00:00Z', updated_at: '2026-01-05T00:00:00Z'
+      }
+    ]
   }
 ];
 
