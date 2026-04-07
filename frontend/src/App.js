@@ -45,12 +45,13 @@ function App() {
               </Routes>
             </BrowserRouter>
             <Toaster 
-              position="top-right" 
+              position="bottom-center" 
               richColors 
               closeButton 
               toastOptions={{
                 style: {
                   fontFamily: 'Manrope, sans-serif',
+                  marginBottom: '70px',
                 },
               }}
             />
