@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { 
   LayoutDashboard, Package, FolderOpen, ShoppingCart, Settings, 
   LogOut, Menu, X, Plus, Pencil, Trash2, TrendingUp, Clock, Eye, Palette, Upload, ExternalLink,
-  Bold, Italic, List, ChevronUp, ChevronDown, Play, FileText, Image, Calendar
+  Bold, Italic, List, ChevronUp, ChevronDown, Play, FileText, Image, Calendar, Search
 } from 'lucide-react';
 import { toast } from 'sonner';
 import NotificationBell from '../components/NotificationBell';
@@ -54,13 +54,16 @@ const ShopOwnerDashboard = () => {
   const [detailShowVideo, setDetailShowVideo] = useState(false);
   const [posts, setPosts] = useState([]);
 
-  const [productForm, setProductForm] = useState({ name: '', price: '', category_id: '', description: '', image_url: '', images: [], stock: '', position: '', video_url: '' });
+  const [productForm, setProductForm] = useState({ name: '', price: '', category_id: '', description: '', image_url: '', images: [], stock: '', position: '', video_url: '', sku: '' });
   const [categoryForm, setCategoryForm] = useState({ name: '', description: '' });
   const [shopForm, setShopForm] = useState({});
   const [postForm, setPostForm] = useState({ title: '', description: '', thumbnail: '', images: [], attached_products: [] });
   const postFileInputRef = useRef(null);
   const postImagesInputRef = useRef(null);
   const bannerInputRef = useRef(null);
+
+  const [dashProductSearch, setDashProductSearch] = useState('');
+  const [dashProductCategory, setDashProductCategory] = useState('all');
 
   useEffect(() => {
     if (authLoading) return;
@@ -143,6 +146,7 @@ const ShopOwnerDashboard = () => {
         category_id: productForm.category_id === "none" ? null : productForm.category_id || null,
         images: productForm.images || [],
         video_url: productForm.video_url || '',
+        sku: productForm.sku || '',
         image_url: productForm.images?.length > 0 ? productForm.images[0] : productForm.image_url
       };
       if (editingProduct) {
@@ -182,7 +186,8 @@ const ShopOwnerDashboard = () => {
       images: product.images || (product.image_url ? [product.image_url] : []),
       stock: (product.stock || 0).toString(),
       position: (product.position || 0).toString(),
-      video_url: product.video_url || ''
+      video_url: product.video_url || '',
+      sku: product.sku || ''
     });
     setShowProductModal(true);
   };
@@ -196,7 +201,7 @@ const ShopOwnerDashboard = () => {
 
   const resetProductForm = () => {
     setEditingProduct(null);
-    setProductForm({ name: '', price: '', category_id: '', description: '', image_url: '', images: [], stock: '', position: '', video_url: '' });
+    setProductForm({ name: '', price: '', category_id: '', description: '', image_url: '', images: [], stock: '', position: '', video_url: '', sku: '' });
   };
 
   const handleSaveCategory = async (e) => {
@@ -618,35 +623,61 @@ const ShopOwnerDashboard = () => {
           {activeTab === 'products' && (
             <Card className="border-0 shadow-sm">
               <CardContent className="p-4">
-                {products.length === 0 ? (
-                  <div className="text-center py-12">
-                    <Package className="w-12 h-12 text-[#E2E8F0] mx-auto mb-4" />
-                    <p className="text-[#64748B] text-sm">{t.noProductsYet}</p>
+                <div className="flex flex-col sm:flex-row gap-3 mb-4">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#64748B]" />
+                    <Input placeholder={t.searchShort} value={dashProductSearch} onChange={(e) => setDashProductSearch(e.target.value)} className="pl-9 h-9 text-sm rounded-[5px]" data-testid="dash-product-search" />
                   </div>
-                ) : (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 lg:gap-4" data-testid="products-grid">
-                    {products.map((product) => (
-                      <div key={product.id} className="border rounded-lg overflow-hidden bg-white hover:shadow-lg transition-shadow">
-                        <div className="aspect-square bg-[#F8FAFC] cursor-pointer" onClick={() => openProductDetail(product)}>
-                          <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
-                        </div>
-                        <div className="p-2 lg:p-3">
-                          <h3 className="font-medium text-[#0F172A] text-xs lg:text-sm truncate cursor-pointer hover:text-[#0055FF]" onClick={() => openProductDetail(product)}>{product.name}</h3>
-                          <p className="font-bold mt-1 text-xs lg:text-sm" style={{ color: themeColor }}>{formatVND(product.price)}</p>
-                          <p className="text-[10px] lg:text-xs text-[#64748B]">{t.stock}: {product.stock || 0}</p>
-                          <div className="flex gap-1 lg:gap-2 mt-2">
-                            <Button variant="outline" size="sm" className="flex-1 text-[10px] lg:text-xs h-7 lg:h-8 px-1 lg:px-2" onClick={() => openEditProduct(product)} data-testid={`edit-product-${product.id}`}>
-                              <Pencil className="w-3 h-3 mr-1" /> {t.edit}
-                            </Button>
-                            <Button variant="destructive" size="sm" className="h-7 lg:h-8 px-1 lg:px-2" onClick={() => handleDeleteProduct(product.id)} data-testid={`delete-product-${product.id}`}>
-                              <Trash2 className="w-3 h-3" />
-                            </Button>
+                  <Select value={dashProductCategory} onValueChange={setDashProductCategory}>
+                    <SelectTrigger className="w-full sm:w-[180px] h-9 text-sm rounded-[5px]" data-testid="dash-product-category-filter">
+                      <SelectValue placeholder={t.allCategories} />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white">
+                      <SelectItem value="all">{t.allCategories}</SelectItem>
+                      {categories.map((cat) => (<SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {(() => {
+                  let filtered = products;
+                  if (dashProductSearch) {
+                    const q = dashProductSearch.toLowerCase();
+                    filtered = filtered.filter(p => p.name.toLowerCase().includes(q) || (p.sku && p.sku.toLowerCase().includes(q)));
+                  }
+                  if (dashProductCategory !== 'all') filtered = filtered.filter(p => p.category_id === dashProductCategory);
+                  return filtered.length === 0 ? (
+                    <div className="text-center py-12">
+                      <Package className="w-12 h-12 text-[#E2E8F0] mx-auto mb-4" />
+                      <p className="text-[#64748B] text-sm">{t.noProductsYet}</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 lg:gap-4" data-testid="products-grid">
+                      {filtered.map((product) => (
+                        <div key={product.id} className="border rounded-[5px] overflow-hidden bg-white hover:shadow-lg transition-shadow">
+                          <div className="aspect-square bg-[#F8FAFC] cursor-pointer" onClick={() => openProductDetail(product)}>
+                            <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
+                          </div>
+                          <div className="p-2 lg:p-3">
+                            <h3 className="font-medium text-[#0F172A] text-xs lg:text-sm truncate cursor-pointer hover:text-[#0055FF]" onClick={() => openProductDetail(product)}>{product.name}</h3>
+                            <p className="font-bold mt-1 text-xs lg:text-sm" style={{ color: themeColor }}>{formatVND(product.price)}</p>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <p className="text-[10px] lg:text-xs text-[#64748B]">{t.stock}: {product.stock || 0}</p>
+                              {product.sku && <p className="text-[10px] lg:text-xs text-[#94A3B8]">SKU: {product.sku}</p>}
+                            </div>
+                            <div className="flex gap-1 lg:gap-2 mt-2">
+                              <Button variant="outline" size="sm" className="flex-1 text-[10px] lg:text-xs h-7 lg:h-8 px-1 lg:px-2 rounded-[5px]" onClick={() => openEditProduct(product)} data-testid={`edit-product-${product.id}`}>
+                                <Pencil className="w-3 h-3 mr-1" /> {t.edit}
+                              </Button>
+                              <Button variant="destructive" size="sm" className="h-7 lg:h-8 px-1 lg:px-2 rounded-[5px]" onClick={() => handleDeleteProduct(product.id)} data-testid={`delete-product-${product.id}`}>
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                      ))}
+                    </div>
+                  );
+                })()}
               </CardContent>
             </Card>
           )}
@@ -1001,7 +1032,7 @@ const ShopOwnerDashboard = () => {
               <label className="block text-xs font-medium mb-1">{t.productName} *</label>
               <Input value={productForm.name} onChange={(e) => setProductForm({ ...productForm, name: e.target.value })} required className="text-sm" data-testid="product-name-input" />
             </div>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <div>
                 <label className="block text-xs font-medium mb-1">{t.productPrice} *</label>
                 <Input type="number" value={productForm.price} onChange={(e) => setProductForm({ ...productForm, price: e.target.value })} required className="text-sm" data-testid="product-price-input" />
@@ -1009,6 +1040,10 @@ const ShopOwnerDashboard = () => {
               <div>
                 <label className="block text-xs font-medium mb-1">{t.stock}</label>
                 <Input type="number" value={productForm.stock} onChange={(e) => setProductForm({ ...productForm, stock: e.target.value })} className="text-sm" data-testid="product-stock-input" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium mb-1">SKU</label>
+                <Input value={productForm.sku} onChange={(e) => setProductForm({ ...productForm, sku: e.target.value })} className="text-sm" placeholder="e.g. WH-001" data-testid="product-sku-input" />
               </div>
               <div>
                 <label className="block text-xs font-medium mb-1">{t.position}</label>

@@ -453,7 +453,7 @@ const StorefrontPage = () => {
                     <div className="flex-1 h-px bg-[#E2E8F0]" />
                     <span className="text-sm text-[#94A3B8]">{catProducts.length}</span>
                   </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 lg:gap-5">
+                  <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 lg:gap-5">
                     {visibleProducts.map((product) => (<ProductCard key={product.id} product={product} />))}
                   </div>
                   {catProducts.length > PRODUCTS_PER_CATEGORY && (
@@ -468,7 +468,7 @@ const StorefrontPage = () => {
             })}
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 lg:gap-5" data-testid="product-grid">
+          <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 lg:gap-5" data-testid="product-grid">
             {filteredProducts.map((product) => (<ProductCard key={product.id} product={product} />))}
           </div>
         )}
