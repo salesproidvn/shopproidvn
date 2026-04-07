@@ -158,6 +158,9 @@ export const vi = {
   delete: 'Xóa',
   createShopOwner: 'Tạo chủ cửa hàng',
   create: 'Tạo',
+  viewShop: 'Xem cửa hàng',
+  viewingShopAs: 'Đang xem cửa hàng',
+  backToAdmin: 'Quay lại Admin',
   
   // Messages
   addedToCart: 'Đã thêm vào giỏ hàng',
@@ -603,6 +606,9 @@ export const en = {
   delete: 'Delete',
   createShopOwner: 'Create Shop Owner',
   create: 'Create',
+  viewShop: 'View Shop',
+  viewingShopAs: 'Viewing shop',
+  backToAdmin: 'Back to Admin',
   
   addedToCart: 'Added to cart',
   failedToAdd: 'Failed to add to cart',

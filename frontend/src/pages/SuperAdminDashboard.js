@@ -10,7 +10,7 @@ import { Input } from '../components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog';
 import { 
   LayoutDashboard, Store, Users, ShoppingCart, 
-  LogOut, Menu, X, TrendingUp, CalendarClock
+  LogOut, Menu, X, TrendingUp, CalendarClock, Eye
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -266,6 +266,7 @@ const SuperAdminDashboard = () => {
                         <th className="text-left py-3 px-4 font-medium text-[#64748B]">{t.shopName}</th>
                         <th className="text-left py-3 px-4 font-medium text-[#64748B]">{t.owner}</th>
                         <th className="text-left py-3 px-4 font-medium text-[#64748B]">{t.orders}</th>
+                        <th className="text-left py-3 px-4 font-medium text-[#64748B]">{t.products}</th>
                         <th className="text-left py-3 px-4 font-medium text-[#64748B]">{t.status}</th>
                         <th className="text-left py-3 px-4 font-medium text-[#64748B]">{t.expiryDate}</th>
                         <th className="text-left py-3 px-4 font-medium text-[#64748B]">{t.shopLimits}</th>
@@ -283,6 +284,7 @@ const SuperAdminDashboard = () => {
                           </td>
                           <td className="py-3 px-4 text-[#64748B]">{shop.owner?.email || '-'}</td>
                           <td className="py-3 px-4 text-[#0F172A]">{shop.order_count}</td>
+                          <td className="py-3 px-4 text-[#0F172A]">{shop.product_count || 0}</td>
                           <td className="py-3 px-4">
                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${shop.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                               {shop.status}
@@ -326,9 +328,16 @@ const SuperAdminDashboard = () => {
                             </div>
                           </td>
                           <td className="py-3 px-4">
-                            <Button variant="outline" size="sm" onClick={() => handleShopStatus(shop.id, shop.status === 'active' ? 'suspended' : 'active')} data-testid={`toggle-shop-${shop.id}`}>
-                              {shop.status === 'active' ? t.suspend : t.activate}
-                            </Button>
+                            <div className="flex gap-2 flex-wrap">
+                              <Link to={`/dashboard?shop=${shop.id}`}>
+                                <Button variant="outline" size="sm" className="gap-1.5" data-testid={`view-shop-${shop.id}`}>
+                                  <Eye className="w-3.5 h-3.5" /> {t.viewShop}
+                                </Button>
+                              </Link>
+                              <Button variant="outline" size="sm" onClick={() => handleShopStatus(shop.id, shop.status === 'active' ? 'suspended' : 'active')} data-testid={`toggle-shop-${shop.id}`}>
+                                {shop.status === 'active' ? t.suspend : t.activate}
+                              </Button>
+                            </div>
                           </td>
                         </tr>
                       ))}

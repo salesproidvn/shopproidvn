@@ -6,6 +6,7 @@ let currentUser = JSON.parse(localStorage.getItem('mockUser') || 'null');
 export let mockUsers = [
   { id: 'user-admin', email: 'admin@thewishop.com', password: 'admin123', name: 'Admin', role: 'super_admin', status: 'active', shop_name: null },
   { id: 'user-demo', email: 'demo@thewishop.com', password: 'demo123', name: 'Demo Shop Owner', role: 'shop_owner', shop_id: 'shop-1', status: 'active', shop_name: 'The Elite Shop' },
+  { id: 'user-green', email: 'green@thewishop.com', password: 'green123', name: 'Minh Tran', role: 'shop_owner', shop_id: 'shop-2', status: 'active', shop_name: 'Green Living' },
 ];
 
 // ── Shops ──────────────────────────────────────────────
@@ -131,10 +132,38 @@ export let mockShops = [
         created_at: '2026-01-18T00:00:00Z', updated_at: '2026-01-18T00:00:00Z'
       }
     ]
+  },
+  {
+    id: 'shop-2', owner_id: 'user-green', name: 'Green Living', slug: 'green-living',
+    theme_color: '#16A34A', is_active: true, status: 'active',
+    description: 'Sustainable and eco-friendly products for a greener lifestyle',
+    logo_url: '', contact_phone: '0987 654 321', contact_email: 'hello@greenliving.vn',
+    address: '45 Tran Hung Dao, Q5, TP.HCM', social_facebook: 'https://facebook.com/greenliving', social_instagram: '',
+    order_count: 2, owner: { email: 'green@thewishop.com' },
+    expiry_date: null, post_carousel_position: 'top', max_products: 50, max_posts: 20,
+    banners: ['https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=1200&h=400&fit=crop'],
+    banner_enabled: true, blog_enabled: true,
+    layout_sections: [
+      { id: 'banner', label: 'Banner', enabled: true },
+      { id: 'blog', label: 'Blog', enabled: false },
+      { id: 'featured', label: 'Featured Products', enabled: true },
+      { id: 'products', label: 'Products', enabled: true }
+    ],
+    footer_columns: [
+      { title: 'Green Living', items: [{ text: 'Sustainable products for everyday life.', url: '' }] },
+      { title: 'Support', items: [{ text: 'Contact Us', url: '/shop/green-living/contact' }] },
+      { title: 'Links', items: [{ text: 'Shop All', url: '/shop/green-living' }] },
+      { title: 'Social', items: [{ text: 'Facebook', url: 'https://facebook.com/greenliving' }] }
+    ],
+    created_at: '2026-01-15T00:00:00Z',
+    menu_items: [
+      { id: 'mi-g1', label: 'Home', url: '/shop/green-living', type: 'internal', enabled: true, position: 0 },
+      { id: 'mi-g2', label: 'Shop', url: '/shop/green-living', type: 'scroll_shop', enabled: true, position: 1 },
+      { id: 'mi-g3', label: 'Contact', url: '/shop/green-living/contact', type: 'internal', enabled: true, position: 2 }
+    ],
+    custom_pages: []
   }
 ];
-
-// ── Categories ─────────────────────────────────────────
 export let mockCategories = [
   { id: 'cat-1', shop_id: 'shop-1', name: 'Electronics', description: 'Gadgets and devices', position: 1, parent_id: null },
   { id: 'cat-2', shop_id: 'shop-1', name: 'Fashion', description: 'Clothing and accessories', position: 2, parent_id: null },
@@ -148,6 +177,10 @@ export let mockCategories = [
   { id: 'cat-10', shop_id: 'shop-1', name: 'Shoes', description: 'Sneakers, boots and sandals', position: 1, parent_id: 'cat-2' },
   { id: 'cat-11', shop_id: 'shop-1', name: 'Bags', description: 'Bags, backpacks and wallets', position: 2, parent_id: 'cat-2' },
   { id: 'cat-12', shop_id: 'shop-1', name: 'Accessories', description: 'Sunglasses, watches and jewelry', position: 3, parent_id: 'cat-2' },
+  // Shop 2 categories
+  { id: 'cat-g1', shop_id: 'shop-2', name: 'Organic Food', description: 'Organic snacks and beverages', position: 1, parent_id: null },
+  { id: 'cat-g2', shop_id: 'shop-2', name: 'Eco Home', description: 'Sustainable home products', position: 2, parent_id: null },
+  { id: 'cat-g3', shop_id: 'shop-2', name: 'Zero Waste', description: 'Reusable and zero-waste essentials', position: 3, parent_id: null },
 ];
 
 // ── Products ───────────────────────────────────────────
@@ -200,6 +233,13 @@ export let mockProducts = [
   { id: 'prod-40', shop_id: 'shop-1', name: 'Hiking Backpack 40L', price: 1450000, category: 'Sports & Outdoors', category_id: 'cat-6', stock: 15, position: 3, is_active: true, image_url: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400&h=400&fit=crop', images: ['https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400&h=400&fit=crop', 'https://images.unsplash.com/photo-1622260614153-03223fb72052?w=400&h=400&fit=crop'], video_url: '', description: 'Waterproof hiking backpack with rain cover and hydration sleeve.' },
   { id: 'prod-41', shop_id: 'shop-1', name: 'Jump Rope Speed Pro', price: 220000, category: 'Sports & Outdoors', category_id: 'cat-6', stock: 60, position: 4, is_active: true, image_url: 'https://images.unsplash.com/photo-1434682881908-b43d0467b798?w=400&h=400&fit=crop', images: ['https://images.unsplash.com/photo-1434682881908-b43d0467b798?w=400&h=400&fit=crop'], video_url: '', description: 'Adjustable speed jump rope with ball bearings and foam handles.' },
   { id: 'prod-42', shop_id: 'shop-1', name: 'Camping Hammock', price: 580000, category: 'Sports & Outdoors', category_id: 'cat-6', stock: 20, position: 5, is_active: true, image_url: 'https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=400&h=400&fit=crop', images: ['https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=400&h=400&fit=crop'], video_url: '', description: 'Lightweight nylon camping hammock with tree straps, holds up to 200kg.' },
+  // ── Shop 2 Products ──
+  { id: 'prod-g1', shop_id: 'shop-2', name: 'Organic Matcha Powder', price: 320000, category: 'Organic Food', category_id: 'cat-g1', stock: 50, position: 1, is_active: true, is_featured: true, image_url: 'https://images.unsplash.com/photo-1515823064-d6e0c04616a7?w=400&h=400&fit=crop', images: ['https://images.unsplash.com/photo-1515823064-d6e0c04616a7?w=400&h=400&fit=crop'], video_url: '', video_links: [], description: 'Premium ceremonial-grade organic matcha from Japan.' },
+  { id: 'prod-g2', shop_id: 'shop-2', name: 'Beeswax Food Wraps', price: 180000, category: 'Zero Waste', category_id: 'cat-g3', stock: 80, position: 1, is_active: true, is_featured: true, image_url: 'https://images.unsplash.com/photo-1611735341450-da2271e89023?w=400&h=400&fit=crop', images: ['https://images.unsplash.com/photo-1611735341450-da2271e89023?w=400&h=400&fit=crop'], video_url: '', video_links: [], description: 'Reusable beeswax wraps to replace plastic cling film. Set of 3.' },
+  { id: 'prod-g3', shop_id: 'shop-2', name: 'Bamboo Cutlery Travel Kit', price: 150000, category: 'Zero Waste', category_id: 'cat-g3', stock: 60, position: 2, is_active: true, image_url: 'https://images.unsplash.com/photo-1584568694244-14fbdf83bd30?w=400&h=400&fit=crop', images: ['https://images.unsplash.com/photo-1584568694244-14fbdf83bd30?w=400&h=400&fit=crop'], video_url: '', video_links: [], description: 'Portable bamboo utensil set with cotton carrying pouch.' },
+  { id: 'prod-g4', shop_id: 'shop-2', name: 'Recycled Glass Vase', price: 290000, category: 'Eco Home', category_id: 'cat-g2', stock: 25, position: 1, is_active: true, is_featured: true, image_url: 'https://images.unsplash.com/photo-1581783898377-1c85bf937427?w=400&h=400&fit=crop', images: ['https://images.unsplash.com/photo-1581783898377-1c85bf937427?w=400&h=400&fit=crop'], video_url: '', video_links: [], description: 'Handblown vase made from 100% recycled glass.' },
+  { id: 'prod-g5', shop_id: 'shop-2', name: 'Coconut Bowl Set', price: 220000, category: 'Eco Home', category_id: 'cat-g2', stock: 40, position: 2, is_active: true, image_url: 'https://images.unsplash.com/photo-1490474418585-ba9bad8fd0ea?w=400&h=400&fit=crop', images: ['https://images.unsplash.com/photo-1490474418585-ba9bad8fd0ea?w=400&h=400&fit=crop'], video_url: '', video_links: [], description: 'Set of 2 polished coconut shell bowls, perfect for smoothie bowls.' },
+  { id: 'prod-g6', shop_id: 'shop-2', name: 'Organic Honey Raw', price: 250000, category: 'Organic Food', category_id: 'cat-g1', stock: 35, position: 2, is_active: true, image_url: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=400&h=400&fit=crop', images: ['https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=400&h=400&fit=crop'], video_url: '', video_links: [], description: 'Pure raw honey sourced from organic farms in Da Lat.' },
 ];
 
 // ── Banners ────────────────────────────────────────────
@@ -246,6 +286,24 @@ export let mockOrders = [
     ],
     created_at: '2026-01-28T16:45:00Z'
   },
+  // Shop 2 orders
+  {
+    id: 'ORD-GREEN001', shop_id: 'shop-2', customer_name: 'Hoang Anh', customer_phone: '0945123456',
+    customer_email: 'hoanganh@email.com', customer_address: '22 Le Lai, Q1, TP.HCM', note: '',
+    status: 'confirmed', total_amount: 500000,
+    items: [
+      { product_id: 'prod-g1', name: 'Organic Matcha Powder', price: 320000, quantity: 1, subtotal: 320000 },
+      { product_id: 'prod-g2', name: 'Beeswax Food Wraps', price: 180000, quantity: 1, subtotal: 180000 }
+    ],
+    created_at: '2026-02-05T11:00:00Z'
+  },
+  {
+    id: 'ORD-GREEN002', shop_id: 'shop-2', customer_name: 'Ly Thanh', customer_phone: '0956234567',
+    customer_email: '', customer_address: '88 Pasteur, Q3, TP.HCM', note: 'Gift wrap',
+    status: 'pending', total_amount: 290000,
+    items: [{ product_id: 'prod-g4', name: 'Recycled Glass Vase', price: 290000, quantity: 1, subtotal: 290000 }],
+    created_at: '2026-02-06T15:30:00Z'
+  },
 ];
 
 // ── Blog Posts ─────────────────────────────────────────
@@ -274,6 +332,14 @@ export let mockPosts = [
     attached_products: ['prod-27', 'prod-5', 'prod-26'],
     created_at: '2026-02-05T16:00:00Z'
   },
+  {
+    id: 'post-g1', shop_id: 'shop-2', title: '5 Easy Zero-Waste Swaps',
+    description: '<p>Start your <strong>zero-waste journey</strong> with these simple swaps. Replace single-use plastics with sustainable alternatives that last.</p><ul><li>Beeswax wraps instead of plastic wrap</li><li>Bamboo cutlery for on-the-go meals</li><li>Reusable produce bags at the market</li></ul>',
+    thumbnail: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=600&h=400&fit=crop',
+    images: [],
+    attached_products: ['prod-g2', 'prod-g3'],
+    created_at: '2026-02-04T10:00:00Z'
+  },
 ];
 
 // ── Session helpers ────────────────────────────────────
@@ -290,6 +356,10 @@ export const setCurrentUser = (user) => {
 
 // ── ID generator ───────────────────────────────────────
 const genId = (prefix) => `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+
+// ── Admin view context (set by ShopOwnerDashboard when admin views a shop) ──
+let _adminViewShopId = null;
+export const setAdminViewShopId = (id) => { _adminViewShopId = id; };
 
 // ── Route handlers ─────────────────────────────────────
 export const handleMockRequest = (method, path, body) => {
@@ -324,9 +394,13 @@ export const handleMockRequest = (method, path, body) => {
   }
 
   // ─ DASHBOARD (shop owner) ─
+  // Resolve shop ID: admin view context > query param > current user's shop > fallback
+  const dashShopId = _adminViewShopId || body._params?.shop_id || currentUser?.shop_id || 'shop-1';
+  const dashShop = () => mockShops.find(s => s.id === dashShopId) || mockShops[0];
+
   if (m === 'get' && path === '/dashboard/stats') {
-    const shopProducts = mockProducts.filter(p => p.shop_id === 'shop-1');
-    const shopOrders = mockOrders.filter(o => o.shop_id === 'shop-1');
+    const shopProducts = mockProducts.filter(p => p.shop_id === dashShopId);
+    const shopOrders = mockOrders.filter(o => o.shop_id === dashShopId);
     return { data: {
       total_products: shopProducts.length,
       total_orders: shopOrders.length,
@@ -336,24 +410,24 @@ export const handleMockRequest = (method, path, body) => {
   }
 
   if (m === 'get' && path === '/dashboard/shop') {
-    return { data: { ...mockShops[0] } };
+    return { data: { ...dashShop() } };
   }
 
   if (m === 'get' && path === '/dashboard/products') {
-    return { data: mockProducts.filter(p => p.shop_id === 'shop-1').map(p => ({ ...p })) };
+    return { data: mockProducts.filter(p => p.shop_id === dashShopId).map(p => ({ ...p })) };
   }
 
   if (m === 'get' && path === '/dashboard/categories') {
-    return { data: mockCategories.filter(c => c.shop_id === 'shop-1').sort((a, b) => (a.position || 0) - (b.position || 0)).map(c => ({ ...c })) };
+    return { data: mockCategories.filter(c => c.shop_id === dashShopId).sort((a, b) => (a.position || 0) - (b.position || 0)).map(c => ({ ...c })) };
   }
 
   if (m === 'get' && path === '/dashboard/orders') {
-    return { data: mockOrders.filter(o => o.shop_id === 'shop-1').map(o => ({ ...o })) };
+    return { data: mockOrders.filter(o => o.shop_id === dashShopId).map(o => ({ ...o })) };
   }
 
   if (m === 'post' && path === '/dashboard/products') {
     const cat = mockCategories.find(c => c.id === body.category_id);
-    const newProd = { id: genId('prod'), shop_id: 'shop-1', ...body, category: cat?.name || '', is_active: true, images: body.images || (body.image_url ? [body.image_url] : []), video_url: body.video_url || '', video_links: body.video_links || [] };
+    const newProd = { id: genId('prod'), shop_id: dashShopId, ...body, category: cat?.name || '', is_active: true, images: body.images || (body.image_url ? [body.image_url] : []), video_url: body.video_url || '', video_links: body.video_links || [] };
     if (!newProd.image_url && newProd.images.length > 0) newProd.image_url = newProd.images[0];
     mockProducts.push(newProd);
     return { data: newProd };
@@ -376,8 +450,8 @@ export const handleMockRequest = (method, path, body) => {
   }
 
   if (m === 'post' && path === '/dashboard/categories') {
-    const maxPos = mockCategories.filter(c => c.shop_id === 'shop-1').reduce((m, c) => Math.max(m, c.position || 0), 0);
-    const newCat = { id: genId('cat'), shop_id: 'shop-1', position: maxPos + 1, ...body };
+    const maxPos = mockCategories.filter(c => c.shop_id === dashShopId).reduce((m, c) => Math.max(m, c.position || 0), 0);
+    const newCat = { id: genId('cat'), shop_id: dashShopId, position: maxPos + 1, ...body };
     mockCategories.push(newCat);
     return { data: newCat };
   }
@@ -408,17 +482,18 @@ export const handleMockRequest = (method, path, body) => {
   }
 
   if (m === 'put' && path === '/dashboard/shop') {
-    mockShops[0] = { ...mockShops[0], ...body };
-    return { data: mockShops[0] };
+    const shopIdx = mockShops.findIndex(s => s.id === dashShopId);
+    if (shopIdx !== -1) mockShops[shopIdx] = { ...mockShops[shopIdx], ...body };
+    return { data: mockShops[shopIdx] || dashShop() };
   }
 
   // ─ POSTS (shop owner) ─
   if (m === 'get' && path === '/dashboard/posts') {
-    return { data: mockPosts.filter(p => p.shop_id === 'shop-1').map(p => ({ ...p })) };
+    return { data: mockPosts.filter(p => p.shop_id === dashShopId).map(p => ({ ...p })) };
   }
 
   if (m === 'post' && path === '/dashboard/posts') {
-    const newPost = { id: genId('post'), shop_id: 'shop-1', ...body, created_at: new Date().toISOString() };
+    const newPost = { id: genId('post'), shop_id: dashShopId, ...body, created_at: new Date().toISOString() };
     mockPosts.unshift(newPost);
     return { data: newPost };
   }
@@ -453,46 +528,50 @@ export const handleMockRequest = (method, path, body) => {
 
   // ─ CUSTOM PAGES (shop owner) ─
   if (m === 'get' && path === '/dashboard/pages') {
-    return { data: (mockShops[0].custom_pages || []).sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at)) };
+    return { data: (dashShop().custom_pages || []).sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at)) };
   }
 
   if (m === 'post' && path === '/dashboard/pages') {
-    const pages = mockShops[0].custom_pages || [];
+    const shop = dashShop();
+    const pages = shop.custom_pages || [];
     if (pages.length >= 10) return { error: 'Maximum 10 pages allowed', status: 400 };
     const pageSlug = (body.title || 'page').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || `page-${Date.now()}`;
-    const newPage = { id: genId('page'), shop_id: 'shop-1', title: body.title || '', slug: pageSlug, sections: body.sections || [], is_published: body.is_published !== false, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
-    if (!mockShops[0].custom_pages) mockShops[0].custom_pages = [];
-    mockShops[0].custom_pages.push(newPage);
+    const newPage = { id: genId('page'), shop_id: dashShopId, title: body.title || '', slug: pageSlug, sections: body.sections || [], is_published: body.is_published !== false, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+    const shopIdx = mockShops.findIndex(s => s.id === dashShopId);
+    if (!mockShops[shopIdx].custom_pages) mockShops[shopIdx].custom_pages = [];
+    mockShops[shopIdx].custom_pages.push(newPage);
     return { data: newPage };
   }
 
   const pageMatch = path.match(/^\/dashboard\/pages\/(.+)$/);
   if (pageMatch) {
     const pid = pageMatch[1];
+    const shopIdx = mockShops.findIndex(s => s.id === dashShopId);
     if (m === 'put') {
-      const pages = mockShops[0].custom_pages || [];
+      const pages = mockShops[shopIdx]?.custom_pages || [];
       const idx = pages.findIndex(p => p.id === pid);
       if (idx === -1) return { error: 'Page not found', status: 404 };
       if (body.title) {
         const pageSlug = body.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
         body.slug = pageSlug;
       }
-      mockShops[0].custom_pages[idx] = { ...mockShops[0].custom_pages[idx], ...body, updated_at: new Date().toISOString() };
-      return { data: mockShops[0].custom_pages[idx] };
+      mockShops[shopIdx].custom_pages[idx] = { ...mockShops[shopIdx].custom_pages[idx], ...body, updated_at: new Date().toISOString() };
+      return { data: mockShops[shopIdx].custom_pages[idx] };
     }
     if (m === 'delete') {
-      mockShops[0].custom_pages = (mockShops[0].custom_pages || []).filter(p => p.id !== pid);
+      mockShops[shopIdx].custom_pages = (mockShops[shopIdx]?.custom_pages || []).filter(p => p.id !== pid);
       return { data: { ok: true } };
     }
   }
 
   // ─ MENU ITEMS (shop owner) ─
   if (m === 'get' && path === '/dashboard/menu') {
-    return { data: (mockShops[0].menu_items || []).sort((a, b) => a.position - b.position) };
+    return { data: (dashShop().menu_items || []).sort((a, b) => a.position - b.position) };
   }
 
   if (m === 'put' && path === '/dashboard/menu') {
-    mockShops[0].menu_items = body.items || [];
+    const shopIdx = mockShops.findIndex(s => s.id === dashShopId);
+    if (shopIdx !== -1) mockShops[shopIdx].menu_items = body.items || [];
     return { data: { ok: true } };
   }
 
@@ -508,7 +587,7 @@ export const handleMockRequest = (method, path, body) => {
   }
 
   if (m === 'get' && path === '/admin/shops') {
-    return { data: mockShops.map(s => ({ ...s })) };
+    return { data: mockShops.map(s => ({ ...s, order_count: mockOrders.filter(o => o.shop_id === s.id).length, product_count: mockProducts.filter(p => p.shop_id === s.id).length })) };
   }
 
   if (m === 'get' && path === '/admin/users') {

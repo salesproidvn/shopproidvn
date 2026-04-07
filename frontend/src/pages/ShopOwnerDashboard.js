@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { formatVND } from '../utils/format';
+import { setAdminViewShopId } from '../utils/mockData';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Input } from '../components/ui/input';
@@ -28,7 +29,14 @@ const ShopOwnerDashboard = () => {
   const { user, logout, loading: authLoading } = useAuth();
   const { t } = useLanguage();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const fileInputRef = useRef(null);
+
+  // Admin viewing mode: super_admin can view any shop
+  const adminViewShopId = user?.role === 'super_admin' ? searchParams.get('shop') : null;
+  const isAdminViewing = !!adminViewShopId;
+  const shopQuery = adminViewShopId ? `?shop_id=${adminViewShopId}` : '';
+
   const [stats, setStats] = useState(null);
   const [shop, setShop] = useState(null);
   const [products, setProducts] = useState([]);
@@ -76,6 +84,12 @@ const ShopOwnerDashboard = () => {
   // Menu Manager state
   const [shopMenuItems, setShopMenuItems] = useState([]);
 
+  // Set admin view context for mock handler when admin views a shop
+  useEffect(() => {
+    setAdminViewShopId(adminViewShopId);
+    return () => setAdminViewShopId(null);
+  }, [adminViewShopId]);
+
   useEffect(() => {
     if (authLoading) return;
     if (!user || (user.role !== 'shop_owner' && user.role !== 'super_admin')) {
@@ -83,20 +97,20 @@ const ShopOwnerDashboard = () => {
       return;
     }
     fetchData();
-  }, [user, authLoading, navigate]);
+  }, [user, authLoading, navigate, adminViewShopId]);
 
   const fetchData = async () => {
     try {
       setLoading(true);
       const [statsRes, shopRes, productsRes, categoriesRes, ordersRes, postsRes, pagesRes, menuRes] = await Promise.all([
-        axios.get(`${API}/dashboard/stats`),
-        axios.get(`${API}/dashboard/shop`),
-        axios.get(`${API}/dashboard/products`),
-        axios.get(`${API}/dashboard/categories`),
-        axios.get(`${API}/dashboard/orders`),
-        axios.get(`${API}/dashboard/posts`),
-        axios.get(`${API}/dashboard/pages`),
-        axios.get(`${API}/dashboard/menu`)
+        axios.get(`${API}/dashboard/stats${shopQuery}`),
+        axios.get(`${API}/dashboard/shop${shopQuery}`),
+        axios.get(`${API}/dashboard/products${shopQuery}`),
+        axios.get(`${API}/dashboard/categories${shopQuery}`),
+        axios.get(`${API}/dashboard/orders${shopQuery}`),
+        axios.get(`${API}/dashboard/posts${shopQuery}`),
+        axios.get(`${API}/dashboard/pages${shopQuery}`),
+        axios.get(`${API}/dashboard/menu${shopQuery}`)
       ]);
       setStats(statsRes.data);
       setShop(shopRes.data);
@@ -580,6 +594,27 @@ const ShopOwnerDashboard = () => {
       {/* Main Content */}
       <main className={`transition-all p-4 lg:p-6 ${sidebarOpen ? 'lg:ml-64' : 'lg:ml-16'}`}>
         <div className="max-w-[1600px] mx-auto">
+          {/* Admin Viewing Banner */}
+          {isAdminViewing && (
+            <div className="mb-4 flex items-center justify-between bg-amber-50 border border-amber-200 rounded-lg px-4 py-3" data-testid="admin-viewing-banner">
+              <div className="flex items-center gap-2">
+                <Eye className="w-4 h-4 text-amber-600" />
+                <span className="text-sm font-medium text-amber-800">
+                  {t.viewingShopAs}: <strong>{shop?.name || '...'}</strong>
+                </span>
+                {shop?.slug && (
+                  <Link to={`/shop/${shop.slug}`} className="text-xs text-amber-600 hover:text-amber-800 underline ml-2" data-testid="admin-view-storefront-link">
+                    {t.previewShop}
+                  </Link>
+                )}
+              </div>
+              <Link to="/admin">
+                <Button variant="outline" size="sm" className="border-amber-300 text-amber-700 hover:bg-amber-100" data-testid="back-to-admin-btn">
+                  {t.backToAdmin}
+                </Button>
+              </Link>
+            </div>
+          )}
           <div className="mb-6 flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
             <div className="flex items-center gap-3">
               <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setMobileSidebarOpen(true)} data-testid="mobile-sidebar-toggle">
