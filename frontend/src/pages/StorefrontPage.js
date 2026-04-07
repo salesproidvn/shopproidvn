@@ -502,25 +502,23 @@ const StorefrontPage = () => {
               <span className="font-bold text-base text-[#0F172A] hidden sm:block">{shop.name}</span>
             </div>
 
-            {/* Desktop Menu */}
+            {/* Desktop Menu - Dynamic */}
             <nav className="hidden md:flex items-center gap-1" data-testid="storefront-menu-bar">
-              <Link to={`/shop/${slug}`}>
-                <Button variant="ghost" size="sm" className="text-sm gap-1.5"><Home className="w-3.5 h-3.5" /> {t.menuHome}</Button>
-              </Link>
-              <Button variant="ghost" size="sm" className="text-sm gap-1.5" onClick={() => { setSelectedCategory('all'); window.scrollTo({ top: 400, behavior: 'smooth' }); }}>
-                <Store className="w-3.5 h-3.5" /> {t.menuShop}
-              </Button>
-              <Link to={`/shop/${slug}/categories`} data-testid="menu-categories">
-                <Button variant="ghost" size="sm" className="text-sm gap-1.5"><Grid3X3 className="w-3.5 h-3.5" /> {t.menuCategories}</Button>
-              </Link>
-              {shop?.blog_enabled !== false && (
-                <Link to={`/shop/${slug}/posts`} data-testid="menu-posts">
-                  <Button variant="ghost" size="sm" className="text-sm gap-1.5"><BookOpen className="w-3.5 h-3.5" /> {t.menuBlog}</Button>
-                </Link>
-              )}
-              <Link to={`/shop/${slug}/contact`} data-testid="menu-contact">
-                <Button variant="ghost" size="sm" className="text-sm gap-1.5"><PhoneCall className="w-3.5 h-3.5" /> {t.menuContact}</Button>
-              </Link>
+              {(shop.menu_items || []).filter(mi => mi.enabled).sort((a, b) => a.position - b.position).map((mi, idx) => (
+                mi.type === 'scroll_shop' ? (
+                  <Button key={mi.id} variant="ghost" size="sm" className="text-sm" onClick={() => { setSelectedCategory('all'); window.scrollTo({ top: 400, behavior: 'smooth' }); }} data-testid={`menu-item-${idx}`}>
+                    {mi.label}
+                  </Button>
+                ) : mi.type === 'external' ? (
+                  <a key={mi.id} href={mi.url} target="_blank" rel="noopener noreferrer" data-testid={`menu-item-${idx}`}>
+                    <Button variant="ghost" size="sm" className="text-sm">{mi.label}</Button>
+                  </a>
+                ) : (
+                  <Link key={mi.id} to={mi.url} data-testid={`menu-item-${idx}`}>
+                    <Button variant="ghost" size="sm" className="text-sm">{mi.label}</Button>
+                  </Link>
+                )
+              ))}
             </nav>
 
             <div className="flex items-center gap-2">
@@ -550,26 +548,24 @@ const StorefrontPage = () => {
             </div>
           </div>
         </div>
-        {/* Mobile Menu Dropdown */}
+        {/* Mobile Menu Dropdown - Dynamic */}
         {mobileMenuOpen && (
           <div className="md:hidden border-t border-[#E2E8F0] bg-white px-4 py-2 space-y-1" data-testid="mobile-menu-dropdown">
-            <Link to={`/shop/${slug}`} onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 py-2 text-sm text-[#0F172A] hover:bg-[#F8FAFC] px-2 rounded-[5px]">
-              <Home className="w-4 h-4 text-[#64748B]" /> {t.menuHome}
-            </Link>
-            <button onClick={() => { setMobileMenuOpen(false); setSelectedCategory('all'); window.scrollTo({ top: 300, behavior: 'smooth' }); }} className="flex items-center gap-2 py-2 text-sm text-[#0F172A] hover:bg-[#F8FAFC] px-2 rounded-[5px] w-full text-left">
-              <Store className="w-4 h-4 text-[#64748B]" /> {t.menuShop}
-            </button>
-            <Link to={`/shop/${slug}/categories`} onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 py-2 text-sm text-[#0F172A] hover:bg-[#F8FAFC] px-2 rounded-[5px]">
-              <Grid3X3 className="w-4 h-4 text-[#64748B]" /> {t.menuCategories}
-            </Link>
-            {shop?.blog_enabled !== false && (
-              <Link to={`/shop/${slug}/posts`} onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 py-2 text-sm text-[#0F172A] hover:bg-[#F8FAFC] px-2 rounded-[5px]">
-                <BookOpen className="w-4 h-4 text-[#64748B]" /> {t.menuBlog}
-              </Link>
-            )}
-            <Link to={`/shop/${slug}/contact`} onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 py-2 text-sm text-[#0F172A] hover:bg-[#F8FAFC] px-2 rounded-[5px]">
-              <PhoneCall className="w-4 h-4 text-[#64748B]" /> {t.menuContact}
-            </Link>
+            {(shop.menu_items || []).filter(mi => mi.enabled).sort((a, b) => a.position - b.position).map((mi, idx) => (
+              mi.type === 'scroll_shop' ? (
+                <button key={mi.id} onClick={() => { setMobileMenuOpen(false); setSelectedCategory('all'); window.scrollTo({ top: 300, behavior: 'smooth' }); }} className="flex items-center gap-2 py-2 text-sm text-[#0F172A] hover:bg-[#F8FAFC] px-2 rounded-[5px] w-full text-left" data-testid={`mobile-menu-${idx}`}>
+                  {mi.label}
+                </button>
+              ) : mi.type === 'external' ? (
+                <a key={mi.id} href={mi.url} target="_blank" rel="noopener noreferrer" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 py-2 text-sm text-[#0F172A] hover:bg-[#F8FAFC] px-2 rounded-[5px]" data-testid={`mobile-menu-${idx}`}>
+                  {mi.label}
+                </a>
+              ) : (
+                <Link key={mi.id} to={mi.url} onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 py-2 text-sm text-[#0F172A] hover:bg-[#F8FAFC] px-2 rounded-[5px]" data-testid={`mobile-menu-${idx}`}>
+                  {mi.label}
+                </Link>
+              )
+            ))}
           </div>
         )}
       </header>

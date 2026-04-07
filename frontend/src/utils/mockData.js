@@ -56,7 +56,15 @@ export let mockShops = [
         { text: 'YouTube', url: 'https://youtube.com/@theeliteshop' }
       ]}
     ],
-    created_at: '2025-12-01T00:00:00Z'
+    created_at: '2025-12-01T00:00:00Z',
+    menu_items: [
+      { id: 'mi-1', label: 'Trang chủ', url: '/shop/the-elite-shop', type: 'internal', enabled: true, position: 0 },
+      { id: 'mi-2', label: 'Cửa hàng', url: '/shop/the-elite-shop', type: 'scroll_shop', enabled: true, position: 1 },
+      { id: 'mi-3', label: 'Danh mục sản phẩm', url: '/shop/the-elite-shop/categories', type: 'internal', enabled: true, position: 2 },
+      { id: 'mi-4', label: 'Bài viết', url: '/shop/the-elite-shop/posts', type: 'internal', enabled: true, position: 3 },
+      { id: 'mi-5', label: 'Liên hệ', url: '/shop/the-elite-shop/contact', type: 'internal', enabled: true, position: 4 }
+    ],
+    custom_pages: []
   }
 ];
 
@@ -371,6 +379,51 @@ export const handleMockRequest = (method, path, body) => {
     return { data: { id: `mock-img-${Date.now()}`, url: imgUrl } };
   }
 
+  // ─ CUSTOM PAGES (shop owner) ─
+  if (m === 'get' && path === '/dashboard/pages') {
+    return { data: (mockShops[0].custom_pages || []).sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at)) };
+  }
+
+  if (m === 'post' && path === '/dashboard/pages') {
+    const pages = mockShops[0].custom_pages || [];
+    if (pages.length >= 10) return { error: 'Maximum 10 pages allowed', status: 400 };
+    const pageSlug = (body.title || 'page').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || `page-${Date.now()}`;
+    const newPage = { id: genId('page'), shop_id: 'shop-1', title: body.title || '', slug: pageSlug, sections: body.sections || [], is_published: body.is_published !== false, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+    if (!mockShops[0].custom_pages) mockShops[0].custom_pages = [];
+    mockShops[0].custom_pages.push(newPage);
+    return { data: newPage };
+  }
+
+  const pageMatch = path.match(/^\/dashboard\/pages\/(.+)$/);
+  if (pageMatch) {
+    const pid = pageMatch[1];
+    if (m === 'put') {
+      const pages = mockShops[0].custom_pages || [];
+      const idx = pages.findIndex(p => p.id === pid);
+      if (idx === -1) return { error: 'Page not found', status: 404 };
+      if (body.title) {
+        const pageSlug = body.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+        body.slug = pageSlug;
+      }
+      mockShops[0].custom_pages[idx] = { ...mockShops[0].custom_pages[idx], ...body, updated_at: new Date().toISOString() };
+      return { data: mockShops[0].custom_pages[idx] };
+    }
+    if (m === 'delete') {
+      mockShops[0].custom_pages = (mockShops[0].custom_pages || []).filter(p => p.id !== pid);
+      return { data: { ok: true } };
+    }
+  }
+
+  // ─ MENU ITEMS (shop owner) ─
+  if (m === 'get' && path === '/dashboard/menu') {
+    return { data: (mockShops[0].menu_items || []).sort((a, b) => a.position - b.position) };
+  }
+
+  if (m === 'put' && path === '/dashboard/menu') {
+    mockShops[0].menu_items = body.items || [];
+    return { data: { ok: true } };
+  }
+
   // ─ ADMIN ─
   if (m === 'get' && path === '/admin/stats') {
     return { data: {
@@ -491,6 +544,15 @@ export const handleMockRequest = (method, path, body) => {
   const shopContactMatch = path.match(/^\/shop\/([^/]+)\/contact$/);
   if (shopContactMatch && m === 'post') {
     return { data: { ok: true } };
+  }
+
+  const shopPageMatch = path.match(/^\/shop\/([^/]+)\/page\/([^/]+)$/);
+  if (shopPageMatch && m === 'get') {
+    const shop = mockShops.find(s => s.slug === shopPageMatch[1]);
+    if (!shop) return { error: 'Shop not found', status: 404 };
+    const pg = (shop.custom_pages || []).find(p => p.slug === shopPageMatch[2] && p.is_published);
+    if (!pg) return { error: 'Page not found', status: 404 };
+    return { data: pg };
   }
 
   const shopOrderMatch = path.match(/^\/shop\/([^/]+)\/orders$/);
