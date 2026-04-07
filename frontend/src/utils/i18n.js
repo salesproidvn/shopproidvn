@@ -359,6 +359,7 @@ export const vi = {
   enabled: 'Bật',
   disabled: 'Tắt',
   featuredProducts: 'Sản phẩm nổi bật',
+  linkCopied: 'Đã sao chép liên kết',
 };
 
 export const en = {
@@ -700,6 +701,7 @@ export const en = {
   enabled: 'On',
   disabled: 'Off',
   featuredProducts: 'Featured Products',
+  linkCopied: 'Link copied!',
 };
 
 export const translations = { vi, en };

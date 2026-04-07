@@ -54,7 +54,7 @@ const ShopOwnerDashboard = () => {
   const [detailShowVideo, setDetailShowVideo] = useState(false);
   const [posts, setPosts] = useState([]);
 
-  const [productForm, setProductForm] = useState({ name: '', price: '', category_id: '', description: '', image_url: '', images: [], stock: '', position: '', video_url: '', sku: '' });
+  const [productForm, setProductForm] = useState({ name: '', price: '', category_id: '', description: '', image_url: '', images: [], stock: '', position: '', video_url: '', sku: '', is_featured: false });
   const [categoryForm, setCategoryForm] = useState({ name: '', description: '' });
   const [shopForm, setShopForm] = useState({});
   const [postForm, setPostForm] = useState({ title: '', description: '', thumbnail: '', images: [], attached_products: [] });
@@ -147,6 +147,7 @@ const ShopOwnerDashboard = () => {
         images: productForm.images || [],
         video_url: productForm.video_url || '',
         sku: productForm.sku || '',
+        is_featured: productForm.is_featured || false,
         image_url: productForm.images?.length > 0 ? productForm.images[0] : productForm.image_url
       };
       if (editingProduct) {
@@ -187,7 +188,8 @@ const ShopOwnerDashboard = () => {
       stock: (product.stock || 0).toString(),
       position: (product.position || 0).toString(),
       video_url: product.video_url || '',
-      sku: product.sku || ''
+      sku: product.sku || '',
+      is_featured: product.is_featured || false
     });
     setShowProductModal(true);
   };
@@ -201,7 +203,7 @@ const ShopOwnerDashboard = () => {
 
   const resetProductForm = () => {
     setEditingProduct(null);
-    setProductForm({ name: '', price: '', category_id: '', description: '', image_url: '', images: [], stock: '', position: '', video_url: '', sku: '' });
+    setProductForm({ name: '', price: '', category_id: '', description: '', image_url: '', images: [], stock: '', position: '', video_url: '', sku: '', is_featured: false });
   };
 
   const handleSaveCategory = async (e) => {
@@ -701,8 +703,13 @@ const ShopOwnerDashboard = () => {
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 lg:gap-4" data-testid="products-grid">
                       {filtered.map((product) => (
                         <div key={product.id} className="border rounded-[5px] overflow-hidden bg-white hover:shadow-lg transition-shadow">
-                          <div className="aspect-square bg-[#F8FAFC] cursor-pointer" onClick={() => openProductDetail(product)}>
+                          <div className="aspect-square bg-[#F8FAFC] cursor-pointer relative" onClick={() => openProductDetail(product)}>
                             <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
+                            {product.is_featured && (
+                              <span className="absolute top-1 left-1 px-1.5 py-0.5 text-white text-[9px] font-bold rounded-[3px]" style={{ backgroundColor: themeColor }} data-testid={`featured-badge-${product.id}`}>
+                                <TrendingUp className="w-2.5 h-2.5 inline mr-0.5" />Featured
+                              </span>
+                            )}
                           </div>
                           <div className="p-2 lg:p-3">
                             <h3 className="font-medium text-[#0F172A] text-xs lg:text-sm truncate cursor-pointer hover:text-[#0055FF]" onClick={() => openProductDetail(product)}>{product.name}</h3>
@@ -1190,6 +1197,18 @@ const ShopOwnerDashboard = () => {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="flex items-center justify-between p-3 bg-[#F8FAFC] rounded-[5px]">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="w-4 h-4" style={{ color: productForm.is_featured ? themeColor : '#94A3B8' }} />
+                <span className="text-sm font-medium text-[#0F172A]">{t.featuredProducts || 'Featured Product'}</span>
+              </div>
+              <button type="button" onClick={() => setProductForm({ ...productForm, is_featured: !productForm.is_featured })}
+                className={`w-11 h-6 rounded-full transition-colors relative ${productForm.is_featured ? '' : 'bg-[#E2E8F0]'}`}
+                style={productForm.is_featured ? { backgroundColor: themeColor } : {}}
+                data-testid="product-featured-toggle">
+                <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${productForm.is_featured ? 'translate-x-[22px]' : 'translate-x-0.5'}`} />
+              </button>
             </div>
             <div>
               <label className="block text-xs font-medium mb-1">{t.productImages}</label>

@@ -13,7 +13,7 @@ import PriceFilter from '../components/PriceFilter';
 import { 
   Search, ShoppingCart, Phone, Mail, MapPin, Facebook, Instagram, 
   Plus, Minus, Trash2, ArrowLeft, LayoutDashboard, X, AlertTriangle, Play,
-  MessageCircle, Map, FolderOpen, ChevronLeft, ChevronRight, FileText, Calendar
+  MessageCircle, Map, FolderOpen, ChevronLeft, ChevronRight, FileText, Calendar, Share2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { emitNotification } from '../context/NotificationContext';
@@ -296,10 +296,10 @@ const StorefrontPage = () => {
     </div>
   );
 
-  // Featured Products Section (first 4 products from top categories)
+  // Featured Products Section
   const FeaturedProducts = () => {
     if (!isSectionEnabled('featured')) return null;
-    const featured = products.slice(0, 8);
+    const featured = products.filter(p => p.is_featured);
     if (!featured.length) return null;
     return (
       <div className="mb-8" data-testid="featured-products">
@@ -412,14 +412,29 @@ const StorefrontPage = () => {
             </div>
             <div className="flex flex-col">
               <h1 className="text-2xl sm:text-3xl font-bold text-[#0F172A] mb-3" data-testid="product-name">{selectedProduct.name}</h1>
-              <p className="text-3xl font-bold mb-4" style={{ color: themeColor }} data-testid="product-price">{formatVND(selectedProduct.price)}</p>
+              <p className="text-3xl font-bold mb-2" style={{ color: themeColor }} data-testid="product-price">{formatVND(selectedProduct.price)}</p>
+              {selectedProduct.sku && <p className="text-xs text-[#94A3B8] mb-2" data-testid="product-sku">SKU: {selectedProduct.sku}</p>}
               {selectedProduct.category && <p className="text-sm text-[#94A3B8] mb-4">{selectedProduct.category}</p>}
-              {selectedProduct.description && <div className="text-[#64748B] leading-relaxed mb-8 prose prose-sm max-w-none" data-testid="product-description" dangerouslySetInnerHTML={{ __html: selectedProduct.description }} />}
-              <Button className="w-full hover:opacity-90 py-6 text-base rounded-[5px]"
-                style={{ backgroundColor: themeColor }}
-                onClick={() => { addToCart(selectedProduct); setSelectedProduct(null); setActiveImage(0); setShowVideo(false); }} data-testid="product-add-cart">
-                <ShoppingCart className="w-5 h-5 mr-2" /> {t.addToCart}
-              </Button>
+              {selectedProduct.description && <div className="text-[#64748B] leading-relaxed mb-6 prose prose-sm max-w-none" data-testid="product-description" dangerouslySetInnerHTML={{ __html: selectedProduct.description }} />}
+              <div className="flex gap-3 mt-auto">
+                <Button className="flex-1 hover:opacity-90 py-6 text-base rounded-[5px]"
+                  style={{ backgroundColor: themeColor }}
+                  onClick={() => { addToCart(selectedProduct); setSelectedProduct(null); setActiveImage(0); setShowVideo(false); }} data-testid="product-add-cart">
+                  <ShoppingCart className="w-5 h-5 mr-2" /> {t.addToCart}
+                </Button>
+                <Button variant="outline" className="py-6 px-4 rounded-[5px]"
+                  onClick={() => {
+                    const url = `${window.location.origin}/shop/${slug}?product=${selectedProduct.id}`;
+                    if (navigator.share) {
+                      navigator.share({ title: selectedProduct.name, text: `${selectedProduct.name} - ${formatVND(selectedProduct.price)}`, url });
+                    } else {
+                      navigator.clipboard.writeText(url);
+                      toast.success(t.linkCopied || 'Link copied!');
+                    }
+                  }} data-testid="product-share-btn">
+                  <Share2 className="w-5 h-5" />
+                </Button>
+              </div>
             </div>
           </div>
         </div>
