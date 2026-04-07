@@ -7,6 +7,7 @@ import { WishlistProvider } from "./context/WishlistContext";
 import { LanguageProvider } from "./context/LanguageContext";
 import { NotificationProvider } from "./context/NotificationContext";
 import HomePage from "./pages/HomePage";
+import LoginPage from "./pages/LoginPage";
 import WishlistPage from "./pages/WishlistPage";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import ShopOwnerDashboard from "./pages/ShopOwnerDashboard";
@@ -26,7 +27,7 @@ function App() {
           <WishlistProvider>
             <BrowserRouter>
               <Routes>
-                <Route path="/" element={<HomePage />} />
+                <Route path="/" element={<LoginPage />} />
                 <Route path="/wishlist" element={<WishlistPage />} />
                 <Route path="/admin" element={<SuperAdminDashboard />} />
                 <Route path="/dashboard" element={<ShopOwnerDashboard />} />
