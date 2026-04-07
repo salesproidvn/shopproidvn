@@ -6,57 +6,41 @@ Create an admin dashboard for a Micro-SaaS E-commerce Platform. Multi-tenant set
 ## Tech Stack
 - Frontend: React 19, Tailwind CSS, Shadcn/UI, react-quill-new (WYSIWYG)
 - Backend: FastAPI + MongoDB (currently bypassed by frontend mock mode)
-- Auth: Bearer JWT tokens in localStorage
 - Mode: **MOCK MODE** (mockAdapter.js intercepts all API calls)
-
-## Core Architecture
-```
-/app/frontend/src/
-  pages/ - StorefrontPage, ShopOwnerDashboard, SuperAdminDashboard, HomePage, BlogPostPage, ContactPage, CategoryPage, CustomPage
-  components/ - Header, ProductCard, ProductModal, PriceFilter, NotificationBell
-  context/ - AuthContext, CartContext, WishlistContext, LanguageContext, NotificationContext
-  utils/ - mockAdapter.js, mockData.js, i18n.js, format.js
-```
 
 ## What's Been Implemented
 
-### Phase 1 - Core Platform (Complete)
-- Multi-tenant shop system with Super Admin and Shop Owner roles
-- Product CRUD with categories, drag-and-drop position ordering
-- Order management with status tracking
-- Vietnamese (vi) and English (en) language support
-- JWT authentication, dynamic theme color, custom domain mapping
+### Phase 1-3 (Complete)
+- Multi-tenant shop, Product CRUD, Orders, Vi/En i18n, JWT Auth
+- Multi-image gallery, video URL, blog posts with WYSIWYG
+- Banner slider, display layout reordering, SKU, featured products
 
-### Phase 2 - Product Enhancements (Complete)
-- Multi-image product gallery, video URL support, thumbnail selection
-- Product grouping by category, 42 products across 6 categories
+### Phase 4 - Navigation & Footer (Complete)
+- Dynamic menu bar, related products, category page, editable footer with links
 
-### Phase 3 - Blog & Navigation Features (Complete)
-- Blog Posts with WYSIWYG editor, thumbnails, attached products
-- Post Slider Carousel, Banner Slider (up to 3)
-- Full-page Product View, Bottom Bar, Category Pagination
-- Display Layout reordering, SKU field, Featured Product toggle
+### Phase 5 - Custom Pages & Menu Manager (Complete)
+- Custom page builder (text/image/link/video sections), up to 10 pages
+- Menu manager with quick-link dropdown (posts, pages, built-in pages), up to 10 items
+- Copy link button, share button on posts, 2-col mobile attached products
 
-### Phase 4 - Storefront Navigation & Footer (Complete)
-- Menu Bar (dynamic from shop.menu_items), Related Products
-- Category Page (`/shop/:slug/categories`)
-- Editable Footer with link-attachable items (`items: [{text, url}]`)
-
-### Phase 5 - Custom Pages & Menu Manager (Complete - Feb 2026)
-- **Custom Page Builder**: Shop owners can create up to 10 custom pages with section-based builder (Text/WYSIWYG, Image, Link, Video URL). Pages published at `/shop/:slug/page/:pageSlug`. Draft pages return 404 publicly.
-- **Menu Manager**: Dashboard tab for adding/removing/reordering up to 10 menu items. Each item has label, URL, type, and visibility toggle. Quick Link dropdown for linking to existing posts, custom pages, and built-in pages.
-- **Copy Link**: Each custom page card in dashboard has a Copy Link button.
-- **Share Button**: Added to blog post detail view header.
-- **Mobile 2-column**: Attached products in post detail view now 2-column on mobile.
-- **Mock Data**: 7 custom pages (About Us, Shipping Policy, Size Guide, Loyalty Program, FAQ, Store Locations, Careers[draft])
+### Phase 6 - Sub-categories & Video Links (Complete - Feb 2026)
+- **Sub-categories**: Categories support `parent_id` for hierarchy. Root categories display sub-category chips on storefront. Category filter dropdown shows indented sub-categories. Dashboard categories tab shows parent/child tree with nested dashed-border cards. Category modal has Parent Category dropdown.
+- **Product Video Links**: Each product supports up to 4 video links (YouTube, TikTok). Videos render in a 2-column iframe grid in product detail view below product info. Dashboard product modal has Add Video Link inputs with remove buttons and 4-item max limit.
+- **Data**: 12 categories (6 root + 6 sub), 7 custom pages, 5 menu items
 
 ## Key Data Models
 ```js
+// Category (with sub-categories)
+{ id, shop_id, name, description, position, parent_id: null|'cat-id' }
+
+// Product (with video links)
+{ id, shop_id, name, price, category_id, stock, image_url, images[], video_url, video_links: ['url1','url2','url3','url4'], sku, is_featured, description }
+
 // Custom Page
-{ id, shop_id, title, slug, sections: [{type, content, url, text, caption}], is_published, created_at, updated_at }
+{ id, shop_id, title, slug, sections: [{type, content, url, text, caption}], is_published }
 
 // Menu Item
-{ id, label, url, type: 'internal'|'external'|'scroll_shop'|'custom_page', enabled, position }
+{ id, label, url, type, enabled, position }
 
 // Footer Column
 { title, items: [{text, url}] }
@@ -67,5 +51,5 @@ Create an admin dashboard for a Micro-SaaS E-commerce Platform. Multi-tenant set
 - Shop Owner: demo@thewishop.com / demo123
 
 ## Backlog
-- P1: Add sales analytics charts to dashboards
-- P2: Refactor ShopOwnerDashboard.js and StorefrontPage.js into smaller components
+- P1: Sales analytics charts on dashboards
+- P2: Refactor ShopOwnerDashboard.js (2000+ lines) and StorefrontPage.js (880+ lines)
