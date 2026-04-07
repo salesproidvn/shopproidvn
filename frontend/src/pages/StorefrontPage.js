@@ -206,7 +206,7 @@ const StorefrontPage = () => {
     if (!banners.length || !shop?.banner_enabled) return null;
     return (
       <div className="mb-8" data-testid="banner-slider">
-        <div className="relative max-w-4xl mx-auto overflow-hidden rounded-[5px]">
+        <div className="relative w-full overflow-hidden rounded-[5px]">
           <div className="relative aspect-[3/1] bg-[#F8FAFC]">
             {banners.map((url, idx) => (
               <img key={idx} src={url} alt="" className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ${idx === bannerIndex ? 'opacity-100' : 'opacity-0'}`} />

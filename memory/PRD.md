@@ -50,6 +50,9 @@ Create an admin dashboard for a Micro-SaaS E-commerce Platform. Multi-tenant set
 - Admin: admin@thewishop.com / admin123
 - Shop Owner: demo@thewishop.com / demo123
 
+### Phase 7 - UI Polish (Complete - Feb 2026)
+- **Storefront Banner Width**: Banner slider now uses full container width (`w-full`) instead of `max-w-4xl`, aligning perfectly with blog, featured products, and product grid sections.
+
 ## Backlog
 - P1: Sales analytics charts on dashboards
 - P2: Refactor ShopOwnerDashboard.js (2000+ lines) and StorefrontPage.js (880+ lines)
