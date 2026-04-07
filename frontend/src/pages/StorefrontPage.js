@@ -315,7 +315,7 @@ const StorefrontPage = () => {
     return (
       <div className="mb-8" data-testid="featured-products">
         <h3 className="text-xl sm:text-2xl font-bold text-[#0F172A] mb-4">{t.featuredProducts}</h3>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 lg:gap-5">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 lg:gap-5">
           {featured.map((product) => (<ProductCard key={product.id} product={product} />))}
         </div>
       </div>
