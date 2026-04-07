@@ -446,6 +446,27 @@ const StorefrontPage = () => {
                   )}
                 </div>
               )}
+              {/* Video Grid - below product images */}
+              {(() => {
+                const videoLinks = (selectedProduct.video_links || []).filter(v => v && getVideoEmbed(v));
+                if (videoLinks.length === 0) return null;
+                return (
+                  <div className="mt-4" data-testid="product-video-grid">
+                    <h3 className="text-sm font-semibold text-[#0F172A] mb-2">{t.productVideos}</h3>
+                    <div className="grid grid-cols-2 gap-2">
+                      {videoLinks.map((vl, idx) => {
+                        const embed = getVideoEmbed(vl);
+                        if (!embed) return null;
+                        return (
+                          <div key={idx} className="aspect-[9/16] sm:aspect-video rounded-[5px] overflow-hidden bg-black" data-testid={`product-video-${idx}`}>
+                            <iframe src={embed.embed} title={`Video ${idx + 1}`} className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowFullScreen />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
             <div className="flex flex-col">
               <h1 className="text-2xl sm:text-3xl font-bold text-[#0F172A] mb-3" data-testid="product-name">{selectedProduct.name}</h1>
@@ -474,27 +495,6 @@ const StorefrontPage = () => {
               </div>
             </div>
           </div>
-          {/* Video Grid */}
-          {(() => {
-            const videoLinks = (selectedProduct.video_links || []).filter(v => v && getVideoEmbed(v));
-            if (videoLinks.length === 0) return null;
-            return (
-              <div className="mt-10 border-t border-[#E2E8F0] pt-8" data-testid="product-video-grid">
-                <h2 className="text-xl font-bold text-[#0F172A] mb-4">{t.productVideos}</h2>
-                <div className="grid grid-cols-2 gap-3 lg:gap-5">
-                  {videoLinks.map((vl, idx) => {
-                    const embed = getVideoEmbed(vl);
-                    if (!embed) return null;
-                    return (
-                      <div key={idx} className="aspect-[9/16] sm:aspect-video rounded-[5px] overflow-hidden bg-black" data-testid={`product-video-${idx}`}>
-                        <iframe src={embed.embed} title={`Video ${idx + 1}`} className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowFullScreen />
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })()}
           {/* Related Products */}
           {(() => {
             const related = products.filter(p => p.category_id === selectedProduct.category_id && p.id !== selectedProduct.id).slice(0, 4);
