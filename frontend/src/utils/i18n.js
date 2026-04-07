@@ -386,6 +386,10 @@ export const vi = {
   footerSaved: 'Chân trang đã được cập nhật',
   addFooterColumn: 'Thêm cột',
   removeFooterColumn: 'Xóa cột',
+  footerItems: 'Mục',
+  footerItemText: 'Văn bản',
+  footerItemUrl: 'Liên kết (tùy chọn) vd: https://...',
+  addFooterItem: 'Thêm mục',
 };
 
 export const en = {
@@ -754,6 +758,10 @@ export const en = {
   footerSaved: 'Footer updated',
   addFooterColumn: 'Add Column',
   removeFooterColumn: 'Remove Column',
+  footerItems: 'Items',
+  footerItemText: 'Text',
+  footerItemUrl: 'Link URL (optional) e.g. https://...',
+  addFooterItem: 'Add Item',
 };
 
 export const translations = { vi, en };

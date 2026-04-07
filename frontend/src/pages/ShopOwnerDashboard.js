@@ -972,7 +972,7 @@ const ShopOwnerDashboard = () => {
                 </CardHeader>
                 <CardContent className="p-4 pt-0 space-y-4" data-testid="footer-settings">
                   {(shopForm.footer_columns || []).map((col, idx) => (
-                    <div key={idx} className="p-3 border border-[#E2E8F0] rounded-[5px] space-y-2" data-testid={`footer-col-editor-${idx}`}>
+                    <div key={idx} className="p-3 border border-[#E2E8F0] rounded-[5px] space-y-3" data-testid={`footer-col-editor-${idx}`}>
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-medium text-[#64748B]">{t.footerColumn} {idx + 1}</span>
                         <Button variant="ghost" size="sm" className="h-6 text-xs text-red-500 hover:text-red-700" onClick={async () => {
@@ -997,24 +997,64 @@ const ShopOwnerDashboard = () => {
                         className="text-sm"
                         data-testid={`footer-col-title-${idx}`}
                       />
-                      <Textarea
-                        value={col.content}
-                        onChange={(e) => {
+                      {/* Footer items with text + optional link */}
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-medium text-[#94A3B8] uppercase tracking-wide">{t.footerItems}</label>
+                        {(col.items || []).map((item, itemIdx) => (
+                          <div key={itemIdx} className="flex gap-2 items-start" data-testid={`footer-item-${idx}-${itemIdx}`}>
+                            <div className="flex-1 space-y-1">
+                              <Input
+                                value={item.text}
+                                onChange={(e) => {
+                                  const newCols = [...(shopForm.footer_columns || [])];
+                                  const newItems = [...(newCols[idx].items || [])];
+                                  newItems[itemIdx] = { ...newItems[itemIdx], text: e.target.value };
+                                  newCols[idx] = { ...newCols[idx], items: newItems };
+                                  setShopForm({ ...shopForm, footer_columns: newCols });
+                                }}
+                                placeholder={t.footerItemText}
+                                className="text-sm h-8"
+                                data-testid={`footer-item-text-${idx}-${itemIdx}`}
+                              />
+                              <Input
+                                value={item.url || ''}
+                                onChange={(e) => {
+                                  const newCols = [...(shopForm.footer_columns || [])];
+                                  const newItems = [...(newCols[idx].items || [])];
+                                  newItems[itemIdx] = { ...newItems[itemIdx], url: e.target.value };
+                                  newCols[idx] = { ...newCols[idx], items: newItems };
+                                  setShopForm({ ...shopForm, footer_columns: newCols });
+                                }}
+                                placeholder={t.footerItemUrl}
+                                className="text-xs h-7 text-[#64748B]"
+                                data-testid={`footer-item-url-${idx}-${itemIdx}`}
+                              />
+                            </div>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-red-400 hover:text-red-600 flex-shrink-0 mt-0" onClick={() => {
+                              const newCols = [...(shopForm.footer_columns || [])];
+                              const newItems = (newCols[idx].items || []).filter((_, i) => i !== itemIdx);
+                              newCols[idx] = { ...newCols[idx], items: newItems };
+                              setShopForm({ ...shopForm, footer_columns: newCols });
+                            }} data-testid={`remove-footer-item-${idx}-${itemIdx}`}>
+                              <X className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        ))}
+                        <Button variant="outline" size="sm" className="text-[10px] h-7" onClick={() => {
                           const newCols = [...(shopForm.footer_columns || [])];
-                          newCols[idx] = { ...newCols[idx], content: e.target.value };
+                          const newItems = [...(newCols[idx].items || []), { text: '', url: '' }];
+                          newCols[idx] = { ...newCols[idx], items: newItems };
                           setShopForm({ ...shopForm, footer_columns: newCols });
-                        }}
-                        placeholder={t.footerColumnContent}
-                        rows={3}
-                        className="text-sm"
-                        data-testid={`footer-col-content-${idx}`}
-                      />
+                        }} data-testid={`add-footer-item-${idx}`}>
+                          <Plus className="w-3 h-3 mr-1" /> {t.addFooterItem}
+                        </Button>
+                      </div>
                     </div>
                   ))}
                   <div className="flex gap-3">
                     {(shopForm.footer_columns || []).length < 4 && (
                       <Button variant="outline" size="sm" className="text-xs" onClick={() => {
-                        const newCols = [...(shopForm.footer_columns || []), { title: '', content: '' }];
+                        const newCols = [...(shopForm.footer_columns || []), { title: '', items: [{ text: '', url: '' }] }];
                         setShopForm({ ...shopForm, footer_columns: newCols });
                       }} data-testid="add-footer-col-btn">
                         <Plus className="w-3 h-3 mr-1" /> {t.addFooterColumn}

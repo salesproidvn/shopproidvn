@@ -54,6 +54,17 @@ Create an admin dashboard for a Micro-SaaS E-commerce Platform. Multi-tenant set
 - **Related Products**: Shows up to 4 products from the same category in the product detail view
 - **Category Page**: Standalone `/shop/:slug/categories` route listing all categories with descriptions, product counts, product previews, and links
 - **Editable Footer**: 4-column configurable footer managed from Dashboard Layout tab, rendered dynamically on storefront
+- **Footer Links**: Each footer item supports optional URL - renders as clickable `<a>` link on storefront. External links (https://) open in new tab, internal links in same tab. Dashboard editor provides per-item text + URL inputs with add/remove controls.
+
+## Footer Data Model
+```js
+footer_columns: [
+  { title: 'Column Title', items: [
+    { text: 'Link Text', url: 'https://...' },   // renders as <a>
+    { text: 'Plain text', url: '' }               // renders as <p>
+  ]}
+]
+```
 
 ## Credentials
 - Admin: admin@thewishop.com / admin123

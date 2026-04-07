@@ -616,8 +616,15 @@ const StorefrontPage = () => {
                 <div key={idx} data-testid={`footer-column-${idx}`}>
                   <h4 className="font-semibold text-base mb-3">{col.title}</h4>
                   <div className="space-y-1.5 text-[#94A3B8] text-sm">
-                    {col.content.split('\n').map((line, lineIdx) => (
-                      <p key={lineIdx}>{line}</p>
+                    {(col.items || []).map((item, itemIdx) => (
+                      item.url ? (
+                        <a key={itemIdx} href={item.url} target={item.url.startsWith('http') ? '_blank' : '_self'} rel="noopener noreferrer"
+                          className="block hover:text-white transition-colors" data-testid={`footer-link-${idx}-${itemIdx}`}>
+                          {item.text}
+                        </a>
+                      ) : (
+                        <p key={itemIdx}>{item.text}</p>
+                      )
                     ))}
                   </div>
                 </div>

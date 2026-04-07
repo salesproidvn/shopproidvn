@@ -34,10 +34,27 @@ export let mockShops = [
       { id: 'products', label: 'Products', enabled: true }
     ],
     footer_columns: [
-      { title: 'About Us', content: 'The Elite Shop - Premium products curated for the modern lifestyle. Quality and style in every item.' },
-      { title: 'Customer Service', content: 'Shipping & Returns\nOrder Tracking\nFAQ\nSize Guide' },
-      { title: 'Quick Links', content: 'New Arrivals\nBest Sellers\nSale Items\nGift Cards' },
-      { title: 'Follow Us', content: 'Facebook\nInstagram\nTikTok\nYouTube' }
+      { title: 'About Us', items: [
+        { text: 'The Elite Shop - Premium products curated for the modern lifestyle. Quality and style in every item.', url: '' }
+      ]},
+      { title: 'Customer Service', items: [
+        { text: 'Shipping & Returns', url: '/shop/the-elite-shop/contact' },
+        { text: 'Order Tracking', url: '' },
+        { text: 'FAQ', url: '/shop/the-elite-shop/contact' },
+        { text: 'Size Guide', url: '' }
+      ]},
+      { title: 'Quick Links', items: [
+        { text: 'New Arrivals', url: '/shop/the-elite-shop' },
+        { text: 'Best Sellers', url: '/shop/the-elite-shop' },
+        { text: 'Sale Items', url: '/shop/the-elite-shop' },
+        { text: 'Gift Cards', url: '' }
+      ]},
+      { title: 'Follow Us', items: [
+        { text: 'Facebook', url: 'https://facebook.com/theeliteshop' },
+        { text: 'Instagram', url: 'https://instagram.com/theeliteshop' },
+        { text: 'TikTok', url: 'https://tiktok.com/@theeliteshop' },
+        { text: 'YouTube', url: 'https://youtube.com/@theeliteshop' }
+      ]}
     ],
     created_at: '2025-12-01T00:00:00Z'
   }
