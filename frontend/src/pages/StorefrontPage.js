@@ -387,9 +387,9 @@ const StorefrontPage = () => {
         <div className="flex justify-center">
           <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
             {parentCats.map(cat => (
-              <button
+              <Link
                 key={cat.id}
-                onClick={() => { setSelectedCategory(cat.id); window.scrollTo({ top: document.getElementById('products-section')?.offsetTop - 80, behavior: 'smooth' }); }}
+                to={`/shop/${slug}/category/${cat.id}`}
                 className="flex flex-col items-center gap-2 p-3 rounded-xl bg-white border border-[#E2E8F0] hover:border-current hover:shadow-sm transition-all group"
                 data-testid={`cat-grid-${cat.id}`}
               >
@@ -401,7 +401,7 @@ const StorefrontPage = () => {
                   )}
                 </div>
                 <span className="text-xs font-medium text-[#334155] text-center leading-tight line-clamp-2">{cat.name}</span>
-              </button>
+              </Link>
             ))}
           </div>
         </div>
