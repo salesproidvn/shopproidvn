@@ -384,26 +384,28 @@ const StorefrontPage = () => {
     if (!parentCats.length) return null;
     return (
       <div className="mb-8" data-testid="category-grid-section">
-        <div className="flex justify-center">
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
-            {parentCats.map(cat => (
-              <Link
-                key={cat.id}
-                to={`/shop/${slug}/category/${cat.id}`}
-                className="flex flex-col items-center gap-2 p-3 rounded-xl bg-white border border-[#E2E8F0] hover:border-current hover:shadow-sm transition-all group"
-                data-testid={`cat-grid-${cat.id}`}
-              >
-                <div className="w-14 h-14 rounded-full overflow-hidden bg-[#F1F5F9] flex items-center justify-center shrink-0">
-                  {cat.image_url ? (
-                    <img src={cat.image_url} alt={cat.name} className="w-full h-full object-cover" />
-                  ) : (
-                    <FolderOpen className="w-6 h-6 text-[#94A3B8]" />
-                  )}
-                </div>
-                <span className="text-xs font-medium text-[#334155] text-center leading-tight line-clamp-2">{cat.name}</span>
-              </Link>
-            ))}
-          </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3 lg:gap-4">
+          {parentCats.map(cat => (
+            <Link
+              key={cat.id}
+              to={`/shop/${slug}/category/${cat.id}`}
+              className="group bg-white border border-[#E2E8F0] rounded-[5px] overflow-hidden hover:shadow-lg transition-all"
+              data-testid={`cat-grid-${cat.id}`}
+            >
+              <div className="aspect-square bg-[#F8FAFC] overflow-hidden">
+                {cat.image_url ? (
+                  <img src={cat.image_url} alt={cat.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <FolderOpen className="w-10 h-10 text-[#CBD5E1]" />
+                  </div>
+                )}
+              </div>
+              <div className="p-2 text-center">
+                <span className="text-xs font-medium text-[#334155] line-clamp-1">{cat.name}</span>
+              </div>
+            </Link>
+          ))}
         </div>
       </div>
     );
