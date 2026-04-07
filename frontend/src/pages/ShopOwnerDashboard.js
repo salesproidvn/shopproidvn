@@ -10,6 +10,7 @@ import { Input } from '../components/ui/input';
 import { Textarea } from '../components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { Switch } from '../components/ui/switch';
 import { 
   LayoutDashboard, Package, FolderOpen, ShoppingCart, Settings, 
   LogOut, Menu, X, Plus, Pencil, Trash2, TrendingUp, Clock, Eye, Palette, Upload, ExternalLink,
@@ -1105,7 +1106,7 @@ const ShopOwnerDashboard = () => {
                               className={`w-11 h-6 rounded-full transition-colors relative ${section.enabled ? '' : 'bg-[#E2E8F0]'}`}
                               style={section.enabled ? { backgroundColor: themeColor } : {}}
                               data-testid={`toggle-section-${section.id}`}>
-                              <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${section.enabled ? 'translate-x-[22px]' : 'translate-x-0.5'}`} />
+                              <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-md ring-1 ring-black/5 transition-transform ${section.enabled ? 'translate-x-[22px]' : 'translate-x-0.5'}`} />
                             </button>
                           </div>
                         </div>
@@ -1359,7 +1360,7 @@ const ShopOwnerDashboard = () => {
                       className={`w-11 h-6 rounded-full transition-colors relative ${shopForm.banner_enabled ? '' : 'bg-[#E2E8F0]'}`}
                       style={shopForm.banner_enabled ? { backgroundColor: themeColor } : {}}
                       data-testid="toggle-banner">
-                      <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${shopForm.banner_enabled ? 'translate-x-[22px]' : 'translate-x-0.5'}`} />
+                      <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-md ring-1 ring-black/5 transition-transform ${shopForm.banner_enabled ? 'translate-x-[22px]' : 'translate-x-0.5'}`} />
                     </button>
                   </div>
                   <div className="flex items-center justify-between">
@@ -1368,7 +1369,7 @@ const ShopOwnerDashboard = () => {
                       className={`w-11 h-6 rounded-full transition-colors relative ${shopForm.blog_enabled ? '' : 'bg-[#E2E8F0]'}`}
                       style={shopForm.blog_enabled ? { backgroundColor: themeColor } : {}}
                       data-testid="toggle-blog">
-                      <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${shopForm.blog_enabled ? 'translate-x-[22px]' : 'translate-x-0.5'}`} />
+                      <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-md ring-1 ring-black/5 transition-transform ${shopForm.blog_enabled ? 'translate-x-[22px]' : 'translate-x-0.5'}`} />
                     </button>
                   </div>
                   <div>
@@ -1499,7 +1500,7 @@ const ShopOwnerDashboard = () => {
                 className={`w-11 h-6 rounded-full transition-colors relative ${productForm.is_featured ? '' : 'bg-[#E2E8F0]'}`}
                 style={productForm.is_featured ? { backgroundColor: themeColor } : {}}
                 data-testid="product-featured-toggle">
-                <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${productForm.is_featured ? 'translate-x-[22px]' : 'translate-x-0.5'}`} />
+                <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-md ring-1 ring-black/5 transition-transform ${productForm.is_featured ? 'translate-x-[22px]' : 'translate-x-0.5'}`} />
               </button>
             </div>
             <div>
@@ -1833,10 +1834,10 @@ const ShopOwnerDashboard = () => {
             <div className="flex items-center gap-3">
               <label className="text-xs font-medium">{t.published}:</label>
               <button type="button" onClick={() => setPageForm({ ...pageForm, is_published: !pageForm.is_published })}
-                className={`relative w-10 h-5 rounded-full transition-colors ${pageForm.is_published ? '' : 'bg-[#E2E8F0]'}`}
+                className={`relative w-11 h-6 rounded-full transition-colors ${pageForm.is_published ? '' : 'bg-[#E2E8F0]'}`}
                 style={{ backgroundColor: pageForm.is_published ? themeColor : undefined }}
                 data-testid="page-publish-toggle">
-                <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${pageForm.is_published ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-md ring-1 ring-black/5 transition-transform ${pageForm.is_published ? 'translate-x-[22px]' : 'translate-x-0.5'}`} />
               </button>
               <span className="text-xs text-[#64748B]">{pageForm.is_published ? t.published : t.draft}</span>
             </div>
