@@ -378,6 +378,7 @@ const StorefrontPage = () => {
     if (!parentCats.length) return null;
     return (
       <div className="mb-8" data-testid="category-grid-section">
+        <h3 className="text-xl sm:text-2xl font-bold text-[#0F172A] mb-4">{t.productCategories}</h3>
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3 lg:gap-4">
           {parentCats.map(cat => (
             <Link

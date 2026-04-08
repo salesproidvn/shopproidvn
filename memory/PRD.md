@@ -65,7 +65,7 @@ Create an admin dashboard for a Micro-SaaS E-commerce Platform. Multi-tenant set
 - **Removed Price Filter**: Removed PriceFilter component from storefront, only category dropdown remains.
 - **Redesigned Bottom Bar**: Taller bar (h-16), bigger icons (w-5 h-5), readable text (text-xs font-medium), grid layout, MapPin and Grid3X3 icons for clarity.
 - **Themed Bottom Bar**: Bottom bar uses shop's `theme_color` as background with white icons/text.
-- **Category Grid**: 8-column centered grid of parent categories with circular images below banner, 2 cols on mobile.
+- **Category Grid**: 8-column left-aligned grid of parent categories with square product cards below banner, 2 cols on mobile. Section titled "Danh mục sản phẩm" via `t.productCategories`.
 - **Category Images**: Categories now support `image_url` field, editable in dashboard category form.
 - **Single Category Page** (`/shop/:slug/category/:categoryId`): Dedicated page showing all products of a category with sub-category filter chips, category hero with image, add-to-cart buttons.
 - **Layout Position Editable**: Categories section added to Display Layout settings for position reordering and toggle.

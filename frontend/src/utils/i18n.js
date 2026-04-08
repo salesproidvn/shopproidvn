@@ -324,7 +324,7 @@ export const vi = {
   call: 'Gọi điện',
   message: 'Nhắn tin',
   map: 'Bản đồ',
-  productCategories: 'Danh mục',
+  productCategories: 'Danh mục sản phẩm',
 
   // Admin Limits
   shopLimits: 'Giới hạn cửa hàng',
