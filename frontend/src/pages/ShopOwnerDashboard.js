@@ -1483,7 +1483,37 @@ const ShopOwnerDashboard = () => {
                     </div>
                     <div>
                       <label className="block text-xs font-medium mb-1">{t.logoUrl}</label>
-                      <Input value={shopForm.logo_url || ''} onChange={(e) => setShopForm({ ...shopForm, logo_url: e.target.value })} placeholder="https://..." className="text-sm" data-testid="shop-logo-input" />
+                      <div className="flex items-start gap-4">
+                        <div className="w-20 h-20 rounded-full border-2 border-dashed border-[#E2E8F0] overflow-hidden flex items-center justify-center bg-[#F8FAFC] shrink-0" data-testid="shop-logo-preview">
+                          {shopForm.logo_url ? (
+                            <img src={shopForm.logo_url} alt="Logo" className="w-full h-full object-cover" />
+                          ) : (
+                            <span className="text-2xl font-bold text-[#94A3B8]">{shopForm.name?.[0] || '?'}</span>
+                          )}
+                        </div>
+                        <div className="flex-1 space-y-2">
+                          <Input value={shopForm.logo_url || ''} onChange={(e) => setShopForm({ ...shopForm, logo_url: e.target.value })} placeholder="https://..." className="text-sm" data-testid="shop-logo-input" />
+                          <div className="flex items-center gap-2">
+                            <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-[#E2E8F0] text-xs font-medium text-[#475569] hover:bg-[#F1F5F9] transition-colors" data-testid="shop-logo-upload-btn">
+                              <Upload className="w-3.5 h-3.5" />
+                              {t.uploadLogo || 'Tải lên'}
+                              <input type="file" accept="image/*" className="hidden" data-testid="shop-logo-file-input" onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  const reader = new FileReader();
+                                  reader.onload = (ev) => setShopForm({ ...shopForm, logo_url: ev.target.result });
+                                  reader.readAsDataURL(file);
+                                }
+                              }} />
+                            </label>
+                            {shopForm.logo_url && (
+                              <button type="button" onClick={() => setShopForm({ ...shopForm, logo_url: '' })} className="text-xs text-red-500 hover:underline" data-testid="shop-logo-remove-btn">
+                                {t.remove || 'Xóa'}
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
