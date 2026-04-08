@@ -501,7 +501,7 @@ const StorefrontPage = () => {
               <div className="flex gap-3 mt-auto">
                 <Button className="flex-1 hover:opacity-90 py-6 text-base rounded-[5px]"
                   style={{ backgroundColor: themeColor }}
-                  onClick={() => { addToCart(selectedProduct); setSelectedProduct(null); setActiveImage(0); setShowVideo(false); }} data-testid="product-add-cart">
+                  onClick={() => { addToCart(selectedProduct); }} data-testid="product-add-cart">
                   <ShoppingCart className="w-5 h-5 mr-2" /> {t.addToCart}
                 </Button>
                 <Button variant="outline" className="py-6 px-4 rounded-[5px]"
