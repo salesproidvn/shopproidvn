@@ -48,7 +48,7 @@ const StorefrontPage = () => {
 
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [activeImage, setActiveImage] = useState(0);
-  const [showVideo, setShowVideo] = useState(false);
+  const [showVideo, setShowVideo] = useState(null); // null = no video, number = index into allVideos array
   const [showCategoryMenu, setShowCategoryMenu] = useState(false);
   const [expandedCategories, setExpandedCategories] = useState({});
   const [postCarouselIndex, setPostCarouselIndex] = useState(0);
@@ -72,7 +72,7 @@ const StorefrontPage = () => {
     const productParam = searchParams.get('product');
     if (productParam && products.length > 0) {
       const found = products.find(p => p.id === productParam);
-      if (found) { setSelectedProduct(found); setActiveImage(0); setShowVideo(false); }
+      if (found) { setSelectedProduct(found); setActiveImage(0); setShowVideo(null); }
     }
     const categoryParam = searchParams.get('category');
     if (categoryParam && categories.length > 0) {
@@ -280,7 +280,7 @@ const StorefrontPage = () => {
   // Product Card
   const ProductCard = ({ product }) => (
     <div className="group bg-white border border-[#E2E8F0] rounded-[5px] overflow-hidden hover:shadow-lg transition-all cursor-pointer"
-      onClick={() => { setSelectedProduct(product); setActiveImage(0); setShowVideo(false); }} data-testid={`product-${product.id}`}>
+      onClick={() => { setSelectedProduct(product); setActiveImage(0); setShowVideo(null); }} data-testid={`product-${product.id}`}>
       <div className="aspect-square bg-[#F8FAFC] overflow-hidden">
         <img src={product.image_url} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
       </div>
@@ -438,7 +438,7 @@ const StorefrontPage = () => {
     const embedUrl = ytMatch ? `https://www.youtube.com/embed/${ytMatch[1]}` : (selectedProduct.video_url || null);
     return (
       <div className="fixed inset-0 z-50 bg-white overflow-y-auto" data-testid="product-fullpage">
-        <button onClick={() => { setSelectedProduct(null); setActiveImage(0); setShowVideo(false); if (searchParams.get('product')) { searchParams.delete('product'); setSearchParams(searchParams, { replace: true }); } }}
+        <button onClick={() => { setSelectedProduct(null); setActiveImage(0); setShowVideo(null); if (searchParams.get('product')) { searchParams.delete('product'); setSearchParams(searchParams, { replace: true }); } }}
           className="fixed top-4 right-4 z-[60] w-10 h-10 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-lg transition-colors"
           data-testid="product-close-btn">
           <X className="w-5 h-5" />
@@ -446,52 +446,44 @@ const StorefrontPage = () => {
         <div className="max-w-5xl mx-auto px-4 py-8">
           <div className="grid md:grid-cols-2 gap-8">
             <div className="flex flex-col">
-              <div className="aspect-square bg-[#F8FAFC] relative overflow-hidden" data-testid="product-main-image">
-                {showVideo && embedUrl ? (
-                  <iframe src={embedUrl} title="Product video" className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
-                ) : (
-                  <img src={images[activeImage]} alt={selectedProduct.name} className="w-full h-full object-cover" />
-                )}
-              </div>
-              {(images.length > 1 || embedUrl) && (
-                <div className="flex gap-2 mt-3 overflow-x-auto" data-testid="product-thumbnails">
-                  {images.map((img, idx) => (
-                    <button key={idx} onClick={() => { setActiveImage(idx); setShowVideo(false); }}
-                      className={`w-16 h-16 rounded overflow-hidden flex-shrink-0 border-2 transition-all ${!showVideo && activeImage === idx ? 'ring-1' : 'border-transparent hover:border-[#E2E8F0]'}`}
-                      style={!showVideo && activeImage === idx ? { borderColor: themeColor, '--tw-ring-color': themeColor } : {}}
-                      data-testid={`thumb-${idx}`}>
-                      <img src={img} alt="" className="w-full h-full object-cover" />
-                    </button>
-                  ))}
-                  {embedUrl && (
-                    <button onClick={() => setShowVideo(true)}
-                      className={`w-16 h-16 rounded flex-shrink-0 border-2 transition-all flex items-center justify-center bg-[#0F172A] ${showVideo ? 'ring-1' : 'border-transparent hover:border-[#E2E8F0]'}`}
-                      style={showVideo ? { borderColor: themeColor, '--tw-ring-color': themeColor } : {}}
-                      data-testid="thumb-video">
-                      <Play className="w-5 h-5 text-white fill-white" />
-                    </button>
-                  )}
-                </div>
-              )}
-              {/* Video Grid - below product images */}
               {(() => {
-                const videoLinks = (selectedProduct.video_links || []).filter(v => v && getVideoEmbed(v));
-                if (videoLinks.length === 0) return null;
+                const allVideos = [];
+                if (embedUrl) allVideos.push({ embed: embedUrl, type: 'youtube' });
+                (selectedProduct.video_links || []).forEach(vl => {
+                  const parsed = getVideoEmbed(vl);
+                  if (parsed) allVideos.push(parsed);
+                });
+                const activeVid = showVideo !== null ? allVideos[showVideo] : null;
                 return (
-                  <div className="mt-4" data-testid="product-video-grid">
-                    <h3 className="text-sm font-semibold text-[#0F172A] mb-2">{t.productVideos}</h3>
-                    <div className="grid grid-cols-2 gap-2">
-                      {videoLinks.map((vl, idx) => {
-                        const embed = getVideoEmbed(vl);
-                        if (!embed) return null;
-                        return (
-                          <div key={idx} className="aspect-[9/16] sm:aspect-video rounded-[5px] overflow-hidden bg-black" data-testid={`product-video-${idx}`}>
-                            <iframe src={embed.embed} title={`Video ${idx + 1}`} className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowFullScreen />
-                          </div>
-                        );
-                      })}
+                  <>
+                    <div className="aspect-square bg-[#F8FAFC] relative overflow-hidden" data-testid="product-main-image">
+                      {activeVid ? (
+                        <iframe src={activeVid.embed} title="Product video" className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowFullScreen />
+                      ) : (
+                        <img src={images[activeImage]} alt={selectedProduct.name} className="w-full h-full object-cover" />
+                      )}
                     </div>
-                  </div>
+                    {(images.length > 1 || allVideos.length > 0) && (
+                      <div className="flex gap-2 mt-3 overflow-x-auto" data-testid="product-thumbnails">
+                        {images.map((img, idx) => (
+                          <button key={`img-${idx}`} onClick={() => { setActiveImage(idx); setShowVideo(null); }}
+                            className={`w-16 h-16 rounded overflow-hidden flex-shrink-0 border-2 transition-all ${showVideo === null && activeImage === idx ? 'ring-1' : 'border-transparent hover:border-[#E2E8F0]'}`}
+                            style={showVideo === null && activeImage === idx ? { borderColor: themeColor, '--tw-ring-color': themeColor } : {}}
+                            data-testid={`thumb-${idx}`}>
+                            <img src={img} alt="" className="w-full h-full object-cover" />
+                          </button>
+                        ))}
+                        {allVideos.map((vid, idx) => (
+                          <button key={`vid-${idx}`} onClick={() => setShowVideo(idx)}
+                            className={`w-16 h-16 rounded flex-shrink-0 border-2 transition-all flex items-center justify-center bg-[#0F172A] ${showVideo === idx ? 'ring-1' : 'border-transparent hover:border-[#E2E8F0]'}`}
+                            style={showVideo === idx ? { borderColor: themeColor, '--tw-ring-color': themeColor } : {}}
+                            data-testid={`thumb-video-${idx}`}>
+                            <Play className="w-5 h-5 text-white fill-white" />
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </>
                 );
               })()}
             </div>
@@ -532,7 +524,7 @@ const StorefrontPage = () => {
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 lg:gap-5">
                   {related.map(rp => (
                     <div key={rp.id} className="group bg-white border border-[#E2E8F0] rounded-[5px] overflow-hidden hover:shadow-lg transition-all cursor-pointer"
-                      onClick={() => { setSelectedProduct(rp); setActiveImage(0); setShowVideo(false); setTimeout(() => { document.querySelector('[data-testid="product-fullpage"]')?.scrollTo({ top: 0, behavior: 'smooth' }); }, 50); }}
+                      onClick={() => { setSelectedProduct(rp); setActiveImage(0); setShowVideo(null); setTimeout(() => { document.querySelector('[data-testid="product-fullpage"]')?.scrollTo({ top: 0, behavior: 'smooth' }); }, 50); }}
                       data-testid={`related-product-${rp.id}`}>
                       <div className="aspect-square bg-[#F8FAFC] overflow-hidden">
                         <img src={rp.image_url} alt={rp.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
