@@ -67,7 +67,7 @@ const StorefrontPage = () => {
     return () => clearInterval(interval);
   }, [shop]);
 
-  // Auto-open product from query param (e.g., from blog attached product link)
+  // Auto-open product/checkout from query param
   useEffect(() => {
     const productParam = searchParams.get('product');
     if (productParam && products.length > 0) {
@@ -77,6 +77,9 @@ const StorefrontPage = () => {
     const categoryParam = searchParams.get('category');
     if (categoryParam && categories.length > 0) {
       setSelectedCategory(categoryParam);
+    }
+    if (searchParams.get('checkout') === '1' && cart.length > 0) {
+      setShowCheckout(true);
     }
   }, [searchParams, products, categories]);
 
