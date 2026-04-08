@@ -754,24 +754,24 @@ const StorefrontPage = () => {
           {shop.contact_phone ? (
             <a href={`tel:${shop.contact_phone}`} className="flex flex-col items-center justify-center gap-1 text-white/80 hover:text-white active:bg-white/10 transition-colors" data-testid="bottom-call">
               <Phone className="w-5 h-5" />
-              <span className="text-xs font-medium">{t.call}</span>
+              <span className="text-xs font-bold">{t.call}</span>
             </a>
           ) : <div />}
           {shop.contact_phone ? (
             <a href={`sms:${shop.contact_phone}`} className="flex flex-col items-center justify-center gap-1 text-white/80 hover:text-white active:bg-white/10 transition-colors" data-testid="bottom-message">
               <MessageCircle className="w-5 h-5" />
-              <span className="text-xs font-medium">{t.message}</span>
+              <span className="text-xs font-bold">{t.message}</span>
             </a>
           ) : <div />}
           {shop.address ? (
             <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(shop.address)}`} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center justify-center gap-1 text-white/80 hover:text-white active:bg-white/10 transition-colors" data-testid="bottom-map">
               <MapPin className="w-5 h-5" />
-              <span className="text-xs font-medium">{t.map}</span>
+              <span className="text-xs font-bold">{t.map}</span>
             </a>
           ) : <div />}
           <button onClick={() => setShowCategoryMenu(!showCategoryMenu)} className="flex flex-col items-center justify-center gap-1 text-white/80 hover:text-white active:bg-white/10 transition-colors relative" data-testid="bottom-categories">
             <Grid3X3 className="w-5 h-5" />
-            <span className="text-xs font-medium">{t.productCategories}</span>
+            <span className="text-xs font-bold">{t.productCategories}</span>
           </button>
         </div>
       </div>
