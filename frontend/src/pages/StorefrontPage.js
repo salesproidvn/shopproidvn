@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { useLanguage } from '../context/LanguageContext';
@@ -49,6 +49,7 @@ const StorefrontPage = () => {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [activeImage, setActiveImage] = useState(0);
   const [showVideo, setShowVideo] = useState(null); // null = no video, number = index into allVideos array
+  const scrollPosRef = useRef(0);
   const [showCategoryMenu, setShowCategoryMenu] = useState(false);
   const [expandedCategories, setExpandedCategories] = useState({});
   const [postCarouselIndex, setPostCarouselIndex] = useState(0);
@@ -280,7 +281,7 @@ const StorefrontPage = () => {
   // Product Card
   const ProductCard = ({ product }) => (
     <div className="group bg-white border border-[#E2E8F0] rounded-[5px] overflow-hidden hover:shadow-lg transition-all cursor-pointer"
-      onClick={() => { setSelectedProduct(product); setActiveImage(0); setShowVideo(null); }} data-testid={`product-${product.id}`}>
+      onClick={() => { scrollPosRef.current = window.scrollY; setSelectedProduct(product); setActiveImage(0); setShowVideo(null); }} data-testid={`product-${product.id}`}>
       <div className="aspect-square bg-[#F8FAFC] overflow-hidden">
         <img src={product.image_url} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
       </div>
@@ -438,7 +439,7 @@ const StorefrontPage = () => {
     const embedUrl = ytMatch ? `https://www.youtube.com/embed/${ytMatch[1]}` : (selectedProduct.video_url || null);
     return (
       <div className="fixed inset-0 z-50 bg-white overflow-y-auto" data-testid="product-fullpage">
-        <button onClick={() => { setSelectedProduct(null); setActiveImage(0); setShowVideo(null); if (searchParams.get('product')) { searchParams.delete('product'); setSearchParams(searchParams, { replace: true }); } }}
+        <button onClick={() => { const pos = scrollPosRef.current; setSelectedProduct(null); setActiveImage(0); setShowVideo(null); if (searchParams.get('product')) { searchParams.delete('product'); setSearchParams(searchParams, { replace: true }); } setTimeout(() => window.scrollTo(0, pos), 0); }}
           className="fixed top-4 right-4 z-[60] w-10 h-10 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-lg transition-colors"
           data-testid="product-close-btn">
           <X className="w-5 h-5" />
