@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom'
 import axios from 'axios';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
+import { useCart } from '../context/CartContext';
 import { formatVND } from '../utils/format';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -38,7 +39,7 @@ const StorefrontPage = () => {
   const [error, setError] = useState(null);
   const [isExpired, setIsExpired] = useState(false);
 
-  const [cart, setCart] = useState([]);
+  const { cart, addToCart: ctxAddToCart, updateQuantity, removeFromCart: ctxRemoveFromCart, clearCart, cartTotal, cartCount } = useCart();
   const [showCart, setShowCart] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
   const [checkoutForm, setCheckoutForm] = useState({
@@ -117,29 +118,17 @@ const StorefrontPage = () => {
   }, [selectedCategory, searchQuery, products]);
 
   const addToCart = (product) => {
-    const existing = cart.find(item => item.product_id === product.id);
-    if (existing) {
-      setCart(cart.map(item => item.product_id === product.id ? { ...item, quantity: item.quantity + 1 } : item));
-    } else {
-      setCart([...cart, { product_id: product.id, name: product.name, price: product.price, image_url: product.image_url, quantity: 1 }]);
-    }
+    ctxAddToCart(product.id, product, 1);
     toast.success(t.addedToCart);
   };
 
   const updateCartQuantity = (productId, delta) => {
-    setCart(cart.map(item => {
-      if (item.product_id === productId) {
-        const newQty = item.quantity + delta;
-        return newQty > 0 ? { ...item, quantity: newQty } : null;
-      }
-      return item;
-    }).filter(Boolean));
+    const item = cart.find(i => i.product_id === productId);
+    if (item) updateQuantity(productId, item.quantity + delta);
   };
 
-  const removeFromCart = (productId) => { setCart(cart.filter(item => item.product_id !== productId)); };
+  const removeFromCart = (productId) => { ctxRemoveFromCart(productId); };
 
-  const cartTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
   const themeColor = shop?.theme_color || '#0055FF';
 
   const layoutSections = shop?.layout_sections || [
@@ -161,7 +150,7 @@ const StorefrontPage = () => {
       const orderData = { ...checkoutForm, items: cart.map(item => ({ product_id: item.product_id, quantity: item.quantity })) };
       const { data } = await axios.post(`${API}/shop/${slug}/orders`, orderData);
       emitNotification({ type: 'new_order', title: t.newOrder, message: `${checkoutForm.customer_name} - ${formatVND(data.total_amount)}`, order_id: data.id, shop_slug: slug });
-      setCart([]); setShowCheckout(false); setShowCart(false);
+      clearCart(); setShowCheckout(false); setShowCart(false);
       setCheckoutForm({ customer_name: '', customer_phone: '', customer_email: '', customer_address: '', note: '' });
       navigate(`/shop/${slug}/thank-you`, { state: { order: data } });
     } catch { toast.error(t.orderFailed); }

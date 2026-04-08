@@ -16,7 +16,7 @@ const SingleCategoryPage = () => {
   const { slug, categoryId } = useParams();
   const { t } = useLanguage();
   const navigate = useNavigate();
-  const { addToCart, cart, cartCount, cartTotal, updateCartQuantity, removeFromCart } = useCart();
+  const { addToCart, cart, cartCount, cartTotal, updateQuantity, removeFromCart } = useCart();
   const [shop, setShop] = useState(null);
   const [category, setCategory] = useState(null);
   const [subCategories, setSubCategories] = useState([]);
@@ -212,9 +212,9 @@ const SingleCategoryPage = () => {
                         <h4 className="font-medium text-[#0F172A] text-sm truncate">{item.name}</h4>
                         <p className="font-semibold text-sm" style={{ color: themeColor }}>{formatVND(item.price)}</p>
                         <div className="flex items-center gap-2 mt-2">
-                          <Button variant="outline" size="icon" className="w-7 h-7" onClick={() => updateCartQuantity(item.product_id, -1)}><Minus className="w-3 h-3" /></Button>
+                          <Button variant="outline" size="icon" className="w-7 h-7" onClick={() => updateQuantity(item.product_id, item.quantity - 1)}><Minus className="w-3 h-3" /></Button>
                           <span className="w-6 text-center text-sm">{item.quantity}</span>
-                          <Button variant="outline" size="icon" className="w-7 h-7" onClick={() => updateCartQuantity(item.product_id, 1)}><Plus className="w-3 h-3" /></Button>
+                          <Button variant="outline" size="icon" className="w-7 h-7" onClick={() => updateQuantity(item.product_id, item.quantity + 1)}><Plus className="w-3 h-3" /></Button>
                           <Button variant="ghost" size="icon" className="w-7 h-7 ml-auto text-red-500" onClick={() => removeFromCart(item.product_id)}><Trash2 className="w-4 h-4" /></Button>
                         </div>
                       </div>
