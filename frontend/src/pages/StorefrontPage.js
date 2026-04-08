@@ -331,7 +331,9 @@ const StorefrontPage = () => {
               return (
                 <div key={cat.id} id={`cat-section-${cat.id}`} data-testid={`category-section-${cat.id}`}>
                   <div className="flex items-center gap-3 mb-2">
-                    <h3 className="text-xl sm:text-2xl font-bold text-[#0F172A]">{cat.name}</h3>
+                    <Link to={`/shop/${slug}/category/${cat.id}`} className="hover:underline">
+                      <h3 className="text-xl sm:text-2xl font-bold text-[#0F172A]">{cat.name}</h3>
+                    </Link>
                     <div className="flex-1 h-px bg-[#E2E8F0]" />
                     <span className="text-sm text-[#94A3B8]">{catProducts.length}</span>
                   </div>
