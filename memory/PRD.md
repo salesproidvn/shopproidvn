@@ -77,6 +77,7 @@ Create an admin dashboard for a Micro-SaaS E-commerce Platform. Multi-tenant set
 ### Phase 11 - Category Grid Title & Checkout Back Fix (Complete - Feb 2026)
 - **Category Grid Title**: Added "Danh mục sản phẩm" section heading above the category grid on the Storefront, matching other section headings.
 - **Checkout Back Button**: Fixed the back arrow on the checkout page to navigate back to the Single Category Page when checkout was triggered from there (via `?checkout=1`).
+- **Product Close Button**: Fixed the X close button on product detail overlay to navigate back to the Single Category Page when product was opened from there (via `?product=` param).
 
 ## Backlog
 - P1: Sales analytics charts on dashboards

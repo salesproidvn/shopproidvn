@@ -438,7 +438,7 @@ const StorefrontPage = () => {
     const embedUrl = ytMatch ? `https://www.youtube.com/embed/${ytMatch[1]}` : (selectedProduct.video_url || null);
     return (
       <div className="fixed inset-0 z-50 bg-white overflow-y-auto" data-testid="product-fullpage">
-        <button onClick={() => { setSelectedProduct(null); setActiveImage(0); setShowVideo(false); }}
+        <button onClick={() => { if (searchParams.get('product')) { navigate(-1); } else { setSelectedProduct(null); setActiveImage(0); setShowVideo(false); } }}
           className="fixed top-4 right-4 z-[60] w-10 h-10 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-lg transition-colors"
           data-testid="product-close-btn">
           <X className="w-5 h-5" />
