@@ -74,6 +74,10 @@ Create an admin dashboard for a Micro-SaaS E-commerce Platform. Multi-tenant set
 - **New Shop "Chợ Xanh 365"**: Vietnamese organic grocery store with 100 products across 8 categories (32 total with sub-categories), 8 orders, 2 blog posts. Green theme. Login: choxanh@thewishop.com / choxanh123.
 - **Cart Bug Fix**: Fixed `addToCart(product, 1)` → `addToCart(product.id, product, 1)` in SingleCategoryPage — was passing wrong arguments to CartContext.
 
+### Phase 11 - Category Grid Title & Checkout Back Fix (Complete - Feb 2026)
+- **Category Grid Title**: Added "Danh mục sản phẩm" section heading above the category grid on the Storefront, matching other section headings.
+- **Checkout Back Button**: Fixed the back arrow on the checkout page to navigate back to the Single Category Page when checkout was triggered from there (via `?checkout=1`).
+
 ## Backlog
 - P1: Sales analytics charts on dashboards
 - P2: Refactor ShopOwnerDashboard.js (2000+ lines) and StorefrontPage.js (880+ lines)

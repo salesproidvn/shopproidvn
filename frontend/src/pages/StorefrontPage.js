@@ -849,7 +849,7 @@ const StorefrontPage = () => {
         <div className="fixed inset-0 z-50 bg-[#F8FAFC] overflow-y-auto" data-testid="checkout-overlay">
           <div className="max-w-4xl mx-auto px-4 py-8">
             <div className="flex items-center gap-4 mb-8">
-              <Button variant="ghost" size="icon" className="rounded-full" onClick={() => { setShowCheckout(false); setShowCart(true); }}><ArrowLeft className="w-5 h-5" /></Button>
+              <Button variant="ghost" size="icon" className="rounded-full" onClick={() => { if (searchParams.get('checkout') === '1') { navigate(-1); } else { setShowCheckout(false); setShowCart(true); } }} data-testid="checkout-back-btn"><ArrowLeft className="w-5 h-5" /></Button>
               <h1 className="text-2xl font-bold text-[#0F172A]">{t.checkoutTitle}</h1>
             </div>
             <div className="grid md:grid-cols-5 gap-8">
