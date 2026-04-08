@@ -904,6 +904,14 @@ export const en = {
   videoLinkPlaceholder: 'Video URL (YouTube or TikTok)',
   maxVideoLinks: 'Maximum 4 videos',
   productVideos: 'Product Videos',
+
+  // Missing keys
+  customDomain: 'Custom Domain',
+  customDomainPlaceholder: 'e.g. shop.yourdomain.com',
+  customDomainHint: 'Point your domain CNAME to our server',
+  uploadLogo: 'Upload',
+  remove: 'Remove',
+  setAsThumbnail: 'Set as Thumbnail',
 };
 
 export const translations = { vi, en };

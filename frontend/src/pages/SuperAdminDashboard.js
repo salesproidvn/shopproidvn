@@ -18,7 +18,7 @@ const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 const SuperAdminDashboard = () => {
   const { user, logout, loading: authLoading } = useAuth();
-  const { t } = useLanguage();
+  const { t, lang, switchLanguage } = useLanguage();
   const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [shops, setShops] = useState([]);
@@ -195,17 +195,23 @@ const SuperAdminDashboard = () => {
       {/* Main Content */}
       <main className={`transition-all p-4 lg:p-8 ${sidebarOpen ? 'lg:ml-64' : 'lg:ml-20'}`}>
         <div className="max-w-7xl mx-auto">
-          <div className="mb-8 flex items-center gap-3">
-            <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setMobileSidebarOpen(true)} data-testid="mobile-sidebar-toggle">
-              <Menu className="w-5 h-5" />
-            </Button>
-            <div>
-              <h1 className="text-2xl lg:text-3xl font-bold text-[#0F172A]">
-                {activeTab === 'overview' && t.dashboardOverview}
-                {activeTab === 'shops' && t.shopManagement}
-                {activeTab === 'users' && t.userManagement}
-              </h1>
-              <p className="text-[#64748B] mt-1">{t.welcomeBack}, {user?.name}</p>
+          <div className="mb-8 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setMobileSidebarOpen(true)} data-testid="mobile-sidebar-toggle">
+                <Menu className="w-5 h-5" />
+              </Button>
+              <div>
+                <h1 className="text-2xl lg:text-3xl font-bold text-[#0F172A]">
+                  {activeTab === 'overview' && t.dashboardOverview}
+                  {activeTab === 'shops' && t.shopManagement}
+                  {activeTab === 'users' && t.userManagement}
+                </h1>
+                <p className="text-[#64748B] mt-1">{t.welcomeBack}, {user?.name}</p>
+              </div>
+            </div>
+            <div className="flex items-center bg-[#F1F5F9] rounded-full p-0.5" data-testid="admin-lang-switcher">
+              <button onClick={() => switchLanguage('vi')} className={`px-2.5 py-1 rounded-full text-xs font-bold transition-all ${lang === 'vi' ? 'bg-white text-[#0F172A] shadow-sm' : 'text-[#94A3B8] hover:text-[#64748B]'}`} data-testid="admin-lang-vi">VI</button>
+              <button onClick={() => switchLanguage('en')} className={`px-2.5 py-1 rounded-full text-xs font-bold transition-all ${lang === 'en' ? 'bg-white text-[#0F172A] shadow-sm' : 'text-[#94A3B8] hover:text-[#64748B]'}`} data-testid="admin-lang-en">EN</button>
             </div>
           </div>
 
