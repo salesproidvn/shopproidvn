@@ -7,7 +7,7 @@ import { formatVND } from '../utils/format';
 import { Button } from '../components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '../components/ui/sheet';
 import { ScrollArea } from '../components/ui/scroll-area';
-import { ArrowLeft, ShoppingCart, FolderOpen, Plus, Minus, Trash2 } from 'lucide-react';
+import { ArrowLeft, ShoppingCart, FolderOpen, Plus, Minus, Trash2, X, Share2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -25,6 +25,8 @@ const SingleCategoryPage = () => {
   const [activeSubFilter, setActiveSubFilter] = useState('all');
   const [loading, setLoading] = useState(true);
   const [showCart, setShowCart] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [activeImage, setActiveImage] = useState(0);
 
   useEffect(() => { fetchData(); }, [slug, categoryId]);
 
@@ -166,15 +168,15 @@ const SingleCategoryPage = () => {
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 lg:gap-5" data-testid="category-products-grid">
             {filteredProducts.map(product => (
               <div key={product.id} className="bg-white border border-[#E2E8F0] rounded-[5px] overflow-hidden hover:shadow-lg transition-all group" data-testid={`cat-product-${product.id}`}>
-                <Link to={`/shop/${slug}?product=${product.id}`}>
+                <div className="cursor-pointer" onClick={() => { setSelectedProduct(product); setActiveImage(0); }}>
                   <div className="aspect-square bg-[#F8FAFC] overflow-hidden">
                     <img src={product.image_url} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                   </div>
-                </Link>
+                </div>
                 <div className="p-3 text-center">
-                  <Link to={`/shop/${slug}?product=${product.id}`}>
+                  <div className="cursor-pointer" onClick={() => { setSelectedProduct(product); setActiveImage(0); }}>
                     <h3 className="font-medium text-[#0F172A] text-sm line-clamp-2 mb-1 hover:underline">{product.name}</h3>
-                  </Link>
+                  </div>
                   <p className="text-base font-bold mb-2" style={{ color: themeColor }}>{formatVND(product.price)}</p>
                   <Button
                     size="sm"
@@ -191,6 +193,95 @@ const SingleCategoryPage = () => {
           </div>
         )}
       </main>
+
+      {/* Product Detail Overlay */}
+      {selectedProduct && (
+        <div className="fixed inset-0 z-50 bg-white overflow-y-auto" data-testid="cat-product-fullpage">
+          <button onClick={() => { setSelectedProduct(null); setActiveImage(0); }}
+            className="fixed top-4 right-4 z-[60] w-10 h-10 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-lg transition-colors"
+            data-testid="cat-product-close-btn">
+            <X className="w-5 h-5" />
+          </button>
+          <div className="max-w-5xl mx-auto px-4 py-8">
+            <div className="grid md:grid-cols-2 gap-8">
+              <div className="flex flex-col">
+                <div className="aspect-square bg-[#F8FAFC] relative overflow-hidden">
+                  {(() => {
+                    const imgs = selectedProduct.images?.length > 0 ? selectedProduct.images : [selectedProduct.image_url];
+                    return <img src={imgs[activeImage]} alt={selectedProduct.name} className="w-full h-full object-cover" />;
+                  })()}
+                </div>
+                {(() => {
+                  const imgs = selectedProduct.images?.length > 0 ? selectedProduct.images : [selectedProduct.image_url];
+                  if (imgs.length <= 1) return null;
+                  return (
+                    <div className="flex gap-2 mt-3 overflow-x-auto">
+                      {imgs.map((img, idx) => (
+                        <button key={idx} onClick={() => setActiveImage(idx)}
+                          className={`w-16 h-16 rounded overflow-hidden flex-shrink-0 border-2 transition-all ${activeImage === idx ? 'ring-1' : 'border-transparent hover:border-[#E2E8F0]'}`}
+                          style={activeImage === idx ? { borderColor: themeColor, '--tw-ring-color': themeColor } : {}}>
+                          <img src={img} alt="" className="w-full h-full object-cover" />
+                        </button>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </div>
+              <div className="flex flex-col">
+                <h1 className="text-2xl sm:text-3xl font-bold text-[#0F172A] mb-3">{selectedProduct.name}</h1>
+                <p className="text-3xl font-bold mb-2" style={{ color: themeColor }}>{formatVND(selectedProduct.price)}</p>
+                {selectedProduct.sku && <p className="text-xs text-[#94A3B8] mb-2">SKU: {selectedProduct.sku}</p>}
+                {category && <p className="text-sm text-[#94A3B8] mb-4">{category.name}</p>}
+                {selectedProduct.description && <div className="text-[#64748B] leading-relaxed mb-6 prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: selectedProduct.description }} />}
+                <div className="flex gap-3 mt-auto">
+                  <Button className="flex-1 hover:opacity-90 py-6 text-base rounded-[5px]"
+                    style={{ backgroundColor: themeColor }}
+                    onClick={() => { handleAddToCart(selectedProduct); }}
+                    data-testid="cat-product-add-cart">
+                    <ShoppingCart className="w-5 h-5 mr-2" /> {t.addToCart}
+                  </Button>
+                  <Button variant="outline" className="py-6 px-4 rounded-[5px]"
+                    onClick={() => {
+                      const url = `${window.location.origin}/shop/${slug}?product=${selectedProduct.id}`;
+                      if (navigator.share) {
+                        navigator.share({ title: selectedProduct.name, text: `${selectedProduct.name} - ${formatVND(selectedProduct.price)}`, url });
+                      } else {
+                        navigator.clipboard.writeText(url);
+                        toast.success(t.linkCopied || 'Link copied!');
+                      }
+                    }}>
+                    <Share2 className="w-5 h-5" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+            {/* Related Products */}
+            {(() => {
+              const related = filteredProducts.filter(p => p.id !== selectedProduct.id).slice(0, 4);
+              if (related.length === 0) return null;
+              return (
+                <div className="mt-10 border-t border-[#E2E8F0] pt-8">
+                  <h2 className="text-xl font-bold text-[#0F172A] mb-4">{t.relatedProductsTitle}</h2>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 lg:gap-5">
+                    {related.map(rp => (
+                      <div key={rp.id} className="group bg-white border border-[#E2E8F0] rounded-[5px] overflow-hidden hover:shadow-lg transition-all cursor-pointer"
+                        onClick={() => { setSelectedProduct(rp); setActiveImage(0); document.querySelector('[data-testid="cat-product-fullpage"]')?.scrollTo({ top: 0, behavior: 'smooth' }); }}>
+                        <div className="aspect-square bg-[#F8FAFC] overflow-hidden">
+                          <img src={rp.image_url} alt={rp.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                        </div>
+                        <div className="p-3 text-center">
+                          <h3 className="font-medium text-[#0F172A] text-sm line-clamp-2 mb-1">{rp.name}</h3>
+                          <p className="text-base font-bold" style={{ color: themeColor }}>{formatVND(rp.price)}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+      )}
 
       {/* Cart Drawer */}
       <Sheet open={showCart} onOpenChange={setShowCart}>
