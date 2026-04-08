@@ -1166,10 +1166,14 @@ const ShopOwnerDashboard = () => {
                               </Button>
                             </div>
                             <button onClick={() => toggleSection(idx)}
-                              className={`w-12 h-7 rounded-full transition-colors relative border ${section.enabled ? 'border-transparent' : 'bg-[#E2E8F0] border-[#CBD5E1]'}`}
+                              className={`w-[68px] h-8 rounded-full transition-all relative overflow-hidden ${section.enabled ? '' : 'bg-[#E2E8F0]'}`}
                               style={section.enabled ? { backgroundColor: themeColor } : {}}
                               data-testid={`toggle-section-${section.id}`}>
-                              <span className={`absolute top-[3px] w-5 h-5 bg-white rounded-full shadow-md ring-1 ring-black/10 transition-transform ${section.enabled ? 'translate-x-[23px]' : 'translate-x-[3px]'}`} />
+                              <span className={`absolute inset-0 flex items-center ${section.enabled ? 'justify-start pl-2.5' : 'justify-end pr-2.5'}`}>
+                                <span className="text-[10px] font-bold text-white tracking-wide select-none">{section.enabled ? 'BẬT' : ''}</span>
+                                <span className="text-[10px] font-bold text-[#94A3B8] tracking-wide select-none">{!section.enabled ? 'TẮT' : ''}</span>
+                              </span>
+                              <span className={`absolute top-[3px] w-[26px] h-[26px] bg-white rounded-full shadow-md transition-transform ${section.enabled ? 'translate-x-[38px]' : 'translate-x-[3px]'}`} />
                             </button>
                           </div>
                         </div>
@@ -1420,19 +1424,27 @@ const ShopOwnerDashboard = () => {
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-[#334155]">{t.enableBanner}</span>
                     <button onClick={() => toggleShopSetting('banner_enabled')}
-                      className={`w-12 h-7 rounded-full transition-colors relative border ${shopForm.banner_enabled ? 'border-transparent' : 'bg-[#E2E8F0] border-[#CBD5E1]'}`}
+                      className={`w-[68px] h-8 rounded-full transition-all relative overflow-hidden ${shopForm.banner_enabled ? '' : 'bg-[#E2E8F0]'}`}
                       style={shopForm.banner_enabled ? { backgroundColor: themeColor } : {}}
                       data-testid="toggle-banner">
-                      <span className={`absolute top-[3px] w-5 h-5 bg-white rounded-full shadow-md ring-1 ring-black/10 transition-transform ${shopForm.banner_enabled ? 'translate-x-[23px]' : 'translate-x-[3px]'}`} />
+                      <span className={`absolute inset-0 flex items-center ${shopForm.banner_enabled ? 'justify-start pl-2.5' : 'justify-end pr-2.5'}`}>
+                        <span className="text-[10px] font-bold text-white tracking-wide select-none">{shopForm.banner_enabled ? 'BẬT' : ''}</span>
+                        <span className="text-[10px] font-bold text-[#94A3B8] tracking-wide select-none">{!shopForm.banner_enabled ? 'TẮT' : ''}</span>
+                      </span>
+                      <span className={`absolute top-[3px] w-[26px] h-[26px] bg-white rounded-full shadow-md transition-transform ${shopForm.banner_enabled ? 'translate-x-[38px]' : 'translate-x-[3px]'}`} />
                     </button>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-[#334155]">{t.enableBlog}</span>
                     <button onClick={() => toggleShopSetting('blog_enabled')}
-                      className={`w-12 h-7 rounded-full transition-colors relative border ${shopForm.blog_enabled ? 'border-transparent' : 'bg-[#E2E8F0] border-[#CBD5E1]'}`}
+                      className={`w-[68px] h-8 rounded-full transition-all relative overflow-hidden ${shopForm.blog_enabled ? '' : 'bg-[#E2E8F0]'}`}
                       style={shopForm.blog_enabled ? { backgroundColor: themeColor } : {}}
                       data-testid="toggle-blog">
-                      <span className={`absolute top-[3px] w-5 h-5 bg-white rounded-full shadow-md ring-1 ring-black/10 transition-transform ${shopForm.blog_enabled ? 'translate-x-[23px]' : 'translate-x-[3px]'}`} />
+                      <span className={`absolute inset-0 flex items-center ${shopForm.blog_enabled ? 'justify-start pl-2.5' : 'justify-end pr-2.5'}`}>
+                        <span className="text-[10px] font-bold text-white tracking-wide select-none">{shopForm.blog_enabled ? 'BẬT' : ''}</span>
+                        <span className="text-[10px] font-bold text-[#94A3B8] tracking-wide select-none">{!shopForm.blog_enabled ? 'TẮT' : ''}</span>
+                      </span>
+                      <span className={`absolute top-[3px] w-[26px] h-[26px] bg-white rounded-full shadow-md transition-transform ${shopForm.blog_enabled ? 'translate-x-[38px]' : 'translate-x-[3px]'}`} />
                     </button>
                   </div>
                   <div>
@@ -1590,10 +1602,14 @@ const ShopOwnerDashboard = () => {
                 <span className="text-sm font-medium text-[#0F172A]">{t.featuredProducts || 'Featured Product'}</span>
               </div>
               <button type="button" onClick={() => setProductForm({ ...productForm, is_featured: !productForm.is_featured })}
-                className={`w-12 h-7 rounded-full transition-colors relative border ${productForm.is_featured ? 'border-transparent' : 'bg-[#E2E8F0] border-[#CBD5E1]'}`}
+                className={`w-[68px] h-8 rounded-full transition-all relative overflow-hidden ${productForm.is_featured ? '' : 'bg-[#E2E8F0]'}`}
                 style={productForm.is_featured ? { backgroundColor: themeColor } : {}}
                 data-testid="product-featured-toggle">
-                <span className={`absolute top-[3px] w-5 h-5 bg-white rounded-full shadow-md ring-1 ring-black/10 transition-transform ${productForm.is_featured ? 'translate-x-[23px]' : 'translate-x-[3px]'}`} />
+                <span className={`absolute inset-0 flex items-center ${productForm.is_featured ? 'justify-start pl-2.5' : 'justify-end pr-2.5'}`}>
+                  <span className="text-[10px] font-bold text-white tracking-wide select-none">{productForm.is_featured ? 'BẬT' : ''}</span>
+                  <span className="text-[10px] font-bold text-[#94A3B8] tracking-wide select-none">{!productForm.is_featured ? 'TẮT' : ''}</span>
+                </span>
+                <span className={`absolute top-[3px] w-[26px] h-[26px] bg-white rounded-full shadow-md transition-transform ${productForm.is_featured ? 'translate-x-[38px]' : 'translate-x-[3px]'}`} />
               </button>
             </div>
             <div>
@@ -1973,10 +1989,14 @@ const ShopOwnerDashboard = () => {
             <div className="flex items-center gap-3">
               <label className="text-xs font-medium">{t.published}:</label>
               <button type="button" onClick={() => setPageForm({ ...pageForm, is_published: !pageForm.is_published })}
-                className={`relative w-12 h-7 rounded-full transition-colors border ${pageForm.is_published ? 'border-transparent' : 'bg-[#E2E8F0] border-[#CBD5E1]'}`}
+                className={`relative w-[68px] h-8 rounded-full transition-all overflow-hidden ${pageForm.is_published ? '' : 'bg-[#E2E8F0]'}`}
                 style={{ backgroundColor: pageForm.is_published ? themeColor : undefined }}
                 data-testid="page-publish-toggle">
-                <span className={`absolute top-[3px] w-5 h-5 rounded-full bg-white shadow-md ring-1 ring-black/10 transition-transform ${pageForm.is_published ? 'translate-x-[23px]' : 'translate-x-[3px]'}`} />
+                <span className={`absolute inset-0 flex items-center ${pageForm.is_published ? 'justify-start pl-2.5' : 'justify-end pr-2.5'}`}>
+                  <span className="text-[10px] font-bold text-white tracking-wide select-none">{pageForm.is_published ? 'BẬT' : ''}</span>
+                  <span className="text-[10px] font-bold text-[#94A3B8] tracking-wide select-none">{!pageForm.is_published ? 'TẮT' : ''}</span>
+                </span>
+                <span className={`absolute top-[3px] w-[26px] h-[26px] rounded-full bg-white shadow-md transition-transform ${pageForm.is_published ? 'translate-x-[38px]' : 'translate-x-[3px]'}`} />
               </button>
               <span className="text-xs text-[#64748B]">{pageForm.is_published ? t.published : t.draft}</span>
             </div>
