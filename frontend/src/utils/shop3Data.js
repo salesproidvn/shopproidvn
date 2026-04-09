@@ -37,6 +37,7 @@ export const shop3Data = {
     { id: 'mi-cx4', label: 'Bài viết', url: '/shop/cho-xanh-365#blog', type: 'internal', enabled: true, position: 3 },
     { id: 'mi-cx5', label: 'Liên hệ', url: '/shop/cho-xanh-365/contact', type: 'internal', enabled: true, position: 4 }
   ],
+  mega_menu_categories: [],
   custom_pages: []
 };
 

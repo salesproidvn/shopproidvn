@@ -646,7 +646,22 @@ const StorefrontPage = () => {
       <div className="hidden lg:block sticky top-14 z-30 bg-white border-b border-[#E2E8F0] shadow-sm" data-testid="mega-menu-bar">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
           <nav className="flex items-center justify-center gap-0">
-            {categories.filter(c => !c.parent_id).map(cat => {
+            {(() => {
+              const parentCats = categories.filter(c => !c.parent_id);
+              const megaConfig = shop.mega_menu_categories || [];
+              // If config exists, use it to filter and sort; otherwise show all parent cats
+              let megaCats;
+              if (megaConfig.length > 0) {
+                megaCats = megaConfig
+                  .filter(mc => mc.enabled)
+                  .sort((a, b) => a.position - b.position)
+                  .map(mc => parentCats.find(c => c.id === mc.category_id))
+                  .filter(Boolean);
+              } else {
+                megaCats = parentCats;
+              }
+              return megaCats;
+            })().map(cat => {
               const subs = categories.filter(c => c.parent_id === cat.id);
               const catProducts = products.filter(p => {
                 const subIds = subs.map(s => s.id);

@@ -16,7 +16,7 @@ import {
   LayoutDashboard, Package, FolderOpen, ShoppingCart, Settings, 
   LogOut, Menu, X, Plus, Pencil, Trash2, TrendingUp, Clock, Eye, Palette, Upload, ExternalLink,
   Bold, Italic, List, ChevronUp, ChevronDown, Play, FileText, Image, Calendar, Search, LayoutGrid, GripVertical,
-  Globe, Navigation, Link2, Video, Type, ArrowUp, ArrowDown, EyeOff, Copy
+  Globe, Navigation, Link2, Video, Type, ArrowUp, ArrowDown, EyeOff, Copy, Grid3X3
 } from 'lucide-react';
 import { toast } from 'sonner';
 import NotificationBell from '../components/NotificationBell';
@@ -83,6 +83,7 @@ const ShopOwnerDashboard = () => {
 
   // Menu Manager state
   const [shopMenuItems, setShopMenuItems] = useState([]);
+  const [megaMenuItems, setMegaMenuItems] = useState([]);
 
   // Set admin view context for mock handler when admin views a shop
   useEffect(() => {
@@ -102,7 +103,7 @@ const ShopOwnerDashboard = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [statsRes, shopRes, productsRes, categoriesRes, ordersRes, postsRes, pagesRes, menuRes] = await Promise.all([
+      const [statsRes, shopRes, productsRes, categoriesRes, ordersRes, postsRes, pagesRes, menuRes, megaMenuRes] = await Promise.all([
         axios.get(`${API}/dashboard/stats${shopQuery}`),
         axios.get(`${API}/dashboard/shop${shopQuery}`),
         axios.get(`${API}/dashboard/products${shopQuery}`),
@@ -110,7 +111,8 @@ const ShopOwnerDashboard = () => {
         axios.get(`${API}/dashboard/orders${shopQuery}`),
         axios.get(`${API}/dashboard/posts${shopQuery}`),
         axios.get(`${API}/dashboard/pages${shopQuery}`),
-        axios.get(`${API}/dashboard/menu${shopQuery}`)
+        axios.get(`${API}/dashboard/menu${shopQuery}`),
+        axios.get(`${API}/dashboard/mega-menu${shopQuery}`)
       ]);
       setStats(statsRes.data);
       setShop(shopRes.data);
@@ -122,6 +124,7 @@ const ShopOwnerDashboard = () => {
       setPosts(postsRes.data || []);
       setCustomPages(pagesRes.data || []);
       setShopMenuItems(menuRes.data || []);
+      setMegaMenuItems(megaMenuRes.data || []);
     } catch (err) {
       toast.error(t.failedToLoad);
     } finally {
@@ -1042,6 +1045,7 @@ const ShopOwnerDashboard = () => {
 
           {/* Menu Manager Tab */}
           {activeTab === 'menu' && (
+            <div className="space-y-6">
             <Card className="border-0 shadow-sm" data-testid="menu-manager-tab">
               <CardHeader className="p-4">
                 <CardTitle className="text-base flex items-center gap-2"><Navigation className="w-4 h-4" /> {t.menuItems}</CardTitle>
@@ -1138,6 +1142,70 @@ const ShopOwnerDashboard = () => {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Mega Menu Manager */}
+            <Card className="border-0 shadow-sm" data-testid="mega-menu-manager">
+              <CardHeader className="p-4">
+                <CardTitle className="text-base flex items-center gap-2"><Grid3X3 className="w-4 h-4" /> {t.megaMenu || 'Mega Menu'}</CardTitle>
+                <p className="text-xs text-[#64748B] mt-1">{t.megaMenuDesc || 'Chọn danh mục hiển thị trên thanh mega menu (desktop)'}</p>
+              </CardHeader>
+              <CardContent className="p-4 pt-0 space-y-2">
+                {megaMenuItems.length === 0 && (
+                  <p className="text-sm text-[#64748B] text-center py-4">{t.noCategories || 'Chưa có danh mục nào'}</p>
+                )}
+                {megaMenuItems.map((item, idx) => (
+                  <div key={item.category_id} className={`flex items-center gap-3 p-3 rounded-[5px] border transition-all ${item.enabled ? 'bg-white border-[#E2E8F0]' : 'bg-[#F8FAFC] border-dashed border-[#E2E8F0] opacity-60'}`} data-testid={`mega-item-${idx}`}>
+                    <div className="flex flex-col gap-0.5">
+                      <Button variant="ghost" size="icon" className="h-5 w-5" disabled={idx === 0} onClick={() => {
+                        const items = [...megaMenuItems];
+                        [items[idx - 1], items[idx]] = [items[idx], items[idx - 1]];
+                        items.forEach((it, i) => it.position = i);
+                        setMegaMenuItems(items);
+                      }} data-testid={`mega-up-${idx}`}><ArrowUp className="w-3 h-3" /></Button>
+                      <Button variant="ghost" size="icon" className="h-5 w-5" disabled={idx === megaMenuItems.length - 1} onClick={() => {
+                        const items = [...megaMenuItems];
+                        [items[idx], items[idx + 1]] = [items[idx + 1], items[idx]];
+                        items.forEach((it, i) => it.position = i);
+                        setMegaMenuItems(items);
+                      }} data-testid={`mega-down-${idx}`}><ArrowDown className="w-3 h-3" /></Button>
+                    </div>
+                    {item.image_url ? (
+                      <img src={item.image_url} alt={item.name} className="w-8 h-8 rounded object-cover shrink-0" />
+                    ) : (
+                      <div className="w-8 h-8 rounded flex items-center justify-center shrink-0" style={{ backgroundColor: themeColor + '15' }}>
+                        <FolderOpen className="w-4 h-4" style={{ color: themeColor }} />
+                      </div>
+                    )}
+                    <span className="flex-1 text-sm font-medium text-[#0F172A]">{item.name}</span>
+                    <button onClick={() => {
+                      const items = [...megaMenuItems];
+                      items[idx] = { ...items[idx], enabled: !items[idx].enabled };
+                      setMegaMenuItems(items);
+                    }} className={`w-[68px] h-8 rounded-full transition-all relative overflow-hidden ${item.enabled ? '' : 'bg-[#E2E8F0]'}`}
+                      style={item.enabled ? { backgroundColor: themeColor } : {}}
+                      data-testid={`mega-toggle-${idx}`}>
+                      <span className={`absolute inset-0 flex items-center ${item.enabled ? 'justify-start pl-2.5' : 'justify-end pr-2.5'}`}>
+                        <span className="text-[10px] font-bold text-white tracking-wide select-none">{item.enabled ? 'BẬT' : ''}</span>
+                        <span className="text-[10px] font-bold text-[#94A3B8] tracking-wide select-none">{!item.enabled ? 'TẮT' : ''}</span>
+                      </span>
+                      <span className={`absolute top-[3px] w-[26px] h-[26px] bg-white rounded-full shadow-md transition-transform ${item.enabled ? 'translate-x-[38px]' : 'translate-x-[3px]'}`} />
+                    </button>
+                  </div>
+                ))}
+                <div className="pt-2">
+                  <Button size="sm" className="text-xs hover:opacity-90" style={{ backgroundColor: themeColor }} onClick={async () => {
+                    try {
+                      await axios.put(`${API}/dashboard/mega-menu${shopQuery}`, { items: megaMenuItems.map(it => ({ category_id: it.category_id, enabled: it.enabled, position: it.position })) });
+                      toast.success(t.megaMenuSaved || 'Mega menu đã lưu');
+                      fetchData();
+                    } catch { toast.error(t.failedToSave); }
+                  }} data-testid="save-mega-menu-btn">
+                    {t.saveChanges}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+            </div>
           )}
 
           {/* Layout Tab */}

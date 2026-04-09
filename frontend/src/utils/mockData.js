@@ -68,6 +68,14 @@ export let mockShops = [
       { id: 'mi-4', label: 'Bài viết', url: '/shop/the-elite-shop/posts', type: 'internal', enabled: true, position: 3 },
       { id: 'mi-5', label: 'Liên hệ', url: '/shop/the-elite-shop/contact', type: 'internal', enabled: true, position: 4 }
     ],
+    mega_menu_categories: [
+      { category_id: 'cat-1', enabled: true, position: 0 },
+      { category_id: 'cat-2', enabled: true, position: 1 },
+      { category_id: 'cat-3', enabled: true, position: 2 },
+      { category_id: 'cat-4', enabled: true, position: 3 },
+      { category_id: 'cat-5', enabled: true, position: 4 },
+      { category_id: 'cat-6', enabled: true, position: 5 }
+    ],
     custom_pages: [
       {
         id: 'page-1', shop_id: 'shop-1', title: 'About Us', slug: 'about-us', is_published: true,
@@ -165,6 +173,7 @@ export let mockShops = [
       { id: 'mi-g2', label: 'Shop', url: '/shop/green-living', type: 'scroll_shop', enabled: true, position: 1 },
       { id: 'mi-g3', label: 'Contact', url: '/shop/green-living/contact', type: 'internal', enabled: true, position: 2 }
     ],
+    mega_menu_categories: [],
     custom_pages: []
   },
   shop3Data,
@@ -581,6 +590,31 @@ export const handleMockRequest = (method, path, body) => {
   if (m === 'put' && path === '/dashboard/menu') {
     const shopIdx = mockShops.findIndex(s => s.id === dashShopId);
     if (shopIdx !== -1) mockShops[shopIdx].menu_items = body.items || [];
+    return { data: { ok: true } };
+  }
+
+  // ─ MEGA MENU (shop owner) ─
+  if (m === 'get' && path === '/dashboard/mega-menu') {
+    const shop = dashShop();
+    const parentCats = mockCategories.filter(c => c.shop_id === shop.id && !c.parent_id).sort((a, b) => (a.position || 0) - (b.position || 0));
+    const megaConfig = shop.mega_menu_categories || [];
+    // Return parent categories with their mega menu config merged
+    const result = parentCats.map(cat => {
+      const config = megaConfig.find(mc => mc.category_id === cat.id);
+      return {
+        category_id: cat.id,
+        name: cat.name,
+        image_url: cat.image_url,
+        enabled: config ? config.enabled : true,
+        position: config ? config.position : cat.position
+      };
+    }).sort((a, b) => a.position - b.position);
+    return { data: result };
+  }
+
+  if (m === 'put' && path === '/dashboard/mega-menu') {
+    const shopIdx = mockShops.findIndex(s => s.id === dashShopId);
+    if (shopIdx !== -1) mockShops[shopIdx].mega_menu_categories = body.items || [];
     return { data: { ok: true } };
   }
 
