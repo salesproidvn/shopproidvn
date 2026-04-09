@@ -644,8 +644,8 @@ const StorefrontPage = () => {
 
       {/* Shopee-style Mega Menu - Desktop Only */}
       <div className="hidden lg:block sticky top-14 z-30 bg-white border-b border-[#E2E8F0] shadow-sm" data-testid="mega-menu-bar">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <nav className="flex items-center gap-0">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+          <nav className="flex items-center justify-center gap-0">
             {categories.filter(c => !c.parent_id).map(cat => {
               const subs = categories.filter(c => c.parent_id === cat.id);
               const catProducts = products.filter(p => {
@@ -666,8 +666,8 @@ const StorefrontPage = () => {
                   </Link>
                   {/* Mega dropdown panel */}
                   {subs.length > 0 && (
-                    <div className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-200 absolute left-1/2 -translate-x-1/2 top-full pt-0">
-                      <div className="bg-white rounded-b-xl shadow-xl border border-[#E2E8F0] border-t-2 min-w-[480px] max-w-[640px] p-5" style={{ borderTopColor: themeColor }}>
+                    <div className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-200" style={{ position: 'fixed', left: '50%', transform: 'translateX(-50%)', zIndex: 40, width: '100%', maxWidth: '640px' }}>
+                      <div className="bg-white rounded-b-xl shadow-xl border border-[#E2E8F0] border-t-2 p-5" style={{ borderTopColor: themeColor }}>
                         <div className="flex gap-6">
                           {/* Subcategories column */}
                           <div className="flex-1 min-w-0">
