@@ -35,6 +35,7 @@ Multi-tenant e-commerce platform with Super Admin, Shop Owner, and public Storef
 - [x] Push Notifications for new orders (shop owner opt-in via Settings toggle)
 - [x] Email Notifications for new orders via Resend (shop owner opt-in, sends order details to shop contact email)
 - [x] PWA Install prompt + manual install instructions (Android/Chrome, iPhone/Safari)
+- [x] Mobile Mega Menu (full-screen overlay with expandable categories, subcategory chips, product previews, contact info)
 
 ## API Endpoints
 ### Auth

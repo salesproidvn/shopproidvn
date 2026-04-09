@@ -14,7 +14,7 @@ import {
   Search, ShoppingCart, Phone, Mail, MapPin, Facebook, Instagram, 
   Plus, Minus, Trash2, ArrowLeft, LayoutDashboard, X, AlertTriangle, Play,
   MessageCircle, Map, FolderOpen, ChevronLeft, ChevronRight, FileText, Calendar, Share2,
-  Home, Store, Grid3X3, BookOpen, PhoneCall, Menu as MenuIcon, ChevronDown
+  Home, Store, Grid3X3, BookOpen, PhoneCall, Menu as MenuIcon, ChevronDown, Globe
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { emitNotification } from '../context/NotificationContext';
@@ -54,6 +54,7 @@ const StorefrontPage = () => {
   const [expandedCategories, setExpandedCategories] = useState({});
   const [bannerIndex, setBannerIndex] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileExpandedCat, setMobileExpandedCat] = useState(null);
 
   useEffect(() => { fetchShopData(); }, [slug]);
 
@@ -605,27 +606,178 @@ const StorefrontPage = () => {
             </div>
           </div>
         </div>
-        {/* Mobile Menu Dropdown - Dynamic */}
-        {mobileMenuOpen && (
-          <div className="md:hidden border-t border-[#E2E8F0] bg-white px-4 py-2 space-y-1" data-testid="mobile-menu-dropdown">
-            {(shop.menu_items || []).filter(mi => mi.enabled).sort((a, b) => a.position - b.position).map((mi, idx) => (
-              mi.type === 'scroll_shop' ? (
-                <button key={mi.id} onClick={() => { setMobileMenuOpen(false); setSelectedCategory('all'); window.scrollTo({ top: 300, behavior: 'smooth' }); }} className="flex items-center gap-2 py-2 text-sm text-[#0F172A] hover:bg-[#F8FAFC] px-2 rounded-[5px] w-full text-left" data-testid={`mobile-menu-${idx}`}>
-                  {mi.label}
-                </button>
-              ) : mi.type === 'external' ? (
-                <a key={mi.id} href={mi.url} target="_blank" rel="noopener noreferrer" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 py-2 text-sm text-[#0F172A] hover:bg-[#F8FAFC] px-2 rounded-[5px]" data-testid={`mobile-menu-${idx}`}>
-                  {mi.label}
-                </a>
-              ) : (
-                <Link key={mi.id} to={mi.url} onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 py-2 text-sm text-[#0F172A] hover:bg-[#F8FAFC] px-2 rounded-[5px]" data-testid={`mobile-menu-${idx}`}>
-                  {mi.label}
-                </Link>
-              )
-            ))}
+      </header>
+
+      {/* Mobile Mega Menu - Full screen overlay (rendered outside header for proper z-index) */}
+      {mobileMenuOpen && (
+          <div className="lg:hidden fixed inset-0 z-[60] bg-white overflow-y-auto" data-testid="mobile-mega-menu">
+            {/* Header */}
+            <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 border-b border-[#E2E8F0] bg-white">
+              <div className="flex items-center gap-2">
+                {shop.logo_url && <img src={shop.logo_url} alt="" className="w-7 h-7 rounded-lg object-cover" />}
+                <span className="font-bold text-[#0F172A] text-sm">{shop.name}</span>
+              </div>
+              <button onClick={() => { setMobileMenuOpen(false); setMobileExpandedCat(null); }} className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-[#F1F5F9]" data-testid="mobile-menu-close">
+                <X className="w-5 h-5 text-[#475569]" />
+              </button>
+            </div>
+
+            {/* Menu Items */}
+            <div className="px-4 py-3 border-b border-[#F1F5F9]">
+              {(shop.menu_items || []).filter(mi => mi.enabled).sort((a, b) => a.position - b.position).map((mi, idx) => (
+                mi.type === 'scroll_shop' ? (
+                  <button key={mi.id} onClick={() => { setMobileMenuOpen(false); setMobileExpandedCat(null); setSelectedCategory('all'); window.scrollTo({ top: 300, behavior: 'smooth' }); }}
+                    className="flex items-center gap-3 w-full py-3 text-sm font-medium text-[#0F172A]" data-testid={`mobile-menu-${idx}`}>
+                    <Store className="w-4 h-4 text-[#94A3B8]" />
+                    {mi.label}
+                  </button>
+                ) : mi.type === 'external' ? (
+                  <a key={mi.id} href={mi.url} target="_blank" rel="noopener noreferrer" onClick={() => { setMobileMenuOpen(false); setMobileExpandedCat(null); }}
+                    className="flex items-center gap-3 py-3 text-sm font-medium text-[#0F172A]" data-testid={`mobile-menu-${idx}`}>
+                    <Globe className="w-4 h-4 text-[#94A3B8]" />
+                    {mi.label}
+                  </a>
+                ) : (
+                  <Link key={mi.id} to={mi.url} onClick={() => { setMobileMenuOpen(false); setMobileExpandedCat(null); }}
+                    className="flex items-center gap-3 py-3 text-sm font-medium text-[#0F172A]" data-testid={`mobile-menu-${idx}`}>
+                    <BookOpen className="w-4 h-4 text-[#94A3B8]" />
+                    {mi.label}
+                  </Link>
+                )
+              ))}
+            </div>
+
+            {/* Categories Mega Menu */}
+            <div className="px-4 py-3">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-2 px-1">{t.categories}</p>
+              {(() => {
+                const parentCats = categories.filter(c => !c.parent_id);
+                const megaConfig = shop.mega_menu_categories || [];
+                let megaCats;
+                if (megaConfig.length > 0) {
+                  megaCats = megaConfig.filter(mc => mc.enabled).sort((a, b) => a.position - b.position)
+                    .map(mc => parentCats.find(c => c.id === mc.category_id)).filter(Boolean);
+                } else {
+                  megaCats = parentCats;
+                }
+                return megaCats.map(cat => {
+                  const subs = categories.filter(c => c.parent_id === cat.id);
+                  const isExpanded = mobileExpandedCat === cat.id;
+                  const catProducts = products.filter(p => {
+                    const subIds = subs.map(s => s.id);
+                    return p.category_id === cat.id || subIds.includes(p.category_id);
+                  }).slice(0, 4);
+
+                  return (
+                    <div key={cat.id} className="border-b border-[#F1F5F9] last:border-0" data-testid={`mobile-mega-cat-${cat.id}`}>
+                      <button
+                        onClick={() => {
+                          if (subs.length > 0) {
+                            setMobileExpandedCat(isExpanded ? null : cat.id);
+                          } else {
+                            setMobileMenuOpen(false);
+                            setMobileExpandedCat(null);
+                            setSelectedCategory(cat.id);
+                            window.scrollTo({ top: 300, behavior: 'smooth' });
+                          }
+                        }}
+                        className="flex items-center justify-between w-full py-3 px-1"
+                        data-testid={`mobile-mega-cat-btn-${cat.id}`}
+                      >
+                        <div className="flex items-center gap-3">
+                          {cat.image_url ? (
+                            <img src={cat.image_url} alt="" className="w-9 h-9 rounded-lg object-cover bg-[#F8FAFC]" />
+                          ) : (
+                            <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ backgroundColor: themeColor + '12' }}>
+                              <FolderOpen className="w-4 h-4" style={{ color: themeColor }} />
+                            </div>
+                          )}
+                          <span className="text-sm font-medium text-[#0F172A]">{cat.name}</span>
+                        </div>
+                        {subs.length > 0 && (
+                          <ChevronDown className={`w-4 h-4 text-[#94A3B8] transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
+                        )}
+                      </button>
+
+                      {/* Expanded subcategories + products */}
+                      {isExpanded && subs.length > 0 && (
+                        <div className="pb-3 pl-2 animate-in slide-in-from-top-2 duration-200" data-testid={`mobile-mega-subs-${cat.id}`}>
+                          {/* Subcategory chips */}
+                          <div className="flex flex-wrap gap-2 mb-3 pl-11">
+                            <button
+                              onClick={() => { setMobileMenuOpen(false); setMobileExpandedCat(null); setSelectedCategory(cat.id); window.scrollTo({ top: 300, behavior: 'smooth' }); }}
+                              className="px-3 py-1.5 text-xs font-medium rounded-full border transition-colors"
+                              style={{ borderColor: themeColor, color: themeColor }}
+                              data-testid={`mobile-sub-all-${cat.id}`}
+                            >
+                              {t.viewAll || 'Tất cả'}
+                            </button>
+                            {subs.map(sub => (
+                              <button
+                                key={sub.id}
+                                onClick={() => { setMobileMenuOpen(false); setMobileExpandedCat(null); setSelectedCategory(sub.id); window.scrollTo({ top: 300, behavior: 'smooth' }); }}
+                                className="px-3 py-1.5 text-xs font-medium text-[#475569] rounded-full border border-[#E2E8F0] hover:border-[#CBD5E1] hover:bg-[#F8FAFC] transition-colors"
+                                data-testid={`mobile-sub-${sub.id}`}
+                              >
+                                {sub.name}
+                              </button>
+                            ))}
+                          </div>
+
+                          {/* Product preview row */}
+                          {catProducts.length > 0 && (
+                            <div className="pl-11">
+                              <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
+                                {catProducts.map(p => (
+                                  <div
+                                    key={p.id}
+                                    className="flex-shrink-0 w-24 cursor-pointer"
+                                    onClick={() => { setMobileMenuOpen(false); setMobileExpandedCat(null); scrollPosRef.current = window.scrollY; setSelectedProduct(p); setActiveImage(0); setShowVideo(null); }}
+                                    data-testid={`mobile-mega-prod-${p.id}`}
+                                  >
+                                    <div className="w-24 h-24 rounded-lg overflow-hidden bg-[#F8FAFC] mb-1">
+                                      {p.image_url ? (
+                                        <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" />
+                                      ) : (
+                                        <div className="w-full h-full flex items-center justify-center">
+                                          <Grid3X3 className="w-6 h-6 text-[#CBD5E1]" />
+                                        </div>
+                                      )}
+                                    </div>
+                                    <p className="text-[11px] text-[#334155] line-clamp-1">{p.name}</p>
+                                    <p className="text-[11px] font-bold" style={{ color: themeColor }}>{formatVND(p.price)}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                });
+              })()}
+            </div>
+
+            {/* Footer contact */}
+            {(shop.contact_phone || shop.contact_email) && (
+              <div className="px-4 py-4 mt-2 border-t border-[#F1F5F9] bg-[#F8FAFC]">
+                {shop.contact_phone && (
+                  <a href={`tel:${shop.contact_phone}`} className="flex items-center gap-3 py-2 text-sm text-[#334155]">
+                    <PhoneCall className="w-4 h-4" style={{ color: themeColor }} />
+                    {shop.contact_phone}
+                  </a>
+                )}
+                {shop.contact_email && (
+                  <a href={`mailto:${shop.contact_email}`} className="flex items-center gap-3 py-2 text-sm text-[#334155]">
+                    <MessageCircle className="w-4 h-4" style={{ color: themeColor }} />
+                    {shop.contact_email}
+                  </a>
+                )}
+              </div>
+            )}
           </div>
         )}
-      </header>
 
       {/* Shopee-style Mega Menu - Desktop Only */}
       <div className="hidden lg:block sticky top-14 z-30 bg-white border-b border-[#E2E8F0] shadow-sm" data-testid="mega-menu-bar">
