@@ -608,12 +608,36 @@ const ShopOwnerDashboard = () => {
   };
 
   const themeColors = [
+    // Blues
     { name: 'Blue', value: '#0055FF' },
-    { name: 'Green', value: '#10B981' },
+    { name: 'Sky Blue', value: '#0EA5E9' },
+    { name: 'Cyan', value: '#06B6D4' },
+    { name: 'Navy', value: '#1E3A5F' },
+    { name: 'Indigo', value: '#4F46E5' },
+    // Purples
     { name: 'Purple', value: '#8B5CF6' },
-    { name: 'Red', value: '#EF4444' },
-    { name: 'Orange', value: '#F97316' },
+    { name: 'Violet', value: '#7C3AED' },
+    { name: 'Fuchsia', value: '#D946EF' },
+    // Pinks & Reds
     { name: 'Pink', value: '#EC4899' },
+    { name: 'Rose', value: '#F43F5E' },
+    { name: 'Red', value: '#EF4444' },
+    { name: 'Crimson', value: '#DC2626' },
+    // Oranges & Yellows
+    { name: 'Orange', value: '#F97316' },
+    { name: 'Amber', value: '#F59E0B' },
+    { name: 'Yellow', value: '#EAB308' },
+    // Greens
+    { name: 'Green', value: '#10B981' },
+    { name: 'Emerald', value: '#059669' },
+    { name: 'Lime', value: '#84CC16' },
+    { name: 'Teal', value: '#14B8A6' },
+    // Neutrals & Dark
+    { name: 'Slate', value: '#475569' },
+    { name: 'Zinc', value: '#71717A' },
+    { name: 'Stone', value: '#78716C' },
+    { name: 'Black', value: '#18181B' },
+    { name: 'Brown', value: '#92400E' },
   ];
 
   const insertFormatting = (format) => {};
@@ -1684,7 +1708,7 @@ const ShopOwnerDashboard = () => {
                   <CardTitle className="text-base flex items-center gap-2"><Palette className="w-4 h-4" /> {t.themeColor}</CardTitle>
                 </CardHeader>
                 <CardContent className="p-4 pt-0">
-                  <div className="flex flex-wrap gap-3">
+                  <div className="flex flex-wrap gap-2">
                     {themeColors.map((color) => (
                       <button key={color.value} onClick={async () => {
                         setThemeColor(color.value);
@@ -1693,9 +1717,48 @@ const ShopOwnerDashboard = () => {
                           toast.success(t.shopUpdated);
                         } catch (err) { toast.error(t.failedToSave); }
                       }}
-                        className={`w-10 h-10 rounded-full border-4 transition-all ${themeColor === color.value ? 'border-[#0F172A] scale-110' : 'border-transparent'}`}
-                        style={{ backgroundColor: color.value }} title={color.name} data-testid={`theme-${color.name.toLowerCase()}`} />
+                        className={`w-8 h-8 rounded-full border-[3px] transition-all hover:scale-110 ${themeColor === color.value ? 'border-[#0F172A] scale-110 ring-2 ring-offset-1 ring-[#0F172A]/20' : 'border-transparent'}`}
+                        style={{ backgroundColor: color.value }} title={color.name} data-testid={`theme-${color.name.toLowerCase().replace(/\s/g, '-')}`} />
                     ))}
+                  </div>
+                  {/* Custom hex color */}
+                  <div className="flex items-center gap-3 mt-4 pt-3 border-t border-[#F1F5F9]">
+                    <div className="relative">
+                      <input
+                        type="color"
+                        value={themeColor}
+                        onChange={(e) => setThemeColor(e.target.value)}
+                        onBlur={async (e) => {
+                          try {
+                            await axios.put(`${API}/dashboard/shop`, { theme_color: e.target.value });
+                            toast.success(t.shopUpdated);
+                          } catch (err) { toast.error(t.failedToSave); }
+                        }}
+                        className="w-8 h-8 rounded-full cursor-pointer border-0 p-0 appearance-none"
+                        style={{ WebkitAppearance: 'none' }}
+                        data-testid="custom-color-picker"
+                      />
+                    </div>
+                    <Input
+                      value={themeColor}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        if (/^#[0-9A-Fa-f]{0,6}$/.test(v)) setThemeColor(v);
+                      }}
+                      onBlur={async () => {
+                        if (/^#[0-9A-Fa-f]{6}$/.test(themeColor)) {
+                          try {
+                            await axios.put(`${API}/dashboard/shop`, { theme_color: themeColor });
+                            toast.success(t.shopUpdated);
+                          } catch (err) { toast.error(t.failedToSave); }
+                        }
+                      }}
+                      className="h-8 w-28 text-xs font-mono uppercase"
+                      placeholder="#0055FF"
+                      maxLength={7}
+                      data-testid="custom-color-hex"
+                    />
+                    <span className="text-xs text-[#94A3B8]">{t.customColor || 'Màu tùy chỉnh'}</span>
                   </div>
                 </CardContent>
               </Card>
