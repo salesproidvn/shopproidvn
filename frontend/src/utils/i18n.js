@@ -32,6 +32,7 @@ export const vi = {
   
   // Products
   featuredProducts: 'Sản phẩm nổi bật',
+  viewAll: 'Xem tất cả',
   exploreProducts: 'Khám phá các sản phẩm được yêu thích nhất',
   noProducts: 'Không tìm thấy sản phẩm nào',
   price: 'Giá',
@@ -496,6 +497,7 @@ export const en = {
   orderNow: 'Order Now',
   
   featuredProducts: 'Featured Products',
+  viewAll: 'View all',
   exploreProducts: 'Explore our most loved products',
   noProducts: 'No products found',
   price: 'Price',

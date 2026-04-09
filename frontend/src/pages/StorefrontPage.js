@@ -14,7 +14,7 @@ import {
   Search, ShoppingCart, Phone, Mail, MapPin, Facebook, Instagram, 
   Plus, Minus, Trash2, ArrowLeft, LayoutDashboard, X, AlertTriangle, Play,
   MessageCircle, Map, FolderOpen, ChevronLeft, ChevronRight, FileText, Calendar, Share2,
-  Home, Store, Grid3X3, BookOpen, PhoneCall, Menu as MenuIcon
+  Home, Store, Grid3X3, BookOpen, PhoneCall, Menu as MenuIcon, ChevronDown
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { emitNotification } from '../context/NotificationContext';
@@ -641,6 +641,86 @@ const StorefrontPage = () => {
           </div>
         )}
       </header>
+
+      {/* Shopee-style Mega Menu - Desktop Only */}
+      <div className="hidden lg:block sticky top-14 z-30 bg-white border-b border-[#E2E8F0] shadow-sm" data-testid="mega-menu-bar">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <nav className="flex items-center gap-0">
+            {categories.filter(c => !c.parent_id).map(cat => {
+              const subs = categories.filter(c => c.parent_id === cat.id);
+              const catProducts = products.filter(p => {
+                const subIds = subs.map(s => s.id);
+                return p.category_id === cat.id || subIds.includes(p.category_id);
+              }).slice(0, 3);
+              return (
+                <div key={cat.id} className="group relative" data-testid={`mega-cat-${cat.id}`}>
+                  <Link
+                    to={`/shop/${slug}/category/${cat.id}`}
+                    className="flex items-center gap-1.5 px-4 py-3 text-sm font-medium text-[#475569] hover:text-[#0F172A] transition-colors cursor-pointer whitespace-nowrap"
+                    style={{ '--hover-color': themeColor }}
+                    onMouseEnter={(e) => e.currentTarget.style.color = themeColor}
+                    onMouseLeave={(e) => e.currentTarget.style.color = ''}
+                  >
+                    {cat.name}
+                    {subs.length > 0 && <ChevronDown className="w-3.5 h-3.5 opacity-50 group-hover:opacity-100 transition-all group-hover:rotate-180" />}
+                  </Link>
+                  {/* Mega dropdown panel */}
+                  {subs.length > 0 && (
+                    <div className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-200 absolute left-1/2 -translate-x-1/2 top-full pt-0">
+                      <div className="bg-white rounded-b-xl shadow-xl border border-[#E2E8F0] border-t-2 min-w-[480px] max-w-[640px] p-5" style={{ borderTopColor: themeColor }}>
+                        <div className="flex gap-6">
+                          {/* Subcategories column */}
+                          <div className="flex-1 min-w-0">
+                            <h4 className="text-xs font-bold uppercase tracking-wider text-[#94A3B8] mb-3">{cat.name}</h4>
+                            <div className="grid grid-cols-2 gap-x-6 gap-y-1">
+                              {subs.map(sub => (
+                                <Link
+                                  key={sub.id}
+                                  to={`/shop/${slug}/category/${cat.id}?sub=${sub.id}`}
+                                  className="group/sub flex items-center gap-2 py-2 px-2 rounded-lg text-sm text-[#334155] hover:bg-[#F8FAFC] transition-colors"
+                                >
+                                  <span className="w-1.5 h-1.5 rounded-full shrink-0 opacity-40 group-hover/sub:opacity-100 transition-opacity" style={{ backgroundColor: themeColor }} />
+                                  <span className="truncate group-hover/sub:text-[#0F172A] transition-colors">{sub.name}</span>
+                                </Link>
+                              ))}
+                            </div>
+                            <Link
+                              to={`/shop/${slug}/category/${cat.id}`}
+                              className="inline-flex items-center gap-1 mt-3 text-xs font-semibold hover:underline transition-colors"
+                              style={{ color: themeColor }}
+                            >
+                              {t.viewAll || 'Xem tất cả'} {cat.name} →
+                            </Link>
+                          </div>
+                          {/* Featured product images */}
+                          {catProducts.length > 0 && (
+                            <div className="w-40 shrink-0 space-y-2">
+                              <h4 className="text-xs font-bold uppercase tracking-wider text-[#94A3B8] mb-2">{t.featuredProducts}</h4>
+                              {catProducts.map(p => (
+                                <div
+                                  key={p.id}
+                                  className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-[#F8FAFC] cursor-pointer transition-colors"
+                                  onClick={() => { scrollPosRef.current = window.scrollY; setSelectedProduct(p); setActiveImage(0); setShowVideo(null); }}
+                                >
+                                  <img src={p.image_url} alt={p.name} className="w-10 h-10 rounded-md object-cover shrink-0" />
+                                  <div className="min-w-0">
+                                    <p className="text-xs font-medium text-[#0F172A] truncate">{p.name}</p>
+                                    <p className="text-xs font-bold" style={{ color: themeColor }}>{formatVND(p.price)}</p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </nav>
+        </div>
+      </div>
 
       {/* Products */}
       <main className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6">

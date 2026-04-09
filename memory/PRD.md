@@ -77,7 +77,7 @@ Create an admin dashboard for a Micro-SaaS E-commerce Platform. Multi-tenant set
 ### Phase 11 - Category Grid Title & Checkout Back Fix (Complete - Feb 2026)
 - **Category Grid Title**: Added "Danh mục sản phẩm" section heading above the category grid on the Storefront, matching other section headings.
 - **Checkout Back Button**: Fixed the back arrow on the checkout page to navigate back to the Single Category Page when checkout was triggered from there (via `?checkout=1`).
-- **Unified Video Gallery**: Product videos (`video_links`) now appear as play-button thumbnails in the image gallery strip instead of in a separate section below. All media (images + videos) in one row.
+- **Mega Menu**: Shopee-style horizontal category nav bar below header (desktop only, `lg:block`). Categories with subcategories show hover dropdown with 2-column subcategory grid + featured products with thumbnails/prices. Blue top-border accent. Categories without subcategories link directly.
 
 ## Backlog
 - P1: Sales analytics charts on dashboards
