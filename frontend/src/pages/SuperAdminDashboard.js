@@ -10,7 +10,7 @@ import { Input } from '../components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog';
 import { 
   LayoutDashboard, Store, Users, ShoppingCart, 
-  LogOut, Menu, X, TrendingUp, CalendarClock, Eye
+  LogOut, Menu, X, TrendingUp, CalendarClock, Eye, Phone, Mail, Globe
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -336,7 +336,27 @@ const SuperAdminDashboard = () => {
                         ))}
                       </div>
 
-                      {/* Row 3: Limits + Expiry */}
+                      {/* Row 3: Contact Info */}
+                      <div className="flex items-center gap-5 mb-3 px-1 text-xs text-[#64748B]" data-testid={`shop-contact-${shop.id}`}>
+                        {shop.contact_phone && (
+                          <a href={`tel:${shop.contact_phone}`} className="flex items-center gap-1.5 hover:text-[#0F172A] transition-colors">
+                            <Phone className="w-3.5 h-3.5" />
+                            <span>{shop.contact_phone}</span>
+                          </a>
+                        )}
+                        {shop.contact_email && (
+                          <a href={`mailto:${shop.contact_email}`} className="flex items-center gap-1.5 hover:text-[#0F172A] transition-colors">
+                            <Mail className="w-3.5 h-3.5" />
+                            <span>{shop.contact_email}</span>
+                          </a>
+                        )}
+                        <a href={`/shop/${shop.slug}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 hover:text-[#0F172A] transition-colors">
+                          <Globe className="w-3.5 h-3.5" />
+                          <span>/shop/{shop.slug}</span>
+                        </a>
+                      </div>
+
+                      {/* Row 4: Limits + Expiry */}
                       <div className="flex items-center gap-4 pt-2 border-t border-[#F1F5F9] text-xs text-[#64748B]">
                         <div className="flex items-center gap-2">
                           <span>{t.expiryDate}:</span>
