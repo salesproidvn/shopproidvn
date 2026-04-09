@@ -10,7 +10,7 @@ import { Input } from '../components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog';
 import { 
   LayoutDashboard, Store, Users, ShoppingCart, 
-  LogOut, Menu, X, TrendingUp, CalendarClock, Eye, Phone, Mail, Globe, Wrench, Trash2, Image, AlertTriangle, CheckCircle2
+  LogOut, Menu, X, TrendingUp, CalendarClock, Eye, Phone, Mail, Globe, Wrench, Trash2, Image, AlertTriangle, CheckCircle2, Settings, Lock
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -36,6 +36,9 @@ const SuperAdminDashboard = () => {
   
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newOwner, setNewOwner] = useState({ email: '', password: '', name: '', shop_name: '' });
+  // Change password state
+  const [changePasswordData, setChangePasswordData] = useState({ current_password: '', new_password: '', confirm_password: '' });
+  const [changingPassword, setChangingPassword] = useState(false);
 
   useEffect(() => {
     if (authLoading) return;
@@ -138,6 +141,30 @@ const SuperAdminDashboard = () => {
     }
   };
 
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    if (changePasswordData.new_password !== changePasswordData.confirm_password) {
+      toast.error(t.passwordMismatch || 'Mật khẩu mới không khớp');
+      return;
+    }
+    if (changePasswordData.new_password.length < 6) {
+      toast.error(t.passwordTooShort || 'Mật khẩu phải có ít nhất 6 ký tự');
+      return;
+    }
+    setChangingPassword(true);
+    try {
+      await axios.post(`${API}/auth/change-password`, {
+        current_password: changePasswordData.current_password,
+        new_password: changePasswordData.new_password,
+      });
+      toast.success(t.passwordChanged || 'Đổi mật khẩu thành công!');
+      setChangePasswordData({ current_password: '', new_password: '', confirm_password: '' });
+    } catch (err) {
+      toast.error(err.response?.data?.detail || t.failedToUpdate || 'Lỗi');
+    }
+    setChangingPassword(false);
+  };
+
   const handleLogout = async () => {
     await logout();
     navigate('/');
@@ -148,6 +175,7 @@ const SuperAdminDashboard = () => {
     { id: 'shops', label: t.shopManagement, icon: Store },
     { id: 'users', label: t.userManagement, icon: Users },
     { id: 'maintenance', label: t.maintenance || 'Bảo trì', icon: Wrench },
+    { id: 'settings', label: t.settings || 'Cài đặt', icon: Settings },
   ];
 
   if (authLoading || loading) {
@@ -213,6 +241,7 @@ const SuperAdminDashboard = () => {
                   {activeTab === 'shops' && t.shopManagement}
                   {activeTab === 'users' && t.userManagement}
                   {activeTab === 'maintenance' && (t.maintenance || 'Bảo trì hệ thống')}
+                  {activeTab === 'settings' && (t.settings || 'Cài đặt')}
                 </h1>
                 <p className="text-[#64748B] mt-1">{t.welcomeBack}, {user?.name}</p>
               </div>
@@ -661,6 +690,67 @@ const SuperAdminDashboard = () => {
                   </div>
                 </>
               )}
+            </div>
+          )}
+
+          {activeTab === 'settings' && (
+            <div className="space-y-6" data-testid="settings-tab">
+              <Card className="border-0 shadow-sm max-w-lg">
+                <CardHeader className="p-5 pb-3">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Lock className="w-5 h-5 text-[#0055FF]" />
+                    {t.changePassword || 'Đổi mật khẩu'}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-5 pt-0">
+                  <form onSubmit={handleChangePassword} className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-[#334155] mb-1">{t.currentPassword || 'Mật khẩu hiện tại'}</label>
+                      <Input type="password" value={changePasswordData.current_password}
+                        onChange={(e) => setChangePasswordData({ ...changePasswordData, current_password: e.target.value })}
+                        required placeholder="••••••••" data-testid="current-password-input" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-[#334155] mb-1">{t.newPassword || 'Mật khẩu mới'}</label>
+                      <Input type="password" value={changePasswordData.new_password}
+                        onChange={(e) => setChangePasswordData({ ...changePasswordData, new_password: e.target.value })}
+                        required minLength={6} placeholder="Ít nhất 6 ký tự" data-testid="new-password-input" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-[#334155] mb-1">{t.confirmPassword || 'Xác nhận mật khẩu mới'}</label>
+                      <Input type="password" value={changePasswordData.confirm_password}
+                        onChange={(e) => setChangePasswordData({ ...changePasswordData, confirm_password: e.target.value })}
+                        required minLength={6} placeholder="Nhập lại mật khẩu mới" data-testid="confirm-password-input" />
+                    </div>
+                    <Button type="submit" className="bg-[#0055FF] hover:bg-[#0040CC] w-full" disabled={changingPassword} data-testid="change-password-btn">
+                      {changingPassword ? (
+                        <span className="flex items-center gap-2"><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> {t.saving || 'Đang lưu...'}</span>
+                      ) : (t.changePassword || 'Đổi mật khẩu')}
+                    </Button>
+                  </form>
+                </CardContent>
+              </Card>
+
+              <Card className="border-0 shadow-sm max-w-lg">
+                <CardHeader className="p-5 pb-3">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Mail className="w-5 h-5 text-[#64748B]" />
+                    {t.accountInfo || 'Thông tin tài khoản'}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-5 pt-0">
+                  <div className="space-y-3 text-sm">
+                    <div className="flex justify-between py-2 border-b border-[#F1F5F9]">
+                      <span className="text-[#64748B]">Email</span>
+                      <span className="font-medium text-[#0F172A]" data-testid="admin-email">{user?.email}</span>
+                    </div>
+                    <div className="flex justify-between py-2 border-b border-[#F1F5F9]">
+                      <span className="text-[#64748B]">{t.role || 'Vai trò'}</span>
+                      <span className="font-medium text-[#0F172A]">Super Admin</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           )}
         </div>

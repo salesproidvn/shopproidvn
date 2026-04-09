@@ -10,8 +10,10 @@ import logging
 import bcrypt
 import jwt
 import secrets
-import requests
 import uuid as uuid_lib
+import io
+import boto3
+from PIL import Image
 from pathlib import Path
 from pydantic import BaseModel, Field, EmailStr
 from typing import List, Optional
@@ -28,11 +30,15 @@ db = client[os.environ['DB_NAME']]
 JWT_SECRET = os.environ.get('JWT_SECRET', secrets.token_hex(32))
 JWT_ALGORITHM = "HS256"
 
-# Object Storage Configuration
-STORAGE_URL = "https://integrations.emergentagent.com/objstore/api/v1/storage"
-EMERGENT_KEY = os.environ.get("EMERGENT_LLM_KEY")
+# Cloudflare R2 Configuration (S3-compatible)
+R2_ACCESS_KEY = os.environ.get("R2_ACCESS_KEY")
+R2_SECRET_KEY = os.environ.get("R2_SECRET_KEY")
+R2_BUCKET = os.environ.get("R2_BUCKET")
+R2_ENDPOINT = os.environ.get("R2_ENDPOINT")
+R2_PUBLIC_URL = os.environ.get("R2_PUBLIC_URL", "")
 APP_NAME = "the-wi-shop"
-storage_key = None
+
+s3_client = None
 
 # Create the main app and router
 app = FastAPI()
@@ -41,39 +47,91 @@ api_router = APIRouter(prefix="/api")
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# ==================== STORAGE ====================
+# ==================== CLOUDFLARE R2 STORAGE ====================
 
-def init_storage():
-    global storage_key
-    if storage_key:
-        return storage_key
-    if not EMERGENT_KEY:
-        logger.warning("EMERGENT_LLM_KEY not set, storage disabled")
+def get_s3_client():
+    global s3_client
+    if s3_client:
+        return s3_client
+    if not all([R2_ACCESS_KEY, R2_SECRET_KEY, R2_BUCKET, R2_ENDPOINT]):
+        logger.warning("Cloudflare R2 credentials not fully configured")
         return None
-    try:
-        resp = requests.post(f"{STORAGE_URL}/init", json={"emergent_key": EMERGENT_KEY}, timeout=30)
-        resp.raise_for_status()
-        storage_key = resp.json()["storage_key"]
-        return storage_key
-    except Exception as e:
-        logger.error(f"Storage init failed: {e}")
-        return None
+    s3_client = boto3.client(
+        "s3",
+        endpoint_url=R2_ENDPOINT,
+        aws_access_key_id=R2_ACCESS_KEY,
+        aws_secret_access_key=R2_SECRET_KEY,
+        region_name="auto",
+    )
+    return s3_client
 
 def put_object(path: str, data: bytes, content_type: str) -> dict:
-    key = init_storage()
-    if not key:
-        raise HTTPException(status_code=500, detail="Storage not available")
-    resp = requests.put(f"{STORAGE_URL}/objects/{path}", headers={"X-Storage-Key": key, "Content-Type": content_type}, data=data, timeout=120)
-    resp.raise_for_status()
-    return resp.json()
+    client = get_s3_client()
+    if not client:
+        raise HTTPException(status_code=500, detail="Storage not available - R2 not configured")
+    client.put_object(Bucket=R2_BUCKET, Key=path, Body=data, ContentType=content_type)
+    return {"path": path, "size": len(data)}
 
 def get_object(path: str) -> tuple:
-    key = init_storage()
-    if not key:
-        raise HTTPException(status_code=500, detail="Storage not available")
-    resp = requests.get(f"{STORAGE_URL}/objects/{path}", headers={"X-Storage-Key": key}, timeout=60)
-    resp.raise_for_status()
-    return resp.content, resp.headers.get("Content-Type", "application/octet-stream")
+    client = get_s3_client()
+    if not client:
+        raise HTTPException(status_code=500, detail="Storage not available - R2 not configured")
+    resp = client.get_object(Bucket=R2_BUCKET, Key=path)
+    return resp["Body"].read(), resp.get("ContentType", "application/octet-stream")
+
+def delete_object(path: str):
+    client = get_s3_client()
+    if not client:
+        return
+    try:
+        client.delete_object(Bucket=R2_BUCKET, Key=path)
+    except Exception as e:
+        logger.error(f"R2 delete failed for {path}: {e}")
+
+# ==================== IMAGE COMPRESSION ====================
+
+MAX_IMAGE_SIZE_BYTES = 300 * 1024  # 300KB
+
+def compress_image(data: bytes, content_type: str, max_bytes: int = MAX_IMAGE_SIZE_BYTES) -> tuple:
+    """Resize and compress image to stay under max_bytes. Returns (compressed_bytes, content_type)."""
+    try:
+        img = Image.open(io.BytesIO(data))
+    except Exception:
+        return data, content_type  # can't process, return as-is
+
+    # Convert RGBA to RGB for JPEG output
+    if img.mode in ("RGBA", "P"):
+        img = img.convert("RGB")
+
+    # Step 1: Scale down large images proportionally
+    max_dim = 1920
+    if img.width > max_dim or img.height > max_dim:
+        ratio = min(max_dim / img.width, max_dim / img.height)
+        new_size = (int(img.width * ratio), int(img.height * ratio))
+        img = img.resize(new_size, Image.LANCZOS)
+
+    # Step 2: Progressively lower quality until under max_bytes
+    out_type = "image/jpeg"
+    for quality in [85, 75, 65, 55, 45, 35, 25]:
+        buf = io.BytesIO()
+        img.save(buf, format="JPEG", quality=quality, optimize=True)
+        result = buf.getvalue()
+        if len(result) <= max_bytes:
+            return result, out_type
+
+    # Step 3: If still too large, scale down further
+    for scale in [0.75, 0.5, 0.35, 0.25]:
+        scaled = img.resize((int(img.width * scale), int(img.height * scale)), Image.LANCZOS)
+        buf = io.BytesIO()
+        scaled.save(buf, format="JPEG", quality=40, optimize=True)
+        result = buf.getvalue()
+        if len(result) <= max_bytes:
+            return result, out_type
+
+    # Last resort: return smallest attempt
+    buf = io.BytesIO()
+    img.resize((400, int(400 * img.height / img.width)), Image.LANCZOS).save(buf, format="JPEG", quality=30, optimize=True)
+    return buf.getvalue(), out_type
 
 # ==================== AUTH UTILS ====================
 
@@ -169,6 +227,10 @@ class ForgotPasswordRequest(BaseModel):
 
 class ResetPasswordRequest(BaseModel):
     token: str
+    new_password: str
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
     new_password: str
 
 class ShopCreate(BaseModel):
@@ -341,6 +403,21 @@ async def reset_password(data: ResetPasswordRequest):
     await db.password_resets.update_one({"_id": reset_doc["_id"]}, {"$set": {"used": True}})
     return {"message": "Password has been reset successfully"}
 
+@api_router.post("/auth/change-password")
+async def change_password(data: ChangePasswordRequest, request: Request):
+    """Change password for the currently logged-in user."""
+    user = await get_current_user(request)
+    user_doc = await db.users.find_one({"_id": ObjectId(user["_id"])})
+    if not user_doc:
+        raise HTTPException(status_code=404, detail="User not found")
+    if not verify_password(data.current_password, user_doc["password_hash"]):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+    if len(data.new_password) < 6:
+        raise HTTPException(status_code=400, detail="New password must be at least 6 characters")
+    new_hash = hash_password(data.new_password)
+    await db.users.update_one({"_id": ObjectId(user["_id"])}, {"$set": {"password_hash": new_hash}})
+    return {"message": "Password changed successfully"}
+
 # ==================== SUPER ADMIN ENDPOINTS ====================
 
 @api_router.get("/admin/stats")
@@ -501,12 +578,7 @@ async def cleanup_images(request: Request):
     orphaned = await db.files.find({"is_deleted": True}).to_list(100)
     count = 0
     for f in orphaned:
-        try:
-            key = init_storage()
-            if key:
-                requests.delete(f"{STORAGE_URL}/objects/{f['storage_path']}", headers={"X-Storage-Key": key}, timeout=30)
-        except Exception:
-            pass
+        delete_object(f.get("storage_path", ""))
         await db.files.delete_one({"_id": f["_id"]})
         count += 1
     return {"deleted_count": count, "message": f"Cleaned up {count} orphaned files"}
@@ -519,18 +591,31 @@ async def upload_image(file: UploadFile = File(...)):
     if file.content_type not in allowed:
         raise HTTPException(status_code=400, detail="Invalid file type")
     data = await file.read()
-    if len(data) > 5 * 1024 * 1024:
-        raise HTTPException(status_code=400, detail="File too large (max 5MB)")
-    ext = file.filename.split(".")[-1] if "." in file.filename else "jpg"
+    if len(data) > 10 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="File too large (max 10MB before compression)")
+
+    original_size = len(data)
+    # Compress and resize to stay under 300KB
+    compressed_data, out_content_type = compress_image(data, file.content_type)
+    compressed_size = len(compressed_data)
+    logger.info(f"Image compressed: {original_size / 1024:.0f}KB -> {compressed_size / 1024:.0f}KB ({file.filename})")
+
     file_id = str(uuid_lib.uuid4())
+    ext = "jpg"  # always JPEG after compression
     path = f"{APP_NAME}/products/{file_id}.{ext}"
     try:
-        result = put_object(path, data, file.content_type or "image/jpeg")
-        await db.files.insert_one({"id": file_id, "storage_path": result["path"], "original_filename": file.filename, "content_type": file.content_type, "size": result.get("size", len(data)), "is_deleted": False, "created_at": datetime.now(timezone.utc)})
-        return {"id": file_id, "path": result["path"], "url": f"/api/files/{file_id}"}
+        result = put_object(path, compressed_data, out_content_type)
+        await db.files.insert_one({
+            "id": file_id, "storage_path": result["path"],
+            "original_filename": file.filename, "content_type": out_content_type,
+            "size": compressed_size, "original_size": original_size,
+            "is_deleted": False, "created_at": datetime.now(timezone.utc)
+        })
+        return {"id": file_id, "path": result["path"], "url": f"/api/files/{file_id}",
+                "size": compressed_size, "original_size": original_size}
     except Exception as e:
-        logger.error(f"Upload failed: {e}")
-        raise HTTPException(status_code=500, detail="Upload failed")
+        logger.error(f"Upload to R2 failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
 
 @api_router.get("/files/{file_id}")
 async def get_file(file_id: str):
@@ -541,7 +626,7 @@ async def get_file(file_id: str):
         data, ct = get_object(file_doc["storage_path"])
         return Response(content=data, media_type=file_doc.get("content_type", ct))
     except Exception as e:
-        logger.error(f"Download failed: {e}")
+        logger.error(f"Download from R2 failed: {e}")
         raise HTTPException(status_code=500, detail="Download failed")
 
 # ==================== DASHBOARD - SHOP ====================

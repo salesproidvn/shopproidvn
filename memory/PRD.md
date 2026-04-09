@@ -18,10 +18,12 @@ Multi-tenant e-commerce platform with Super Admin, Shop Owner, and public Storef
 ## Core Features (Implemented)
 - [x] JWT Authentication (login, register, logout, /auth/me)
 - [x] Password Reset Flow (forgot-password -> token -> reset-password)
-- [x] Super Admin Dashboard (stats, shops, users, maintenance)
+- [x] Change Password (super admin can change own password via Settings tab)
+- [x] Super Admin Dashboard (stats, shops, users, maintenance, settings)
 - [x] Shop Owner Dashboard (products, categories, orders, posts, pages, menu, mega-menu, banners, footer, layout, theme)
 - [x] Public Storefront (shop info, products, categories, posts, custom pages, contact form, order placement)
-- [x] Image Upload to Emergent Object Storage
+- [x] Image Upload with auto-compression to ≤300KB via Pillow (resize + quality reduction)
+- [x] Cloudflare R2 Storage via boto3 (S3-compatible) for all image uploads
 - [x] Database Seeding (3 shops: The Elite Shop, Green Living, Cho Xanh 365)
 - [x] Login page without hardcoded credentials
 - [x] "Forgot Password" link on login page
