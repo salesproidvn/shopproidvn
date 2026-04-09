@@ -10,7 +10,7 @@ import { Input } from '../components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog';
 import { 
   LayoutDashboard, Store, Users, ShoppingCart, 
-  LogOut, Menu, X, TrendingUp, CalendarClock, Eye, Phone, Mail, Globe
+  LogOut, Menu, X, TrendingUp, CalendarClock, Eye, Phone, Mail, Globe, Wrench, Trash2, Image, AlertTriangle, CheckCircle2
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -28,6 +28,11 @@ const SuperAdminDashboard = () => {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [shopSortBy, setShopSortBy] = useState('product_count');
+  // Maintenance state
+  const [maintenancePreview, setMaintenancePreview] = useState(null);
+  const [maintenanceLoading, setMaintenanceLoading] = useState(false);
+  const [showMaintenanceConfirm, setShowMaintenanceConfirm] = useState(null); // 'orders' | 'images' | null
+  const [maintenanceResults, setMaintenanceResults] = useState([]);
   
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newOwner, setNewOwner] = useState({ email: '', password: '', name: '', shop_name: '' });
@@ -142,6 +147,7 @@ const SuperAdminDashboard = () => {
     { id: 'overview', label: t.overview, icon: LayoutDashboard },
     { id: 'shops', label: t.shopManagement, icon: Store },
     { id: 'users', label: t.userManagement, icon: Users },
+    { id: 'maintenance', label: t.maintenance || 'Bảo trì', icon: Wrench },
   ];
 
   if (authLoading || loading) {
@@ -206,6 +212,7 @@ const SuperAdminDashboard = () => {
                   {activeTab === 'overview' && t.dashboardOverview}
                   {activeTab === 'shops' && t.shopManagement}
                   {activeTab === 'users' && t.userManagement}
+                  {activeTab === 'maintenance' && (t.maintenance || 'Bảo trì hệ thống')}
                 </h1>
                 <p className="text-[#64748B] mt-1">{t.welcomeBack}, {user?.name}</p>
               </div>
@@ -456,6 +463,204 @@ const SuperAdminDashboard = () => {
                   </div>
                 </CardContent>
               </Card>
+            </div>
+          )}
+
+          {/* Maintenance Tab */}
+          {activeTab === 'maintenance' && (
+            <div className="space-y-6">
+              <p className="text-sm text-[#64748B]">{t.maintenanceDesc || 'Quét và dọn dẹp dữ liệu cũ trên hệ thống để tối ưu hóa hiệu suất.'}</p>
+
+              {/* Scan Button */}
+              {!maintenancePreview && (
+                <Card className="border-0 shadow-sm">
+                  <CardContent className="p-8 text-center">
+                    <Wrench className="w-12 h-12 text-[#94A3B8] mx-auto mb-4" />
+                    <h3 className="text-lg font-bold text-[#0F172A] mb-2">{t.scanSystem || 'Quét hệ thống'}</h3>
+                    <p className="text-sm text-[#64748B] mb-6 max-w-md mx-auto">{t.scanDesc || 'Quét toàn bộ hệ thống để tìm đơn hàng cũ hơn 1 năm và hình ảnh không được sử dụng.'}</p>
+                    <Button className="bg-[#0055FF] hover:bg-[#0040CC] px-8" disabled={maintenanceLoading}
+                      onClick={async () => {
+                        setMaintenanceLoading(true);
+                        try {
+                          const res = await axios.get(`${API}/admin/maintenance/preview`);
+                          setMaintenancePreview(res.data);
+                          setMaintenanceResults([]);
+                        } catch { toast.error(t.failedToSave || 'Error'); }
+                        setMaintenanceLoading(false);
+                      }} data-testid="scan-system-btn">
+                      {maintenanceLoading ? (
+                        <span className="flex items-center gap-2"><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> {t.scanning || 'Đang quét...'}</span>
+                      ) : (t.startScan || 'Bắt đầu quét')}
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Preview Results */}
+              {maintenancePreview && (
+                <>
+                  {/* Old Orders Card */}
+                  <Card className="border-0 shadow-sm" data-testid="preview-old-orders">
+                    <CardHeader className="p-4 pb-2">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <Trash2 className="w-4 h-4 text-red-500" />
+                          {t.oldOrders || 'Đơn hàng cũ'} ({'>'}1 {t.year || 'năm'})
+                        </CardTitle>
+                        <span className="text-2xl font-bold text-red-500">{maintenancePreview.old_orders.total}</span>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="p-4 pt-0">
+                      {maintenancePreview.old_orders.total === 0 ? (
+                        <div className="flex items-center gap-2 text-sm text-green-600 py-2">
+                          <CheckCircle2 className="w-4 h-4" />
+                          {t.noOldOrders || 'Không có đơn hàng cũ hơn 1 năm'}
+                        </div>
+                      ) : (
+                        <>
+                          <div className="space-y-2 mb-4">
+                            {maintenancePreview.old_orders.by_shop.map(s => (
+                              <div key={s.shop_id} className="flex items-center justify-between py-2 px-3 bg-[#FFF7ED] rounded-lg text-sm">
+                                <div className="flex items-center gap-2">
+                                  <AlertTriangle className="w-3.5 h-3.5 text-orange-500" />
+                                  <span className="font-medium text-[#0F172A]">{s.shop_name}</span>
+                                </div>
+                                <div className="flex items-center gap-3 text-[#64748B]">
+                                  <span className="font-bold text-orange-600">{s.count} {t.orders?.toLowerCase?.() || 'đơn'}</span>
+                                  <span className="text-xs">{t.oldest || 'Cũ nhất'}: {s.oldest ? new Date(s.oldest).toLocaleDateString('vi-VN') : '-'}</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                          {showMaintenanceConfirm === 'orders' ? (
+                            <div className="flex items-center gap-3 p-3 bg-red-50 rounded-lg border border-red-200">
+                              <AlertTriangle className="w-5 h-5 text-red-500 shrink-0" />
+                              <p className="text-sm text-red-700 flex-1">{t.confirmDeleteOrders || `Bạn có chắc muốn xóa ${maintenancePreview.old_orders.total} đơn hàng cũ? Hành động này không thể hoàn tác.`}</p>
+                              <div className="flex gap-2 shrink-0">
+                                <Button variant="outline" size="sm" onClick={() => setShowMaintenanceConfirm(null)}>{t.cancel}</Button>
+                                <Button size="sm" className="bg-red-500 hover:bg-red-600 text-white" disabled={maintenanceLoading}
+                                  onClick={async () => {
+                                    setMaintenanceLoading(true);
+                                    try {
+                                      const res = await axios.post(`${API}/admin/maintenance/cleanup-orders`);
+                                      setMaintenanceResults(prev => [...prev, { type: 'orders', ...res.data }]);
+                                      toast.success(res.data.message);
+                                      setShowMaintenanceConfirm(null);
+                                      const preview = await axios.get(`${API}/admin/maintenance/preview`);
+                                      setMaintenancePreview(preview.data);
+                                    } catch { toast.error('Error'); }
+                                    setMaintenanceLoading(false);
+                                  }} data-testid="confirm-delete-orders-btn">
+                                  {maintenanceLoading ? '...' : (t.confirmDelete || 'Xác nhận xóa')}
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <Button variant="outline" size="sm" className="border-red-300 text-red-600 hover:bg-red-50"
+                              onClick={() => setShowMaintenanceConfirm('orders')} data-testid="delete-old-orders-btn">
+                              <Trash2 className="w-3.5 h-3.5 mr-1.5" /> {t.deleteOldOrders || 'Xóa đơn hàng cũ'}
+                            </Button>
+                          )}
+                        </>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Orphaned Images Card */}
+                  <Card className="border-0 shadow-sm" data-testid="preview-orphaned-images">
+                    <CardHeader className="p-4 pb-2">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <Image className="w-4 h-4 text-purple-500" />
+                          {t.orphanedImages || 'Hình ảnh không sử dụng'}
+                        </CardTitle>
+                        <div className="text-right">
+                          <span className="text-2xl font-bold text-purple-500">{maintenancePreview.orphaned_images.total}</span>
+                          <span className="text-xs text-[#94A3B8] ml-2">({(maintenancePreview.orphaned_images.total_size_kb / 1024).toFixed(2)} MB)</span>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="p-4 pt-0">
+                      {maintenancePreview.orphaned_images.total === 0 ? (
+                        <div className="flex items-center gap-2 text-sm text-green-600 py-2">
+                          <CheckCircle2 className="w-4 h-4" />
+                          {t.noOrphanedImages || 'Không có hình ảnh không sử dụng'}
+                        </div>
+                      ) : (
+                        <>
+                          <div className="space-y-1.5 mb-4">
+                            {maintenancePreview.orphaned_images.items.map((img, idx) => (
+                              <div key={idx} className="flex items-center justify-between py-2 px-3 bg-[#FAF5FF] rounded-lg text-sm">
+                                <div className="flex items-center gap-2">
+                                  <Image className="w-3.5 h-3.5 text-purple-400" />
+                                  <span className="font-mono text-xs text-[#334155]">{img.url}</span>
+                                </div>
+                                <div className="flex items-center gap-3 text-[#64748B] text-xs">
+                                  <span>{img.size_kb} KB</span>
+                                  <span>{new Date(img.uploaded_at).toLocaleDateString('vi-VN')}</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                          {showMaintenanceConfirm === 'images' ? (
+                            <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-lg border border-purple-200">
+                              <AlertTriangle className="w-5 h-5 text-purple-500 shrink-0" />
+                              <p className="text-sm text-purple-700 flex-1">{t.confirmDeleteImages || `Bạn có chắc muốn xóa ${maintenancePreview.orphaned_images.total} hình ảnh? Hành động này không thể hoàn tác.`}</p>
+                              <div className="flex gap-2 shrink-0">
+                                <Button variant="outline" size="sm" onClick={() => setShowMaintenanceConfirm(null)}>{t.cancel}</Button>
+                                <Button size="sm" className="bg-purple-500 hover:bg-purple-600 text-white" disabled={maintenanceLoading}
+                                  onClick={async () => {
+                                    setMaintenanceLoading(true);
+                                    try {
+                                      const res = await axios.post(`${API}/admin/maintenance/cleanup-images`);
+                                      setMaintenanceResults(prev => [...prev, { type: 'images', ...res.data }]);
+                                      toast.success(res.data.message);
+                                      setShowMaintenanceConfirm(null);
+                                      const preview = await axios.get(`${API}/admin/maintenance/preview`);
+                                      setMaintenancePreview(preview.data);
+                                    } catch { toast.error('Error'); }
+                                    setMaintenanceLoading(false);
+                                  }} data-testid="confirm-delete-images-btn">
+                                  {maintenanceLoading ? '...' : (t.confirmDelete || 'Xác nhận xóa')}
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <Button variant="outline" size="sm" className="border-purple-300 text-purple-600 hover:bg-purple-50"
+                              onClick={() => setShowMaintenanceConfirm('images')} data-testid="delete-orphaned-images-btn">
+                              <Trash2 className="w-3.5 h-3.5 mr-1.5" /> {t.deleteOrphanedImages || 'Xóa hình ảnh'}
+                            </Button>
+                          )}
+                        </>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Results log */}
+                  {maintenanceResults.length > 0 && (
+                    <Card className="border-0 shadow-sm border-l-4 border-l-green-500" data-testid="maintenance-results">
+                      <CardContent className="p-4">
+                        <h4 className="text-sm font-bold text-[#0F172A] mb-2 flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-green-500" /> {t.completedActions || 'Hoàn tất'}</h4>
+                        <div className="space-y-1.5">
+                          {maintenanceResults.map((r, idx) => (
+                            <div key={idx} className="text-sm text-[#64748B] flex items-center gap-2">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-green-500 shrink-0" />
+                              <span>{r.message}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Rescan button */}
+                  <div className="flex gap-3">
+                    <Button variant="outline" onClick={() => { setMaintenancePreview(null); setMaintenanceResults([]); setShowMaintenanceConfirm(null); }} data-testid="rescan-btn">
+                      {t.rescan || 'Quét lại'}
+                    </Button>
+                  </div>
+                </>
+              )}
             </div>
           )}
         </div>

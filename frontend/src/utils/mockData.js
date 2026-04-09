@@ -709,6 +709,53 @@ export const handleMockRequest = (method, path, body) => {
     return { data: { ok: true } };
   }
 
+  // ─ MAINTENANCE ─
+  if (m === 'get' && path === '/admin/maintenance/preview') {
+    const oneYearAgo = new Date();
+    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+    // Find old orders per shop
+    const oldOrders = [];
+    mockShops.forEach(shop => {
+      const shopOrders = mockOrders.filter(o => o.shop_id === shop.id && new Date(o.created_at) < oneYearAgo);
+      if (shopOrders.length > 0) {
+        oldOrders.push({ shop_id: shop.id, shop_name: shop.name, count: shopOrders.length, oldest: shopOrders.sort((a, b) => new Date(a.created_at) - new Date(b.created_at))[0]?.created_at });
+      }
+    });
+    // Find orphaned images (mock: generate some sample orphaned images)
+    const allUsedImages = new Set();
+    mockProducts.forEach(p => {
+      if (p.image_url) allUsedImages.add(p.image_url);
+      (p.images || []).forEach(img => allUsedImages.add(img));
+    });
+    (mockPosts || []).forEach(p => { if (p.cover_image) allUsedImages.add(p.cover_image); });
+    // Simulate orphaned images
+    const orphanedImages = [
+      { url: '/uploads/old-banner-2023.jpg', size_kb: 245, uploaded_at: '2023-06-15T10:00:00Z' },
+      { url: '/uploads/product-draft-temp.png', size_kb: 512, uploaded_at: '2023-09-20T14:30:00Z' },
+      { url: '/uploads/deleted-post-cover.jpg', size_kb: 189, uploaded_at: '2024-01-10T08:15:00Z' },
+      { url: '/uploads/unused-category-icon.png', size_kb: 78, uploaded_at: '2023-11-05T16:45:00Z' },
+      { url: '/uploads/temp-upload-1.jpg', size_kb: 340, uploaded_at: '2024-03-22T12:00:00Z' },
+    ];
+    return { data: {
+      old_orders: { total: oldOrders.reduce((s, o) => s + o.count, 0), by_shop: oldOrders, cutoff_date: oneYearAgo.toISOString() },
+      orphaned_images: { total: orphanedImages.length, total_size_kb: orphanedImages.reduce((s, i) => s + i.size_kb, 0), items: orphanedImages }
+    }};
+  }
+
+  if (m === 'post' && path === '/admin/maintenance/cleanup-orders') {
+    const oneYearAgo = new Date();
+    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+    const before = mockOrders.length;
+    mockOrders = mockOrders.filter(o => new Date(o.created_at) >= oneYearAgo);
+    const deleted = before - mockOrders.length;
+    return { data: { deleted, message: `Deleted ${deleted} orders older than 1 year` } };
+  }
+
+  if (m === 'post' && path === '/admin/maintenance/cleanup-images') {
+    // Mock: return number of deleted orphaned images
+    return { data: { deleted: 5, freed_kb: 1364, message: 'Deleted 5 orphaned images, freed 1.36 MB' } };
+  }
+
   // ─ STOREFRONT ─
   const shopSlugMatch = path.match(/^\/shop\/([^/]+)$/);
   if (shopSlugMatch && m === 'get') {
