@@ -27,6 +27,7 @@ const SuperAdminDashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [shopSortBy, setShopSortBy] = useState('product_count');
   
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newOwner, setNewOwner] = useState({ email: '', password: '', name: '', shop_name: '' });
@@ -262,17 +263,37 @@ const SuperAdminDashboard = () => {
           {activeTab === 'shops' && (
             <Card className="border-0 shadow-sm">
               <CardHeader>
-                <CardTitle>{t.allShops}</CardTitle>
+                <div className="flex items-center justify-between flex-wrap gap-3">
+                  <CardTitle>{t.allShops}</CardTitle>
+                  <div className="flex items-center gap-2" data-testid="shop-sort-controls">
+                    <span className="text-xs text-[#64748B] font-medium">{t.sortBy || 'Sắp xếp'}:</span>
+                    <select
+                      value={shopSortBy}
+                      onChange={(e) => setShopSortBy(e.target.value)}
+                      className="text-xs border border-[#E2E8F0] rounded-lg px-3 py-1.5 bg-white text-[#0F172A] font-medium focus:outline-none focus:ring-2 focus:ring-[#0055FF]/20 cursor-pointer"
+                      data-testid="shop-sort-select"
+                    >
+                      <option value="product_count">{t.products} ↓</option>
+                      <option value="category_count">{t.categories} ↓</option>
+                      <option value="order_count">{t.orders} ↓</option>
+                      <option value="post_count">{t.posts} ↓</option>
+                      <option value="page_count">{t.pages} ↓</option>
+                      <option value="menu_item_count">{t.menuItems} ↓</option>
+                      <option value="mega_menu_count">Mega Menu ↓</option>
+                    </select>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {shops.map((shop) => (
+                  {[...shops].sort((a, b) => (b[shopSortBy] || 0) - (a[shopSortBy] || 0)).map((shop, rank) => (
                     <div key={shop.id} className="border border-[#E2E8F0] rounded-xl p-4 hover:shadow-md transition-shadow" data-testid={`shop-card-${shop.id}`}>
                       {/* Row 1: Shop name, status, actions */}
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-sm" style={{ backgroundColor: shop.theme_color || '#0055FF' }}>
+                          <div className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-sm relative" style={{ backgroundColor: shop.theme_color || '#0055FF' }}>
                             {shop.name?.[0]}
+                            {rank === 0 && <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-amber-400 text-[10px] font-bold text-white flex items-center justify-center shadow">#1</span>}
                           </div>
                           <div>
                             <div className="font-semibold text-[#0F172A]">{shop.name}</div>
@@ -299,34 +320,20 @@ const SuperAdminDashboard = () => {
 
                       {/* Row 2: Count stats grid */}
                       <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-7 gap-2 mb-3" data-testid={`shop-counts-${shop.id}`}>
-                        <div className="bg-[#F8FAFC] rounded-lg p-2.5 text-center">
-                          <div className="text-lg font-bold text-[#0F172A]">{shop.product_count || 0}</div>
-                          <div className="text-[10px] text-[#94A3B8] font-medium uppercase tracking-wide">{t.products}</div>
-                        </div>
-                        <div className="bg-[#F8FAFC] rounded-lg p-2.5 text-center">
-                          <div className="text-lg font-bold text-[#0F172A]">{shop.category_count || 0}</div>
-                          <div className="text-[10px] text-[#94A3B8] font-medium uppercase tracking-wide">{t.categories}</div>
-                        </div>
-                        <div className="bg-[#F8FAFC] rounded-lg p-2.5 text-center">
-                          <div className="text-lg font-bold text-[#0F172A]">{shop.order_count || 0}</div>
-                          <div className="text-[10px] text-[#94A3B8] font-medium uppercase tracking-wide">{t.orders}</div>
-                        </div>
-                        <div className="bg-[#F8FAFC] rounded-lg p-2.5 text-center">
-                          <div className="text-lg font-bold text-[#0F172A]">{shop.post_count || 0}</div>
-                          <div className="text-[10px] text-[#94A3B8] font-medium uppercase tracking-wide">{t.posts}</div>
-                        </div>
-                        <div className="bg-[#F8FAFC] rounded-lg p-2.5 text-center">
-                          <div className="text-lg font-bold text-[#0F172A]">{shop.page_count || 0}</div>
-                          <div className="text-[10px] text-[#94A3B8] font-medium uppercase tracking-wide">{t.pages}</div>
-                        </div>
-                        <div className="bg-[#F8FAFC] rounded-lg p-2.5 text-center">
-                          <div className="text-lg font-bold text-[#0F172A]">{shop.menu_item_count || 0}</div>
-                          <div className="text-[10px] text-[#94A3B8] font-medium uppercase tracking-wide">{t.menuItems}</div>
-                        </div>
-                        <div className="bg-[#F8FAFC] rounded-lg p-2.5 text-center">
-                          <div className="text-lg font-bold text-[#0F172A]">{shop.mega_menu_count || 0}</div>
-                          <div className="text-[10px] text-[#94A3B8] font-medium uppercase tracking-wide">Mega Menu</div>
-                        </div>
+                        {[
+                          { key: 'product_count', label: t.products, value: shop.product_count || 0 },
+                          { key: 'category_count', label: t.categories, value: shop.category_count || 0 },
+                          { key: 'order_count', label: t.orders, value: shop.order_count || 0 },
+                          { key: 'post_count', label: t.posts, value: shop.post_count || 0 },
+                          { key: 'page_count', label: t.pages, value: shop.page_count || 0 },
+                          { key: 'menu_item_count', label: t.menuItems, value: shop.menu_item_count || 0 },
+                          { key: 'mega_menu_count', label: 'Mega Menu', value: shop.mega_menu_count || 0 }
+                        ].map(col => (
+                          <div key={col.key} className={`rounded-lg p-2.5 text-center transition-all ${shopSortBy === col.key ? 'bg-[#0055FF]/10 ring-1 ring-[#0055FF]/30' : 'bg-[#F8FAFC]'}`}>
+                            <div className={`text-lg font-bold ${shopSortBy === col.key ? 'text-[#0055FF]' : 'text-[#0F172A]'}`}>{col.value}</div>
+                            <div className={`text-[10px] font-medium uppercase tracking-wide ${shopSortBy === col.key ? 'text-[#0055FF]/70' : 'text-[#94A3B8]'}`}>{col.label}</div>
+                          </div>
+                        ))}
                       </div>
 
                       {/* Row 3: Limits + Expiry */}
