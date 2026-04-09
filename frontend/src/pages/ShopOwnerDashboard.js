@@ -17,7 +17,7 @@ import {
   LogOut, Menu, X, Plus, Pencil, Trash2, TrendingUp, Clock, Eye, Palette, Upload, ExternalLink,
   Bold, Italic, List, ChevronUp, ChevronDown, Play, FileText, Image, Calendar, Search, LayoutGrid, GripVertical,
   Globe, Navigation, Link2, Video, Type, ArrowUp, ArrowDown, EyeOff, Copy, Grid3X3,
-  Bell, BellOff, Smartphone, Download
+  Bell, BellOff, Smartphone, Download, Mail
 } from 'lucide-react';
 import { toast } from 'sonner';
 import NotificationBell from '../components/NotificationBell';
@@ -90,6 +90,8 @@ const ShopOwnerDashboard = () => {
   const [notifEnabled, setNotifEnabled] = useState(false);
   const [notifLoading, setNotifLoading] = useState(false);
   const [notifDevices, setNotifDevices] = useState(0);
+  const [emailNotifEnabled, setEmailNotifEnabled] = useState(false);
+  const [emailNotifLoading, setEmailNotifLoading] = useState(false);
   const [deferredInstallPrompt, setDeferredInstallPrompt] = useState(null);
   const [isAppInstalled, setIsAppInstalled] = useState(false);
 
@@ -122,6 +124,7 @@ const ShopOwnerDashboard = () => {
       getNotificationStatus(token).then(status => {
         setNotifEnabled(status.enabled);
         setNotifDevices(status.subscribed_devices);
+        setEmailNotifEnabled(status.email_enabled || false);
       });
     });
   }, [user, activeTab]);
@@ -359,6 +362,23 @@ const ShopOwnerDashboard = () => {
       toast.error(err.message || 'Không thể thay đổi cài đặt thông báo');
     }
     setNotifLoading(false);
+  };
+
+  const handleToggleEmailNotifications = async () => {
+    setEmailNotifLoading(true);
+    const token = localStorage.getItem('token');
+    try {
+      const res = await axios.post(`${API}/dashboard/notifications/email-toggle`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setEmailNotifEnabled(res.data.email_enabled);
+      toast.success(res.data.email_enabled
+        ? (t.emailNotifEnabled || 'Đã bật thông báo email đơn hàng!')
+        : (t.emailNotifDisabled || 'Đã tắt thông báo email'));
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Lỗi');
+    }
+    setEmailNotifLoading(false);
   };
 
   const handleInstallPWA = async () => {
@@ -1524,6 +1544,47 @@ const ShopOwnerDashboard = () => {
                       {t.pushNotSupported || 'Trình duyệt này không hỗ trợ thông báo đẩy. Hãy sử dụng Chrome, Edge hoặc Firefox.'}
                     </p>
                   )}
+                </CardContent>
+              </Card>
+
+              {/* Email Notification Card */}
+              <Card className="border-0 shadow-sm" data-testid="email-notification-card">
+                <CardHeader className="p-4">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Mail className="w-4 h-4" style={{ color: themeColor }} />
+                    {t.emailNotifications || 'Thông báo email đơn hàng'}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 pt-0 space-y-4">
+                  <p className="text-sm text-[#64748B]">
+                    {t.emailNotifDesc || 'Nhận email chi tiết đơn hàng mới gửi đến email liên hệ của gian hàng mỗi khi có khách đặt hàng.'}
+                  </p>
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0]">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${emailNotifEnabled ? '' : 'bg-[#F1F5F9]'}`}
+                        style={emailNotifEnabled ? { backgroundColor: themeColor + '15' } : {}}>
+                        <Mail className="w-5 h-5" style={{ color: emailNotifEnabled ? themeColor : '#94A3B8' }} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-[#0F172A]">
+                          {emailNotifEnabled
+                            ? (t.emailNotifOn || 'Email thông báo đang bật')
+                            : (t.emailNotifOff || 'Email thông báo đang tắt')}
+                        </p>
+                        {emailNotifEnabled && shop?.contact_email && (
+                          <p className="text-xs text-[#64748B]">
+                            {t.sendTo || 'Gửi đến'}: {shop.contact_email}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <Switch
+                      checked={emailNotifEnabled}
+                      onCheckedChange={handleToggleEmailNotifications}
+                      disabled={emailNotifLoading}
+                      data-testid="email-notification-toggle"
+                    />
+                  </div>
                 </CardContent>
               </Card>
 

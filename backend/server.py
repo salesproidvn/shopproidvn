@@ -13,7 +13,9 @@ import secrets
 import uuid as uuid_lib
 import io
 import json
+import asyncio
 import boto3
+import resend
 from PIL import Image
 from pywebpush import webpush, WebPushException
 from pathlib import Path
@@ -46,6 +48,12 @@ s3_client = None
 VAPID_PRIVATE_KEY = os.environ.get("VAPID_PRIVATE_KEY", "").replace("\\n", "\n")
 VAPID_PUBLIC_KEY = os.environ.get("VAPID_PUBLIC_KEY", "")
 VAPID_CLAIMS_EMAIL = os.environ.get("VAPID_CLAIMS_EMAIL", "mailto:daominhhai129@gmail.com")
+
+# Resend Email Configuration
+RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
+SENDER_EMAIL = os.environ.get("SENDER_EMAIL", "onboarding@resend.dev")
+if RESEND_API_KEY:
+    resend.api_key = RESEND_API_KEY
 
 # Create the main app and router
 app = FastAPI()
@@ -1001,14 +1009,83 @@ async def send_push_to_shop(shop_id: str, title: str, body: str, url: str = "/da
             logger.error(f"Push error: {e}")
     return sent
 
+# ==================== EMAIL NOTIFICATIONS ====================
+
+def format_vnd_email(amount):
+    return f"{amount:,.0f}d".replace(",", ".")
+
+async def send_order_email(shop_name: str, to_email: str, order_id: str, customer_name: str, customer_phone: str, customer_address: str, items: list, total: int, note: str = ""):
+    """Send order notification email to shop owner via Resend."""
+    if not RESEND_API_KEY:
+        logger.warning("RESEND_API_KEY not set, skipping email")
+        return
+
+    items_html = ""
+    for item in items:
+        items_html += f"""
+        <tr>
+          <td style="padding:8px 12px;border-bottom:1px solid #E2E8F0;font-size:14px;color:#334155;">{item.get('name','')}</td>
+          <td style="padding:8px 12px;border-bottom:1px solid #E2E8F0;font-size:14px;color:#334155;text-align:center;">{item.get('quantity',1)}</td>
+          <td style="padding:8px 12px;border-bottom:1px solid #E2E8F0;font-size:14px;color:#334155;text-align:right;">{format_vnd_email(item.get('price',0))}</td>
+          <td style="padding:8px 12px;border-bottom:1px solid #E2E8F0;font-size:14px;color:#0F172A;text-align:right;font-weight:600;">{format_vnd_email(item.get('subtotal', item.get('price',0) * item.get('quantity',1)))}</td>
+        </tr>"""
+
+    note_html = f'<p style="margin:0 0 16px;color:#64748B;font-size:14px;"><strong>Ghi chu:</strong> {note}</p>' if note else ""
+
+    html = f"""
+    <div style="font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:0 auto;background:#FFFFFF;">
+      <div style="background:linear-gradient(135deg,#0055FF,#00C2FF);padding:24px 32px;border-radius:8px 8px 0 0;">
+        <h1 style="margin:0;color:#FFFFFF;font-size:20px;">Don hang moi #{order_id}</h1>
+        <p style="margin:4px 0 0;color:rgba(255,255,255,0.85);font-size:14px;">{shop_name}</p>
+      </div>
+      <div style="padding:24px 32px;border:1px solid #E2E8F0;border-top:none;border-radius:0 0 8px 8px;">
+        <div style="background:#F8FAFC;border-radius:8px;padding:16px;margin-bottom:20px;">
+          <h3 style="margin:0 0 12px;color:#0F172A;font-size:15px;">Thong tin khach hang</h3>
+          <p style="margin:0 0 4px;color:#334155;font-size:14px;"><strong>Ho ten:</strong> {customer_name}</p>
+          <p style="margin:0 0 4px;color:#334155;font-size:14px;"><strong>SDT:</strong> {customer_phone}</p>
+          <p style="margin:0;color:#334155;font-size:14px;"><strong>Dia chi:</strong> {customer_address}</p>
+        </div>
+        {note_html}
+        <table style="width:100%;border-collapse:collapse;margin-bottom:16px;">
+          <thead>
+            <tr style="background:#F1F5F9;">
+              <th style="padding:10px 12px;text-align:left;font-size:13px;color:#64748B;font-weight:600;">San pham</th>
+              <th style="padding:10px 12px;text-align:center;font-size:13px;color:#64748B;font-weight:600;">SL</th>
+              <th style="padding:10px 12px;text-align:right;font-size:13px;color:#64748B;font-weight:600;">Don gia</th>
+              <th style="padding:10px 12px;text-align:right;font-size:13px;color:#64748B;font-weight:600;">Thanh tien</th>
+            </tr>
+          </thead>
+          <tbody>{items_html}</tbody>
+        </table>
+        <div style="text-align:right;padding:12px;background:#F0F9FF;border-radius:8px;margin-bottom:20px;">
+          <span style="font-size:14px;color:#64748B;">Tong cong: </span>
+          <span style="font-size:20px;font-weight:700;color:#0055FF;">{format_vnd_email(total)}</span>
+        </div>
+        <p style="margin:0;color:#94A3B8;font-size:12px;text-align:center;">Email nay duoc gui tu dong boi Ocean Pro Web</p>
+      </div>
+    </div>"""
+
+    try:
+        params = {
+            "from": SENDER_EMAIL,
+            "to": [to_email],
+            "subject": f"[{shop_name}] Don hang moi #{order_id} - {format_vnd_email(total)}",
+            "html": html,
+        }
+        result = await asyncio.to_thread(resend.Emails.send, params)
+        logger.info(f"Order email sent to {to_email} for order {order_id}, id={result.get('id') if isinstance(result, dict) else result}")
+    except Exception as e:
+        logger.error(f"Failed to send order email to {to_email}: {e}")
+
 @api_router.get("/dashboard/notifications/status")
 async def get_notification_status(request: Request):
     user = await require_shop_owner(request)
     shop_id = await resolve_shop_id(request, user)
     count = await db.push_subscriptions.count_documents({"shop_id": shop_id})
-    shop = await db.shops.find_one({"_id": ObjectId(shop_id)}, {"notifications_enabled": 1})
+    shop = await db.shops.find_one({"_id": ObjectId(shop_id)}, {"notifications_enabled": 1, "email_notifications": 1})
     enabled = shop.get("notifications_enabled", False) if shop else False
-    return {"enabled": enabled, "subscribed_devices": count}
+    email_enabled = shop.get("email_notifications", False) if shop else False
+    return {"enabled": enabled, "subscribed_devices": count, "email_enabled": email_enabled}
 
 @api_router.post("/dashboard/notifications/subscribe")
 async def subscribe_notifications(request: Request):
@@ -1046,6 +1123,15 @@ async def unsubscribe_notifications(request: Request):
     if remaining == 0:
         await db.shops.update_one({"_id": ObjectId(shop_id)}, {"$set": {"notifications_enabled": False}})
     return {"message": "Unsubscribed from notifications"}
+
+@api_router.post("/dashboard/notifications/email-toggle")
+async def toggle_email_notifications(request: Request):
+    user = await require_shop_owner(request)
+    shop_id = await resolve_shop_id(request, user)
+    shop = await db.shops.find_one({"_id": ObjectId(shop_id)}, {"email_notifications": 1})
+    current = shop.get("email_notifications", False) if shop else False
+    await db.shops.update_one({"_id": ObjectId(shop_id)}, {"$set": {"email_notifications": not current}})
+    return {"email_enabled": not current, "message": f"Email notifications {'enabled' if not current else 'disabled'}"}
 
 @api_router.get("/push/vapid-key")
 async def get_vapid_key():
@@ -1158,6 +1244,26 @@ async def create_order(slug: str, data: OrderCreate):
             )
         except Exception as e:
             logger.error(f"Push notification failed: {e}")
+
+    # Send email notification to shop owner if enabled
+    if shop.get("email_notifications"):
+        owner = await db.users.find_one({"shop_id": shop_id}, {"email": 1})
+        notify_email = shop.get("contact_email") or (owner["email"] if owner else "")
+        if notify_email:
+            try:
+                await send_order_email(
+                    shop_name=shop["name"],
+                    to_email=notify_email,
+                    order_id=order_id,
+                    customer_name=data.customer_name,
+                    customer_phone=data.customer_phone,
+                    customer_address=data.customer_address,
+                    items=items,
+                    total=total,
+                    note=data.note,
+                )
+            except Exception as e:
+                logger.error(f"Email notification failed: {e}")
 
     return {"id": order_id, "order_id": order_id, "total_amount": total, "items": items, "message": "Order placed successfully"}
 
