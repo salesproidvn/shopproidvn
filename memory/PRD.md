@@ -1,84 +1,91 @@
-# E-commerce Platform - Product Requirements Document
+# PRD: Micro-SaaS E-commerce Platform (The Wi Shop / Ocean Pro Web)
 
-## Original Problem Statement
-Create an admin dashboard for a Micro-SaaS E-commerce Platform. Multi-tenant setup with Super-Admin, Shop Owner, and public Storefront views. Support Vietnamese language.
+## Problem Statement
+Multi-tenant e-commerce platform with Super Admin, Shop Owner, and public Storefront views. Originally built as a standalone mocked frontend, now migrated to a full-stack production app with FastAPI backend, MongoDB database, and Emergent Object Storage for images.
 
-## Tech Stack
-- Frontend: React 19, Tailwind CSS, Shadcn/UI, react-quill-new (WYSIWYG)
-- Backend: FastAPI + MongoDB (currently bypassed by frontend mock mode)
-- Mode: **MOCK MODE** (mockAdapter.js intercepts all API calls)
+## User Personas
+- **Super Admin** (daominhhai129@gmail.com): Manages all shops, users, maintenance
+- **Shop Owners**: Manage their own shop's products, categories, orders, posts, pages, menus
+- **Public Customers**: Browse storefronts, view products, place orders
 
-## What's Been Implemented
+## Architecture
+- **Frontend**: React + Tailwind CSS + Shadcn UI, served on port 3000
+- **Backend**: FastAPI (Python), served on port 8001, proxied via /api prefix
+- **Database**: MongoDB Atlas (proidshopvn)
+- **Storage**: Emergent Object Storage for image uploads
+- **Auth**: JWT Bearer tokens via localStorage
 
-### Phase 1-3 (Complete)
-- Multi-tenant shop, Product CRUD, Orders, Vi/En i18n, JWT Auth
-- Multi-image gallery, video URL, blog posts with WYSIWYG
-- Banner slider, display layout reordering, SKU, featured products
+## Core Features (Implemented)
+- [x] JWT Authentication (login, register, logout, /auth/me)
+- [x] Password Reset Flow (forgot-password -> token -> reset-password)
+- [x] Super Admin Dashboard (stats, shops, users, maintenance)
+- [x] Shop Owner Dashboard (products, categories, orders, posts, pages, menu, mega-menu, banners, footer, layout, theme)
+- [x] Public Storefront (shop info, products, categories, posts, custom pages, contact form, order placement)
+- [x] Image Upload to Emergent Object Storage
+- [x] Database Seeding (3 shops: The Elite Shop, Green Living, Cho Xanh 365)
+- [x] Login page without hardcoded credentials
+- [x] "Forgot Password" link on login page
+- [x] Super Admin can view any shop's dashboard via ?shop_id= query parameter
+- [x] Shop limits management (max_products, max_posts)
+- [x] Server maintenance module (cleanup old orders, orphaned images)
 
-### Phase 4 - Navigation & Footer (Complete)
-- Dynamic menu bar, related products, category page, editable footer with links
+## API Endpoints
+### Auth
+- POST /api/auth/login
+- POST /api/auth/register
+- POST /api/auth/logout
+- GET /api/auth/me
+- POST /api/auth/forgot-password
+- POST /api/auth/reset-password
 
-### Phase 5 - Custom Pages & Menu Manager (Complete)
-- Custom page builder (text/image/link/video sections), up to 10 pages
-- Menu manager with quick-link dropdown (posts, pages, built-in pages), up to 10 items
-- Copy link button, share button on posts, 2-col mobile attached products
+### Super Admin
+- GET /api/admin/stats
+- GET /api/admin/shops
+- GET /api/admin/users
+- POST /api/admin/users (create shop owner)
+- POST /api/admin/users/{id}/block
+- DELETE /api/admin/users/{id}
+- POST /api/admin/users/{id}/reset-password
+- POST /api/admin/shops/{id}/status
+- POST /api/admin/shops/{id}/expiry
+- PUT /api/admin/shops/{id}/limits
+- GET /api/admin/maintenance/preview
+- POST /api/admin/maintenance/cleanup-orders
+- POST /api/admin/maintenance/cleanup-images
 
-### Phase 6 - Sub-categories & Video Links (Complete - Feb 2026)
-- **Sub-categories**: Categories support `parent_id` for hierarchy. Root categories display sub-category chips on storefront. Category filter dropdown shows indented sub-categories. Dashboard categories tab shows parent/child tree with nested dashed-border cards. Category modal has Parent Category dropdown.
-- **Product Video Links**: Each product supports up to 4 video links (YouTube, TikTok). Videos render in a 2-column iframe grid in product detail view below product info. Dashboard product modal has Add Video Link inputs with remove buttons and 4-item max limit.
-- **Data**: 12 categories (6 root + 6 sub), 7 custom pages, 5 menu items
+### Shop Owner Dashboard
+- GET/PUT /api/dashboard/shop
+- GET /api/dashboard/stats
+- GET/POST /api/dashboard/products
+- PUT/DELETE /api/dashboard/products/{id}
+- GET/POST /api/dashboard/categories
+- PUT/DELETE /api/dashboard/categories/{id}
+- PUT /api/dashboard/categories/positions
+- GET /api/dashboard/orders
+- PUT /api/dashboard/orders/{id}/status
+- GET/POST /api/dashboard/posts
+- PUT/DELETE /api/dashboard/posts/{id}
+- GET/POST /api/dashboard/pages
+- PUT/DELETE /api/dashboard/pages/{id}
+- GET/PUT /api/dashboard/menu
+- GET/PUT /api/dashboard/mega-menu
 
-## Key Data Models
-```js
-// Category (with sub-categories)
-{ id, shop_id, name, description, position, parent_id: null|'cat-id' }
+### Public Storefront
+- GET /api/shop/{slug}
+- GET /api/shop/{slug}/products
+- GET /api/shop/{slug}/categories
+- GET /api/shop/{slug}/posts
+- GET /api/shop/{slug}/page/{page_slug}
+- POST /api/shop/{slug}/orders
+- POST /api/shop/{slug}/contact
 
-// Product (with video links)
-{ id, shop_id, name, price, category_id, stock, image_url, images[], video_url, video_links: ['url1','url2','url3','url4'], sku, is_featured, description }
-
-// Custom Page
-{ id, shop_id, title, slug, sections: [{type, content, url, text, caption}], is_published }
-
-// Menu Item
-{ id, label, url, type, enabled, position }
-
-// Footer Column
-{ title, items: [{text, url}] }
-```
-
-## Credentials
-- Admin: admin@thewishop.com / admin123
-- Shop Owner 1: demo@thewishop.com / demo123 (The Elite Shop)
-- Shop Owner 2: green@thewishop.com / green123 (Green Living)
-
-### Phase 7 - UI Polish (Complete - Feb 2026)
-- **Storefront Banner Width**: Banner slider now uses full container width (`w-full`) instead of `max-w-4xl`, aligning perfectly with blog, featured products, and product grid sections.
-
-### Phase 8 - Super Admin View Shop (Complete - Feb 2026)
-- **Admin View Shop**: Super Admin can click "View Shop" in the Shops table to navigate to any shop owner's full dashboard (`/dashboard?shop=<shop-id>`).
-- **Admin Banner**: Amber-colored banner at top shows which shop is being viewed, with "Preview Shop" link and "Back to Admin" button.
-- **Data Isolation**: All dashboard API routes dynamically resolve shop_id (admin view context > query param > user's shop_id), ensuring each shop only sees its own products, categories, orders, and settings.
-- **Second Mock Shop**: Added "Green Living" eco-friendly shop (6 products, 3 categories, 2 orders, 1 blog post) owned by Minh Tran (green@thewishop.com / green123).
-- **Full CRUD**: Admin can manage any shop's products, categories, orders, posts, pages, menu, settings while viewing their dashboard.
-
-### Phase 9 - Storefront UI Polish (Complete - Feb 2026)
-- **Removed Price Filter**: Removed PriceFilter component from storefront, only category dropdown remains.
-- **Redesigned Bottom Bar**: Taller bar (h-16), bigger icons (w-5 h-5), readable text (text-xs font-medium), grid layout, MapPin and Grid3X3 icons for clarity.
-- **Themed Bottom Bar**: Bottom bar uses shop's `theme_color` as background with white icons/text.
-- **Category Grid**: 8-column left-aligned grid of parent categories with square product cards below banner, 2 cols on mobile. Section titled "Danh mục sản phẩm" via `t.productCategories`.
-- **Category Images**: Categories now support `image_url` field, editable in dashboard category form.
-- **Single Category Page** (`/shop/:slug/category/:categoryId`): Dedicated page showing all products of a category with sub-category filter chips, category hero with image, add-to-cart buttons.
-- **Layout Position Editable**: Categories section added to Display Layout settings for position reordering and toggle.
-
-### Phase 10 - Chợ Xanh 365 Shop & Cart Fix (Complete - Feb 2026)
-- **New Shop "Chợ Xanh 365"**: Vietnamese organic grocery store with 100 products across 8 categories (32 total with sub-categories), 8 orders, 2 blog posts. Green theme. Login: choxanh@thewishop.com / choxanh123.
-- **Cart Bug Fix**: Fixed `addToCart(product, 1)` → `addToCart(product.id, product, 1)` in SingleCategoryPage — was passing wrong arguments to CartContext.
-
-### Phase 11 - Category Grid Title & Checkout Back Fix (Complete - Feb 2026)
-- **Category Grid Title**: Added "Danh mục sản phẩm" section heading above the category grid on the Storefront, matching other section headings.
-- **Checkout Back Button**: Fixed the back arrow on the checkout page to navigate back to the Single Category Page when checkout was triggered from there (via `?checkout=1`).
-- **Mega Menu**: Shopee-style horizontal category nav bar below header (desktop only, `lg:block`). Categories with subcategories show hover dropdown with 2-column subcategory grid + featured products with thumbnails/prices. Blue top-border accent. Categories without subcategories link directly.
+### Other
+- POST /api/upload/image
+- GET /api/files/{id}
+- GET /api/products
+- GET /api/categories
 
 ## Backlog
-- P1: Sales analytics charts on dashboards
-- P2: Refactor ShopOwnerDashboard.js (2000+ lines) and StorefrontPage.js (880+ lines)
+- P1: Sales analytics charts for dashboards
+- P1: Refactor ShopOwnerDashboard.js (~2200 lines) into smaller components
+- P1: Refactor StorefrontPage.js (~1000 lines) into smaller components
