@@ -1,13 +1,15 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { formatApiErrorDetail } from '../utils/format';
-import { setCurrentUser } from '../utils/mockData';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
-import { Loader2, Store, ShoppingCart, BarChart3, Globe, Shield, Smartphone, ArrowRight, Eye, EyeOff } from 'lucide-react';
+import { Loader2, Store, ShoppingCart, BarChart3, Globe, Shield, Smartphone, ArrowRight, Eye, EyeOff, Mail, CheckCircle } from 'lucide-react';
+
+const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 const GoogleIcon = () => (
   <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -25,13 +27,16 @@ const FacebookIcon = () => (
 );
 
 const LoginPage = () => {
-  const [mode, setMode] = useState('login');
+  const [mode, setMode] = useState('login'); // 'login' | 'register' | 'forgot' | 'reset'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [resetToken, setResetToken] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const { login, register, user } = useAuth();
   const { t } = useLanguage();
   const navigate = useNavigate();
@@ -46,14 +51,15 @@ const LoginPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setSuccessMessage('');
     setLoading(true);
     try {
       if (mode === 'login') {
         await login(email, password);
-      } else {
+      } else if (mode === 'register') {
         await register(email, password, name);
+        navigate('/dashboard');
       }
-      navigate('/dashboard');
     } catch (err) {
       setError(formatApiErrorDetail(err.response?.data?.detail) || err.message);
     } finally {
@@ -61,16 +67,54 @@ const LoginPage = () => {
     }
   };
 
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSuccessMessage('');
+    setLoading(true);
+    try {
+      const { data } = await axios.post(`${API}/auth/forgot-password`, { email });
+      if (data.reset_token) {
+        setResetToken(data.reset_token);
+        setMode('reset');
+        setSuccessMessage('Reset token generated. Enter your new password below.');
+      } else {
+        setSuccessMessage(data.message || 'If this email exists, a reset link has been sent.');
+      }
+    } catch (err) {
+      setError(formatApiErrorDetail(err.response?.data?.detail) || 'Failed to send reset request');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetPassword = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSuccessMessage('');
+    if (newPassword.length < 6) {
+      setError('Password must be at least 6 characters');
+      return;
+    }
+    setLoading(true);
+    try {
+      const { data } = await axios.post(`${API}/auth/reset-password`, { token: resetToken, new_password: newPassword });
+      setSuccessMessage(data.message || 'Password reset successfully!');
+      setTimeout(() => {
+        setMode('login');
+        setSuccessMessage('');
+        setResetToken('');
+        setNewPassword('');
+      }, 2000);
+    } catch (err) {
+      setError(formatApiErrorDetail(err.response?.data?.detail) || 'Failed to reset password');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSocialLogin = (provider) => {
-    const socialUser = {
-      id: `social-${provider}-${Date.now()}`,
-      email: `user@${provider}.com`,
-      name: `${provider.charAt(0).toUpperCase() + provider.slice(1)} User`,
-      role: 'customer'
-    };
-    setCurrentUser(socialUser);
-    navigate('/dashboard');
-    window.location.reload();
+    setError(`${provider} login coming soon`);
   };
 
   const highlights = [
@@ -156,88 +200,161 @@ const LoginPage = () => {
 
         <div className="flex-1 flex items-center justify-center p-6 sm:p-10">
           <div className="w-full max-w-sm">
-            {/* Title */}
-            <div className="mb-8">
-              <h2 className="text-2xl font-extrabold text-[#0F172A] tracking-tight" data-testid="login-title">
-                {mode === 'login' ? t.login : t.register}
-              </h2>
-              <p className="text-sm text-[#64748B] mt-1.5">
-                {mode === 'login' ? t.loginToManage : t.createAccount}
-              </p>
-            </div>
-
-            {/* Social Login */}
-            <div className="flex gap-3 mb-6">
-              <Button variant="outline" className="flex-1 h-11 rounded-xl text-sm font-medium border-[#E2E8F0] hover:bg-[#F8FAFC]" onClick={() => handleSocialLogin('google')} data-testid="google-login-btn">
-                <GoogleIcon />
-                <span className="ml-2">Google</span>
-              </Button>
-              <Button variant="outline" className="flex-1 h-11 rounded-xl text-sm font-medium border-[#E2E8F0] hover:bg-[#F8FAFC]" onClick={() => handleSocialLogin('facebook')} data-testid="facebook-login-btn">
-                <FacebookIcon />
-                <span className="ml-2">Facebook</span>
-              </Button>
-            </div>
-
-            {/* Divider */}
-            <div className="relative mb-6">
-              <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-[#E2E8F0]" /></div>
-              <div className="relative flex justify-center text-[11px] uppercase tracking-wider">
-                <span className="bg-white px-3 text-[#94A3B8]">{t.orLoginWith}</span>
-              </div>
-            </div>
-
-            {/* Form */}
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {mode === 'register' && (
-                <div className="space-y-1.5">
-                  <Label htmlFor="name" className="text-xs font-medium text-[#334155]">{t.name}</Label>
-                  <Input id="name" type="text" value={name} onChange={(e) => setName(e.target.value)}
-                    required={mode === 'register'} className="h-11 rounded-xl bg-[#F8FAFC] border-[#E2E8F0] focus:bg-white text-sm" placeholder="Nguyen Van A" data-testid="name-input" />
+            {/* ===== FORGOT PASSWORD MODE ===== */}
+            {mode === 'forgot' && (
+              <>
+                <div className="mb-8">
+                  <h2 className="text-2xl font-extrabold text-[#0F172A] tracking-tight" data-testid="forgot-password-title">
+                    Quên mật khẩu
+                  </h2>
+                  <p className="text-sm text-[#64748B] mt-1.5">
+                    Nhập email của bạn để nhận link đặt lại mật khẩu
+                  </p>
                 </div>
-              )}
 
-              <div className="space-y-1.5">
-                <Label htmlFor="email" className="text-xs font-medium text-[#334155]">{t.email}</Label>
-                <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-                  required className="h-11 rounded-xl bg-[#F8FAFC] border-[#E2E8F0] focus:bg-white text-sm" placeholder="email@example.com" data-testid="email-input" />
-              </div>
+                <form onSubmit={handleForgotPassword} className="space-y-4">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="forgot-email" className="text-xs font-medium text-[#334155]">Email</Label>
+                    <Input id="forgot-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+                      required className="h-11 rounded-xl bg-[#F8FAFC] border-[#E2E8F0] focus:bg-white text-sm" placeholder="email@example.com" data-testid="forgot-email-input" />
+                  </div>
 
-              <div className="space-y-1.5">
-                <Label htmlFor="password" className="text-xs font-medium text-[#334155]">{t.password}</Label>
-                <div className="relative">
-                  <Input id="password" type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)}
-                    required className="h-11 rounded-xl bg-[#F8FAFC] border-[#E2E8F0] focus:bg-white text-sm pr-10" placeholder="••••••••" data-testid="password-input" />
-                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94A3B8] hover:text-[#64748B]">
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
+                  {error && <div className="text-red-600 text-xs bg-red-50 p-3 rounded-xl border border-red-100" data-testid="forgot-error">{error}</div>}
+                  {successMessage && <div className="text-green-700 text-xs bg-green-50 p-3 rounded-xl border border-green-100 flex items-center gap-2" data-testid="forgot-success"><CheckCircle className="w-4 h-4" />{successMessage}</div>}
+
+                  <Button type="submit" className="w-full h-11 bg-gradient-to-r from-[#0055FF] to-[#00C2FF] hover:opacity-90 rounded-xl text-sm font-semibold shadow-lg shadow-[#0055FF]/20" disabled={loading} data-testid="forgot-submit-button">
+                    {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Mail className="w-4 h-4 mr-2" /> Gửi yêu cầu đặt lại</>}
+                  </Button>
+
+                  <p className="text-center text-sm text-[#64748B]">
+                    <button type="button" onClick={() => { setMode('login'); setError(''); setSuccessMessage(''); }} className="text-[#0055FF] font-semibold hover:underline" data-testid="back-to-login">
+                      Quay lại đăng nhập
+                    </button>
+                  </p>
+                </form>
+              </>
+            )}
+
+            {/* ===== RESET PASSWORD MODE ===== */}
+            {mode === 'reset' && (
+              <>
+                <div className="mb-8">
+                  <h2 className="text-2xl font-extrabold text-[#0F172A] tracking-tight" data-testid="reset-password-title">
+                    Đặt lại mật khẩu
+                  </h2>
+                  <p className="text-sm text-[#64748B] mt-1.5">
+                    Nhập mật khẩu mới cho tài khoản của bạn
+                  </p>
                 </div>
-              </div>
 
-              {error && (
-                <div className="text-red-600 text-xs bg-red-50 p-3 rounded-xl border border-red-100" data-testid="auth-error">{error}</div>
-              )}
+                <form onSubmit={handleResetPassword} className="space-y-4">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="new-password" className="text-xs font-medium text-[#334155]">Mật khẩu mới</Label>
+                    <div className="relative">
+                      <Input id="new-password" type={showPassword ? 'text' : 'password'} value={newPassword} onChange={(e) => setNewPassword(e.target.value)}
+                        required minLength={6} className="h-11 rounded-xl bg-[#F8FAFC] border-[#E2E8F0] focus:bg-white text-sm pr-10" placeholder="Nhập mật khẩu mới" data-testid="new-password-input" />
+                      <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94A3B8] hover:text-[#64748B]">
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
 
-              <Button type="submit" className="w-full h-11 bg-gradient-to-r from-[#0055FF] to-[#00C2FF] hover:opacity-90 rounded-xl text-sm font-semibold shadow-lg shadow-[#0055FF]/20" disabled={loading} data-testid="auth-submit-button">
-                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (
-                  <>{mode === 'login' ? t.login : t.register} <ArrowRight className="w-4 h-4 ml-2" /></>
-                )}
-              </Button>
+                  {error && <div className="text-red-600 text-xs bg-red-50 p-3 rounded-xl border border-red-100" data-testid="reset-error">{error}</div>}
+                  {successMessage && <div className="text-green-700 text-xs bg-green-50 p-3 rounded-xl border border-green-100 flex items-center gap-2" data-testid="reset-success"><CheckCircle className="w-4 h-4" />{successMessage}</div>}
 
-              <p className="text-center text-sm text-[#64748B]">
-                {mode === 'login' ? (
-                  <>{t.noAccount}{' '}<button type="button" onClick={() => { setMode('register'); setError(''); }} className="text-[#0055FF] font-semibold hover:underline" data-testid="switch-to-register">{t.registerNow}</button></>
-                ) : (
-                  <>{t.hasAccount}{' '}<button type="button" onClick={() => { setMode('login'); setError(''); }} className="text-[#0055FF] font-semibold hover:underline" data-testid="switch-to-login">{t.login}</button></>
-                )}
-              </p>
-            </form>
+                  <Button type="submit" className="w-full h-11 bg-gradient-to-r from-[#0055FF] to-[#00C2FF] hover:opacity-90 rounded-xl text-sm font-semibold shadow-lg shadow-[#0055FF]/20" disabled={loading} data-testid="reset-submit-button">
+                    {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Shield className="w-4 h-4 mr-2" /> Đặt lại mật khẩu</>}
+                  </Button>
+                </form>
+              </>
+            )}
 
-            {/* Demo hint */}
-            <div className="mt-8 p-3.5 rounded-xl bg-[#F0F7FF] border border-[#0055FF]/10">
-              <p className="text-[11px] text-[#0055FF] font-medium mb-1">Demo Account</p>
-              <p className="text-[11px] text-[#475569]">Shop Owner: <span className="font-mono text-[10px]">demo@thewishop.com / demo123</span></p>
-              <p className="text-[11px] text-[#475569]">Admin: <span className="font-mono text-[10px]">admin@thewishop.com / admin123</span></p>
-            </div>
+            {/* ===== LOGIN / REGISTER MODE ===== */}
+            {(mode === 'login' || mode === 'register') && (
+              <>
+                <div className="mb-8">
+                  <h2 className="text-2xl font-extrabold text-[#0F172A] tracking-tight" data-testid="login-title">
+                    {mode === 'login' ? t.login : t.register}
+                  </h2>
+                  <p className="text-sm text-[#64748B] mt-1.5">
+                    {mode === 'login' ? t.loginToManage : t.createAccount}
+                  </p>
+                </div>
+
+                {/* Social Login */}
+                <div className="flex gap-3 mb-6">
+                  <Button variant="outline" className="flex-1 h-11 rounded-xl text-sm font-medium border-[#E2E8F0] hover:bg-[#F8FAFC]" onClick={() => handleSocialLogin('google')} data-testid="google-login-btn">
+                    <GoogleIcon />
+                    <span className="ml-2">Google</span>
+                  </Button>
+                  <Button variant="outline" className="flex-1 h-11 rounded-xl text-sm font-medium border-[#E2E8F0] hover:bg-[#F8FAFC]" onClick={() => handleSocialLogin('facebook')} data-testid="facebook-login-btn">
+                    <FacebookIcon />
+                    <span className="ml-2">Facebook</span>
+                  </Button>
+                </div>
+
+                {/* Divider */}
+                <div className="relative mb-6">
+                  <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-[#E2E8F0]" /></div>
+                  <div className="relative flex justify-center text-[11px] uppercase tracking-wider">
+                    <span className="bg-white px-3 text-[#94A3B8]">{t.orLoginWith}</span>
+                  </div>
+                </div>
+
+                {/* Form */}
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  {mode === 'register' && (
+                    <div className="space-y-1.5">
+                      <Label htmlFor="name" className="text-xs font-medium text-[#334155]">{t.name}</Label>
+                      <Input id="name" type="text" value={name} onChange={(e) => setName(e.target.value)}
+                        required={mode === 'register'} className="h-11 rounded-xl bg-[#F8FAFC] border-[#E2E8F0] focus:bg-white text-sm" placeholder="Nguyen Van A" data-testid="name-input" />
+                    </div>
+                  )}
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="email" className="text-xs font-medium text-[#334155]">{t.email}</Label>
+                    <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+                      required className="h-11 rounded-xl bg-[#F8FAFC] border-[#E2E8F0] focus:bg-white text-sm" placeholder="email@example.com" data-testid="email-input" />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between items-center">
+                      <Label htmlFor="password" className="text-xs font-medium text-[#334155]">{t.password}</Label>
+                      {mode === 'login' && (
+                        <button type="button" onClick={() => { setMode('forgot'); setError(''); setSuccessMessage(''); }} className="text-[11px] text-[#0055FF] font-medium hover:underline" data-testid="forgot-password-link">
+                          Quên mật khẩu?
+                        </button>
+                      )}
+                    </div>
+                    <div className="relative">
+                      <Input id="password" type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)}
+                        required className="h-11 rounded-xl bg-[#F8FAFC] border-[#E2E8F0] focus:bg-white text-sm pr-10" placeholder="••••••••" data-testid="password-input" />
+                      <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94A3B8] hover:text-[#64748B]">
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {error && (
+                    <div className="text-red-600 text-xs bg-red-50 p-3 rounded-xl border border-red-100" data-testid="auth-error">{error}</div>
+                  )}
+
+                  <Button type="submit" className="w-full h-11 bg-gradient-to-r from-[#0055FF] to-[#00C2FF] hover:opacity-90 rounded-xl text-sm font-semibold shadow-lg shadow-[#0055FF]/20" disabled={loading} data-testid="auth-submit-button">
+                    {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (
+                      <>{mode === 'login' ? t.login : t.register} <ArrowRight className="w-4 h-4 ml-2" /></>
+                    )}
+                  </Button>
+
+                  <p className="text-center text-sm text-[#64748B]">
+                    {mode === 'login' ? (
+                      <>{t.noAccount}{' '}<button type="button" onClick={() => { setMode('register'); setError(''); }} className="text-[#0055FF] font-semibold hover:underline" data-testid="switch-to-register">{t.registerNow}</button></>
+                    ) : (
+                      <>{t.hasAccount}{' '}<button type="button" onClick={() => { setMode('login'); setError(''); }} className="text-[#0055FF] font-semibold hover:underline" data-testid="switch-to-login">{t.login}</button></>
+                    )}
+                  </p>
+                </form>
+              </>
+            )}
           </div>
         </div>
 

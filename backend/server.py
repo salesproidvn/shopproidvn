@@ -137,6 +137,22 @@ def set_auth_cookies(response: Response, access_token: str, refresh_token: str):
     response.set_cookie(key="access_token", value=access_token, httponly=True, secure=False, samesite="lax", max_age=86400, path="/")
     response.set_cookie(key="refresh_token", value=refresh_token, httponly=True, secure=False, samesite="lax", max_age=604800, path="/")
 
+def serialize_datetime(val):
+    if isinstance(val, datetime):
+        return val.isoformat()
+    return str(val) if val else ""
+
+async def resolve_shop_id(request: Request, user: dict) -> str:
+    """Resolve shop_id: for super_admin, allow ?shop_id= override; otherwise use user's shop_id."""
+    if user.get("role") == "super_admin":
+        override = request.query_params.get("shop_id")
+        if override:
+            return override
+    shop_id = user.get("shop_id")
+    if not shop_id:
+        raise HTTPException(status_code=400, detail="No shop associated")
+    return shop_id
+
 # ==================== PYDANTIC MODELS ====================
 
 class UserRegister(BaseModel):
@@ -147,6 +163,13 @@ class UserRegister(BaseModel):
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
 
 class ShopCreate(BaseModel):
     name: str
@@ -163,6 +186,14 @@ class ShopUpdate(BaseModel):
     social_instagram: Optional[str] = None
     theme_color: Optional[str] = None
     custom_domain: Optional[str] = None
+    banners: Optional[List[str]] = None
+    banner_enabled: Optional[bool] = None
+    blog_enabled: Optional[bool] = None
+    layout_sections: Optional[List[dict]] = None
+    footer_columns: Optional[List[dict]] = None
+    post_carousel_position: Optional[str] = None
+    max_products: Optional[int] = None
+    max_posts: Optional[int] = None
 
 class CategoryCreate(BaseModel):
     name: str
@@ -176,20 +207,10 @@ class ProductCreate(BaseModel):
     image_url: Optional[str] = ""
     images: Optional[List[str]] = []
     video_url: Optional[str] = ""
+    video_links: Optional[List[str]] = []
     stock: Optional[int] = 0
     position: Optional[int] = 0
-
-class ProductUpdate(BaseModel):
-    name: Optional[str] = None
-    price: Optional[int] = None
-    category_id: Optional[str] = None
-    description: Optional[str] = None
-    image_url: Optional[str] = None
-    images: Optional[List[str]] = None
-    video_url: Optional[str] = None
-    stock: Optional[int] = None
-    position: Optional[int] = None
-    is_active: Optional[bool] = None
+    is_featured: Optional[bool] = False
 
 class OrderCreate(BaseModel):
     customer_name: str
@@ -213,6 +234,35 @@ class ExpiryUpdate(BaseModel):
 
 class CategoryPositionUpdate(BaseModel):
     positions: List[dict]
+
+class PostCreate(BaseModel):
+    title: str
+    description: Optional[str] = ""
+    thumbnail: Optional[str] = ""
+    images: Optional[List[str]] = []
+    attached_products: Optional[List[str]] = []
+
+class PageCreate(BaseModel):
+    title: str
+    slug: Optional[str] = ""
+    is_published: Optional[bool] = True
+    sections: Optional[List[dict]] = []
+
+class MenuUpdate(BaseModel):
+    items: List[dict]
+
+class MegaMenuUpdate(BaseModel):
+    items: List[dict]
+
+class ContactForm(BaseModel):
+    name: str
+    email: Optional[str] = ""
+    phone: Optional[str] = ""
+    message: str
+
+class ShopLimitsUpdate(BaseModel):
+    max_products: Optional[int] = None
+    max_posts: Optional[int] = None
 
 # ==================== AUTH ENDPOINTS ====================
 
@@ -257,6 +307,40 @@ async def get_me(request: Request):
     user = await get_current_user(request)
     return {"id": user["_id"], "email": user["email"], "name": user["name"], "role": user["role"], "shop_id": user.get("shop_id"), "status": user.get("status", "active")}
 
+@api_router.post("/auth/forgot-password")
+async def forgot_password(data: ForgotPasswordRequest):
+    """Generate a password reset token. In production, this would send an email."""
+    email = data.email.lower()
+    user = await db.users.find_one({"email": email})
+    if not user:
+        return {"message": "If this email exists, a reset link has been sent."}
+    token = secrets.token_urlsafe(32)
+    await db.password_resets.insert_one({
+        "user_id": str(user["_id"]),
+        "email": email,
+        "token": token,
+        "used": False,
+        "created_at": datetime.now(timezone.utc),
+        "expires_at": datetime.now(timezone.utc) + timedelta(hours=1)
+    })
+    logger.info(f"Password reset token for {email}: {token}")
+    return {"message": "If this email exists, a reset link has been sent.", "reset_token": token}
+
+@api_router.post("/auth/reset-password")
+async def reset_password(data: ResetPasswordRequest):
+    """Reset password using token from forgot-password."""
+    reset_doc = await db.password_resets.find_one({
+        "token": data.token,
+        "used": False,
+        "expires_at": {"$gt": datetime.now(timezone.utc)}
+    })
+    if not reset_doc:
+        raise HTTPException(status_code=400, detail="Invalid or expired reset token")
+    new_hash = hash_password(data.new_password)
+    await db.users.update_one({"_id": ObjectId(reset_doc["user_id"])}, {"$set": {"password_hash": new_hash}})
+    await db.password_resets.update_one({"_id": reset_doc["_id"]}, {"$set": {"used": True}})
+    return {"message": "Password has been reset successfully"}
+
 # ==================== SUPER ADMIN ENDPOINTS ====================
 
 @api_router.get("/admin/stats")
@@ -279,11 +363,17 @@ async def get_all_shops(request: Request):
         sid = str(s["_id"])
         owner = await db.users.find_one({"shop_id": sid}, {"_id": 0, "email": 1, "name": 1})
         oc = await db.orders.count_documents({"shop_id": sid})
+        pc = await db.products.count_documents({"shop_id": sid})
+        cc = await db.categories.count_documents({"shop_id": sid})
         result.append({
             "id": sid, "name": s["name"], "slug": s["slug"], "status": s.get("status", "active"),
             "expiry_date": s.get("expiry_date", ""), "theme_color": s.get("theme_color", "#0055FF"),
-            "created_at": s["created_at"].isoformat() if isinstance(s["created_at"], datetime) else str(s["created_at"]),
-            "owner": owner, "order_count": oc
+            "contact_phone": s.get("contact_phone", ""), "contact_email": s.get("contact_email", ""),
+            "address": s.get("address", ""),
+            "max_products": s.get("max_products", 100), "max_posts": s.get("max_posts", 50),
+            "created_at": serialize_datetime(s.get("created_at")),
+            "owner": owner, "order_count": oc, "product_count": pc, "category_count": cc,
+            "item_count": pc
         })
     return result
 
@@ -303,6 +393,19 @@ async def update_shop_expiry(shop_id: str, data: ExpiryUpdate, request: Request)
     await db.shops.update_one({"_id": ObjectId(shop_id)}, {"$set": {"expiry_date": data.expiry_date or ""}})
     return {"message": "Expiry date updated"}
 
+@api_router.put("/admin/shops/{shop_id}/limits")
+async def update_shop_limits(shop_id: str, request: Request):
+    await require_super_admin(request)
+    body = await request.json()
+    update = {}
+    if "max_products" in body:
+        update["max_products"] = int(body["max_products"])
+    if "max_posts" in body:
+        update["max_posts"] = int(body["max_posts"])
+    if update:
+        await db.shops.update_one({"_id": ObjectId(shop_id)}, {"$set": update})
+    return {"message": "Limits updated"}
+
 @api_router.get("/admin/users")
 async def get_all_users(request: Request):
     await require_super_admin(request)
@@ -315,8 +418,8 @@ async def get_all_users(request: Request):
             shop_name = shop["name"] if shop else None
         result.append({
             "id": str(u["_id"]), "email": u["email"], "name": u["name"], "role": u["role"],
-            "status": u.get("status", "active"), "shop_name": shop_name,
-            "created_at": u["created_at"].isoformat() if isinstance(u["created_at"], datetime) else str(u["created_at"])
+            "status": u.get("status", "active"), "shop_name": shop_name, "shop_id": u.get("shop_id"),
+            "created_at": serialize_datetime(u.get("created_at"))
         })
     return result
 
@@ -329,7 +432,7 @@ async def create_shop_owner(data: ShopOwnerCreate, request: Request):
     slug = generate_shop_slug(data.shop_name)
     if await db.shops.find_one({"slug": slug}):
         slug = f"{slug}-{secrets.token_hex(3)}"
-    shop_doc = {"name": data.shop_name, "slug": slug, "description": "", "logo_url": "", "contact_phone": "", "contact_email": email, "address": "", "social_facebook": "", "social_instagram": "", "theme_color": "#0055FF", "status": "active", "expiry_date": "", "created_at": datetime.now(timezone.utc)}
+    shop_doc = {"name": data.shop_name, "slug": slug, "description": "", "logo_url": "", "contact_phone": "", "contact_email": email, "address": "", "social_facebook": "", "social_instagram": "", "theme_color": "#0055FF", "status": "active", "expiry_date": "", "banners": [], "banner_enabled": True, "blog_enabled": True, "layout_sections": [], "footer_columns": [], "menu_items": [], "mega_menu_categories": [], "custom_pages": [], "post_carousel_position": "top", "max_products": 100, "max_posts": 50, "created_at": datetime.now(timezone.utc)}
     shop_result = await db.shops.insert_one(shop_doc)
     shop_id = str(shop_result.inserted_id)
     user_doc = {"email": email, "password_hash": hash_password(data.password), "name": data.name, "role": "shop_owner", "shop_id": shop_id, "status": "active", "created_at": datetime.now(timezone.utc)}
@@ -361,6 +464,7 @@ async def delete_user(user_id: str, request: Request):
         await db.products.delete_many({"shop_id": user["shop_id"]})
         await db.categories.delete_many({"shop_id": user["shop_id"]})
         await db.orders.delete_many({"shop_id": user["shop_id"]})
+        await db.posts.delete_many({"shop_id": user["shop_id"]})
     await db.users.delete_one({"_id": ObjectId(user_id)})
     return {"message": "User deleted"}
 
@@ -373,6 +477,39 @@ async def admin_reset_password(user_id: str, request: Request):
     default_pw = "iLoveProID@"
     await db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"password_hash": hash_password(default_pw)}})
     return {"message": f"Password reset to: {default_pw}"}
+
+# ==================== ADMIN MAINTENANCE ====================
+
+@api_router.get("/admin/maintenance/preview")
+async def maintenance_preview(request: Request):
+    await require_super_admin(request)
+    one_year_ago = datetime.now(timezone.utc) - timedelta(days=365)
+    old_orders = await db.orders.count_documents({"created_at": {"$lt": one_year_ago}})
+    orphaned_files = await db.files.count_documents({"is_deleted": True})
+    return {"old_orders_count": old_orders, "orphaned_files_count": orphaned_files}
+
+@api_router.post("/admin/maintenance/cleanup-orders")
+async def cleanup_orders(request: Request):
+    await require_super_admin(request)
+    one_year_ago = datetime.now(timezone.utc) - timedelta(days=365)
+    result = await db.orders.delete_many({"created_at": {"$lt": one_year_ago}})
+    return {"deleted_count": result.deleted_count, "message": f"Deleted {result.deleted_count} old orders"}
+
+@api_router.post("/admin/maintenance/cleanup-images")
+async def cleanup_images(request: Request):
+    await require_super_admin(request)
+    orphaned = await db.files.find({"is_deleted": True}).to_list(100)
+    count = 0
+    for f in orphaned:
+        try:
+            key = init_storage()
+            if key:
+                requests.delete(f"{STORAGE_URL}/objects/{f['storage_path']}", headers={"X-Storage-Key": key}, timeout=30)
+        except Exception:
+            pass
+        await db.files.delete_one({"_id": f["_id"]})
+        count += 1
+    return {"deleted_count": count, "message": f"Cleaned up {count} orphaned files"}
 
 # ==================== IMAGE UPLOAD ====================
 
@@ -412,9 +549,7 @@ async def get_file(file_id: str):
 @api_router.get("/dashboard/stats")
 async def get_dashboard_stats(request: Request):
     user = await require_shop_owner(request)
-    shop_id = user.get("shop_id")
-    if not shop_id:
-        raise HTTPException(status_code=400, detail="No shop associated")
+    shop_id = await resolve_shop_id(request, user)
     tp = await db.products.count_documents({"shop_id": shop_id})
     to = await db.orders.count_documents({"shop_id": shop_id})
     po = await db.orders.count_documents({"shop_id": shop_id, "status": "pending"})
@@ -425,9 +560,7 @@ async def get_dashboard_stats(request: Request):
 @api_router.get("/dashboard/shop")
 async def get_shop_details(request: Request):
     user = await require_shop_owner(request)
-    shop_id = user.get("shop_id")
-    if not shop_id:
-        raise HTTPException(status_code=400, detail="No shop associated")
+    shop_id = await resolve_shop_id(request, user)
     shop = await db.shops.find_one({"_id": ObjectId(shop_id)})
     if not shop:
         raise HTTPException(status_code=404, detail="Shop not found")
@@ -438,19 +571,23 @@ async def get_shop_details(request: Request):
         "address": shop.get("address", ""), "social_facebook": shop.get("social_facebook", ""),
         "social_instagram": shop.get("social_instagram", ""), "theme_color": shop.get("theme_color", "#0055FF"),
         "status": shop.get("status", "active"), "expiry_date": shop.get("expiry_date", ""),
-        "custom_domain": shop.get("custom_domain", "")
+        "custom_domain": shop.get("custom_domain", ""),
+        "banners": shop.get("banners", []), "banner_enabled": shop.get("banner_enabled", True),
+        "blog_enabled": shop.get("blog_enabled", True),
+        "layout_sections": shop.get("layout_sections", []),
+        "footer_columns": shop.get("footer_columns", []),
+        "post_carousel_position": shop.get("post_carousel_position", "top"),
+        "max_products": shop.get("max_products", 100), "max_posts": shop.get("max_posts", 50),
     }
 
 @api_router.put("/dashboard/shop")
-async def update_shop(data: ShopUpdate, request: Request):
+async def update_shop(request: Request):
     user = await require_shop_owner(request)
-    shop_id = user.get("shop_id")
-    if not shop_id:
-        raise HTTPException(status_code=400, detail="No shop associated")
-    update_data = {k: v for k, v in data.model_dump().items() if v is not None}
-    if not update_data:
+    shop_id = await resolve_shop_id(request, user)
+    body = await request.json()
+    if not body:
         raise HTTPException(status_code=400, detail="No data to update")
-    await db.shops.update_one({"_id": ObjectId(shop_id)}, {"$set": update_data})
+    await db.shops.update_one({"_id": ObjectId(shop_id)}, {"$set": body})
     return {"message": "Shop updated"}
 
 # ==================== DASHBOARD - CATEGORIES ====================
@@ -458,27 +595,28 @@ async def update_shop(data: ShopUpdate, request: Request):
 @api_router.get("/dashboard/categories")
 async def get_shop_categories(request: Request):
     user = await require_shop_owner(request)
-    shop_id = user.get("shop_id")
-    cats = await db.categories.find({"shop_id": shop_id}, {"_id": 0}).sort("position", 1).to_list(50)
+    shop_id = await resolve_shop_id(request, user)
+    cats = await db.categories.find({"shop_id": shop_id}, {"_id": 0}).sort("position", 1).to_list(200)
     return cats
 
 @api_router.post("/dashboard/categories")
 async def create_category(data: CategoryCreate, request: Request):
     user = await require_shop_owner(request)
-    shop_id = user.get("shop_id")
+    shop_id = await resolve_shop_id(request, user)
     max_pos = 0
     last = await db.categories.find({"shop_id": shop_id}).sort("position", -1).limit(1).to_list(1)
     if last:
         max_pos = last[0].get("position", 0)
     cat_id = f"cat-{secrets.token_hex(6)}"
-    doc = {"id": cat_id, "shop_id": shop_id, "name": data.name, "description": data.description, "position": max_pos + 1, "created_at": datetime.now(timezone.utc)}
+    doc = {"id": cat_id, "shop_id": shop_id, "name": data.name, "description": data.description, "position": max_pos + 1, "parent_id": None, "image_url": "", "created_at": datetime.now(timezone.utc)}
     await db.categories.insert_one(doc)
     return {"id": cat_id, "name": data.name, "description": data.description, "position": max_pos + 1}
 
 @api_router.put("/dashboard/categories/{cat_id}")
 async def update_category(cat_id: str, data: CategoryCreate, request: Request):
     user = await require_shop_owner(request)
-    result = await db.categories.update_one({"id": cat_id, "shop_id": user.get("shop_id")}, {"$set": {"name": data.name, "description": data.description}})
+    shop_id = await resolve_shop_id(request, user)
+    result = await db.categories.update_one({"id": cat_id, "shop_id": shop_id}, {"$set": {"name": data.name, "description": data.description}})
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Category not found")
     return {"message": "Category updated"}
@@ -486,7 +624,7 @@ async def update_category(cat_id: str, data: CategoryCreate, request: Request):
 @api_router.delete("/dashboard/categories/{cat_id}")
 async def delete_category(cat_id: str, request: Request):
     user = await require_shop_owner(request)
-    shop_id = user.get("shop_id")
+    shop_id = await resolve_shop_id(request, user)
     result = await db.categories.delete_one({"id": cat_id, "shop_id": shop_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Category not found")
@@ -494,10 +632,12 @@ async def delete_category(cat_id: str, request: Request):
     return {"message": "Category deleted"}
 
 @api_router.put("/dashboard/categories/positions")
-async def update_category_positions(data: CategoryPositionUpdate, request: Request):
+async def update_category_positions(request: Request):
     user = await require_shop_owner(request)
-    shop_id = user.get("shop_id")
-    for item in data.positions:
+    shop_id = await resolve_shop_id(request, user)
+    body = await request.json()
+    positions = body.get("positions", [])
+    for item in positions:
         await db.categories.update_one({"id": item["id"], "shop_id": shop_id}, {"$set": {"position": item["position"]}})
     return {"message": "Positions updated"}
 
@@ -506,13 +646,14 @@ async def update_category_positions(data: CategoryPositionUpdate, request: Reque
 @api_router.get("/dashboard/products")
 async def get_shop_products(request: Request):
     user = await require_shop_owner(request)
-    products = await db.products.find({"shop_id": user.get("shop_id")}, {"_id": 0}).sort("position", 1).to_list(200)
+    shop_id = await resolve_shop_id(request, user)
+    products = await db.products.find({"shop_id": shop_id}, {"_id": 0}).sort("position", 1).to_list(500)
     return products
 
 @api_router.post("/dashboard/products")
 async def create_product(data: ProductCreate, request: Request):
     user = await require_shop_owner(request)
-    shop_id = user.get("shop_id")
+    shop_id = await resolve_shop_id(request, user)
     cat_name = ""
     if data.category_id and data.category_id != "none":
         cat = await db.categories.find_one({"id": data.category_id, "shop_id": shop_id})
@@ -528,7 +669,9 @@ async def create_product(data: ProductCreate, request: Request):
         "id": prod_id, "shop_id": shop_id, "name": data.name, "price": data.price,
         "category_id": data.category_id, "category": cat_name, "description": data.description,
         "image_url": image_url, "images": images, "video_url": data.video_url or "",
+        "video_links": data.video_links or [],
         "stock": data.stock, "position": data.position or 0, "is_active": True,
+        "is_featured": data.is_featured or False,
         "created_at": datetime.now(timezone.utc)
     }
     await db.products.insert_one(doc)
@@ -538,9 +681,8 @@ async def create_product(data: ProductCreate, request: Request):
 @api_router.put("/dashboard/products/{prod_id}")
 async def update_product(prod_id: str, request: Request):
     user = await require_shop_owner(request)
-    shop_id = user.get("shop_id")
+    shop_id = await resolve_shop_id(request, user)
     body = await request.json()
-    # Resolve category name
     if "category_id" in body:
         cid = body["category_id"]
         if cid and cid != "none":
@@ -549,7 +691,6 @@ async def update_product(prod_id: str, request: Request):
         else:
             body["category_id"] = None
             body["category"] = ""
-    # Sync images/image_url
     if "images" in body:
         imgs = body["images"]
         if imgs:
@@ -563,7 +704,8 @@ async def update_product(prod_id: str, request: Request):
 @api_router.delete("/dashboard/products/{prod_id}")
 async def delete_product(prod_id: str, request: Request):
     user = await require_shop_owner(request)
-    result = await db.products.delete_one({"id": prod_id, "shop_id": user.get("shop_id")})
+    shop_id = await resolve_shop_id(request, user)
+    result = await db.products.delete_one({"id": prod_id, "shop_id": shop_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Product not found")
     return {"message": "Product deleted"}
@@ -573,22 +715,162 @@ async def delete_product(prod_id: str, request: Request):
 @api_router.get("/dashboard/orders")
 async def get_shop_orders(request: Request):
     user = await require_shop_owner(request)
-    orders = await db.orders.find({"shop_id": user.get("shop_id")}, {"_id": 0}).sort("created_at", -1).to_list(200)
+    shop_id = await resolve_shop_id(request, user)
+    orders = await db.orders.find({"shop_id": shop_id}, {"_id": 0}).sort("created_at", -1).to_list(500)
     for o in orders:
-        if isinstance(o.get("created_at"), datetime):
-            o["created_at"] = o["created_at"].isoformat()
+        o["created_at"] = serialize_datetime(o.get("created_at"))
     return orders
 
 @api_router.put("/dashboard/orders/{order_id}/status")
 async def update_order_status(order_id: str, data: OrderStatusUpdate, request: Request):
     user = await require_shop_owner(request)
+    shop_id = await resolve_shop_id(request, user)
     valid = ["pending", "confirmed", "processing", "shipped", "completed", "cancelled"]
     if data.status not in valid:
         raise HTTPException(status_code=400, detail="Invalid status")
-    result = await db.orders.update_one({"id": order_id, "shop_id": user.get("shop_id")}, {"$set": {"status": data.status, "updated_at": datetime.now(timezone.utc)}})
+    result = await db.orders.update_one({"id": order_id, "shop_id": shop_id}, {"$set": {"status": data.status, "updated_at": datetime.now(timezone.utc)}})
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Order not found")
     return {"message": f"Order status updated to {data.status}"}
+
+# ==================== DASHBOARD - POSTS ====================
+
+@api_router.get("/dashboard/posts")
+async def get_shop_posts(request: Request):
+    user = await require_shop_owner(request)
+    shop_id = await resolve_shop_id(request, user)
+    posts = await db.posts.find({"shop_id": shop_id}, {"_id": 0}).sort("created_at", -1).to_list(100)
+    for p in posts:
+        p["created_at"] = serialize_datetime(p.get("created_at"))
+    return posts
+
+@api_router.post("/dashboard/posts")
+async def create_post(data: PostCreate, request: Request):
+    user = await require_shop_owner(request)
+    shop_id = await resolve_shop_id(request, user)
+    post_id = f"post-{secrets.token_hex(6)}"
+    doc = {
+        "id": post_id, "shop_id": shop_id, "title": data.title,
+        "description": data.description, "thumbnail": data.thumbnail,
+        "images": data.images or [], "attached_products": data.attached_products or [],
+        "created_at": datetime.now(timezone.utc)
+    }
+    await db.posts.insert_one(doc)
+    doc.pop("_id", None)
+    doc["created_at"] = serialize_datetime(doc["created_at"])
+    return doc
+
+@api_router.put("/dashboard/posts/{post_id}")
+async def update_post(post_id: str, request: Request):
+    user = await require_shop_owner(request)
+    shop_id = await resolve_shop_id(request, user)
+    body = await request.json()
+    body.pop("id", None)
+    body.pop("shop_id", None)
+    result = await db.posts.update_one({"id": post_id, "shop_id": shop_id}, {"$set": body})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Post not found")
+    updated = await db.posts.find_one({"id": post_id}, {"_id": 0})
+    if updated:
+        updated["created_at"] = serialize_datetime(updated.get("created_at"))
+    return updated
+
+@api_router.delete("/dashboard/posts/{post_id}")
+async def delete_post(post_id: str, request: Request):
+    user = await require_shop_owner(request)
+    shop_id = await resolve_shop_id(request, user)
+    result = await db.posts.delete_one({"id": post_id, "shop_id": shop_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Post not found")
+    return {"message": "Post deleted"}
+
+# ==================== DASHBOARD - PAGES ====================
+
+@api_router.get("/dashboard/pages")
+async def get_shop_pages(request: Request):
+    user = await require_shop_owner(request)
+    shop_id = await resolve_shop_id(request, user)
+    pages = await db.pages.find({"shop_id": shop_id}, {"_id": 0}).sort("created_at", -1).to_list(50)
+    for p in pages:
+        p["created_at"] = serialize_datetime(p.get("created_at"))
+        p["updated_at"] = serialize_datetime(p.get("updated_at"))
+    return pages
+
+@api_router.post("/dashboard/pages")
+async def create_page(data: PageCreate, request: Request):
+    user = await require_shop_owner(request)
+    shop_id = await resolve_shop_id(request, user)
+    page_id = f"page-{secrets.token_hex(6)}"
+    slug = data.slug or generate_shop_slug(data.title)
+    now = datetime.now(timezone.utc)
+    doc = {
+        "id": page_id, "shop_id": shop_id, "title": data.title, "slug": slug,
+        "is_published": data.is_published, "sections": data.sections or [],
+        "created_at": now, "updated_at": now
+    }
+    await db.pages.insert_one(doc)
+    doc.pop("_id", None)
+    doc["created_at"] = serialize_datetime(doc["created_at"])
+    doc["updated_at"] = serialize_datetime(doc["updated_at"])
+    return doc
+
+@api_router.put("/dashboard/pages/{page_id}")
+async def update_page(page_id: str, request: Request):
+    user = await require_shop_owner(request)
+    shop_id = await resolve_shop_id(request, user)
+    body = await request.json()
+    body.pop("id", None)
+    body.pop("shop_id", None)
+    body["updated_at"] = datetime.now(timezone.utc)
+    result = await db.pages.update_one({"id": page_id, "shop_id": shop_id}, {"$set": body})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Page not found")
+    updated = await db.pages.find_one({"id": page_id}, {"_id": 0})
+    if updated:
+        updated["created_at"] = serialize_datetime(updated.get("created_at"))
+        updated["updated_at"] = serialize_datetime(updated.get("updated_at"))
+    return updated
+
+@api_router.delete("/dashboard/pages/{page_id}")
+async def delete_page(page_id: str, request: Request):
+    user = await require_shop_owner(request)
+    shop_id = await resolve_shop_id(request, user)
+    result = await db.pages.delete_one({"id": page_id, "shop_id": shop_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Page not found")
+    return {"message": "Page deleted"}
+
+# ==================== DASHBOARD - MENU ====================
+
+@api_router.get("/dashboard/menu")
+async def get_shop_menu(request: Request):
+    user = await require_shop_owner(request)
+    shop_id = await resolve_shop_id(request, user)
+    shop = await db.shops.find_one({"_id": ObjectId(shop_id)}, {"menu_items": 1})
+    return shop.get("menu_items", []) if shop else []
+
+@api_router.put("/dashboard/menu")
+async def update_shop_menu(data: MenuUpdate, request: Request):
+    user = await require_shop_owner(request)
+    shop_id = await resolve_shop_id(request, user)
+    await db.shops.update_one({"_id": ObjectId(shop_id)}, {"$set": {"menu_items": data.items}})
+    return {"message": "Menu updated"}
+
+# ==================== DASHBOARD - MEGA MENU ====================
+
+@api_router.get("/dashboard/mega-menu")
+async def get_mega_menu(request: Request):
+    user = await require_shop_owner(request)
+    shop_id = await resolve_shop_id(request, user)
+    shop = await db.shops.find_one({"_id": ObjectId(shop_id)}, {"mega_menu_categories": 1})
+    return shop.get("mega_menu_categories", []) if shop else []
+
+@api_router.put("/dashboard/mega-menu")
+async def update_mega_menu(data: MegaMenuUpdate, request: Request):
+    user = await require_shop_owner(request)
+    shop_id = await resolve_shop_id(request, user)
+    await db.shops.update_one({"_id": ObjectId(shop_id)}, {"$set": {"mega_menu_categories": data.items}})
+    return {"message": "Mega menu updated"}
 
 # ==================== PUBLIC STOREFRONT ====================
 
@@ -603,7 +885,16 @@ async def get_shop_by_slug(slug: str):
         "contact_phone": shop.get("contact_phone", ""), "contact_email": shop.get("contact_email", ""),
         "address": shop.get("address", ""), "social_facebook": shop.get("social_facebook", ""),
         "social_instagram": shop.get("social_instagram", ""), "theme_color": shop.get("theme_color", "#0055FF"),
-        "custom_domain": shop.get("custom_domain", "")
+        "custom_domain": shop.get("custom_domain", ""),
+        "banners": shop.get("banners", []), "banner_enabled": shop.get("banner_enabled", True),
+        "blog_enabled": shop.get("blog_enabled", True),
+        "layout_sections": shop.get("layout_sections", []),
+        "footer_columns": shop.get("footer_columns", []),
+        "menu_items": shop.get("menu_items", []),
+        "mega_menu_categories": shop.get("mega_menu_categories", []),
+        "custom_pages": shop.get("custom_pages", []),
+        "post_carousel_position": shop.get("post_carousel_position", "top"),
+        "max_products": shop.get("max_products", 100), "max_posts": shop.get("max_posts", 50),
     }
 
 @api_router.get("/shop/{slug}/products")
@@ -617,7 +908,7 @@ async def get_shop_products_public(slug: str, category: Optional[str] = None, se
         query["category_id"] = category
     if search:
         query["name"] = {"$regex": search, "$options": "i"}
-    products = await db.products.find(query, {"_id": 0}).sort("position", 1).to_list(200)
+    products = await db.products.find(query, {"_id": 0}).sort("position", 1).to_list(500)
     return products
 
 @api_router.get("/shop/{slug}/categories")
@@ -625,8 +916,35 @@ async def get_shop_categories_public(slug: str):
     shop = await db.shops.find_one({"slug": slug, "status": "active"})
     if not shop:
         raise HTTPException(status_code=404, detail="Shop not found")
-    cats = await db.categories.find({"shop_id": str(shop["_id"])}, {"_id": 0}).sort("position", 1).to_list(50)
+    cats = await db.categories.find({"shop_id": str(shop["_id"])}, {"_id": 0}).sort("position", 1).to_list(200)
     return cats
+
+@api_router.get("/shop/{slug}/posts")
+async def get_shop_posts_public(slug: str):
+    shop = await db.shops.find_one({"slug": slug, "status": "active"})
+    if not shop:
+        raise HTTPException(status_code=404, detail="Shop not found")
+    posts = await db.posts.find({"shop_id": str(shop["_id"])}, {"_id": 0}).sort("created_at", -1).to_list(100)
+    for p in posts:
+        p["created_at"] = serialize_datetime(p.get("created_at"))
+    return posts
+
+@api_router.get("/shop/{slug}/page/{page_slug}")
+async def get_shop_page_public(slug: str, page_slug: str):
+    shop = await db.shops.find_one({"slug": slug, "status": "active"})
+    if not shop:
+        raise HTTPException(status_code=404, detail="Shop not found")
+    shop_id = str(shop["_id"])
+    page = await db.pages.find_one({"shop_id": shop_id, "slug": page_slug, "is_published": True}, {"_id": 0})
+    if not page:
+        # Also check custom_pages embedded in shop document
+        for cp in shop.get("custom_pages", []):
+            if cp.get("slug") == page_slug and cp.get("is_published", True):
+                return cp
+        raise HTTPException(status_code=404, detail="Page not found")
+    page["created_at"] = serialize_datetime(page.get("created_at"))
+    page["updated_at"] = serialize_datetime(page.get("updated_at"))
+    return page
 
 @api_router.post("/shop/{slug}/orders")
 async def create_order(slug: str, data: OrderCreate):
@@ -647,6 +965,17 @@ async def create_order(slug: str, data: OrderCreate):
     await db.orders.insert_one(doc)
     return {"id": order_id, "order_id": order_id, "total_amount": total, "items": items, "message": "Order placed successfully"}
 
+@api_router.post("/shop/{slug}/contact")
+async def submit_contact(slug: str, data: ContactForm):
+    shop = await db.shops.find_one({"slug": slug, "status": "active"})
+    if not shop:
+        raise HTTPException(status_code=404, detail="Shop not found")
+    await db.contacts.insert_one({
+        "shop_id": str(shop["_id"]), "name": data.name, "email": data.email,
+        "phone": data.phone, "message": data.message, "created_at": datetime.now(timezone.utc)
+    })
+    return {"message": "Contact form submitted successfully"}
+
 # ==================== HOMEPAGE PUBLIC ENDPOINTS ====================
 
 @api_router.get("/products")
@@ -661,7 +990,7 @@ async def get_products(category: Optional[str] = None, search: Optional[str] = N
 
 @api_router.get("/categories")
 async def get_categories():
-    cats = await db.categories.find({}, {"_id": 0}).sort("position", 1).to_list(100)
+    cats = await db.categories.find({}, {"_id": 0}).sort("position", 1).to_list(200)
     seen = set()
     unique = []
     for c in cats:
@@ -682,7 +1011,6 @@ frontend_url = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
 cors_origins_env = os.environ.get('CORS_ORIGINS', '')
 
 if cors_origins_env == "*":
-    # Wildcard mode: dynamically reflect the request Origin header
     from starlette.middleware.base import BaseHTTPMiddleware
     from starlette.responses import Response as StarletteResponse
 
@@ -725,111 +1053,79 @@ async def startup_event():
     await db.products.create_index([("shop_id", 1), ("id", 1)])
     await db.orders.create_index([("shop_id", 1), ("created_at", -1)])
     await db.categories.create_index([("shop_id", 1), ("id", 1)])
+    await db.posts.create_index([("shop_id", 1), ("id", 1)])
+    await db.pages.create_index([("shop_id", 1), ("id", 1)])
 
-    now = datetime.now(timezone.utc)
-    admin_email = os.environ.get("ADMIN_EMAIL", "admin@thewishop.com")
+    admin_email = os.environ.get("ADMIN_EMAIL", "daominhhai129@gmail.com")
     admin_password = os.environ.get("ADMIN_PASSWORD", "admin123")
 
     # Seed super admin
     existing_admin = await db.users.find_one({"email": admin_email})
     if not existing_admin:
-        await db.users.insert_one({"email": admin_email, "password_hash": hash_password(admin_password), "name": "Super Admin", "role": "super_admin", "status": "active", "created_at": now})
-        logger.info("Seeded super admin")
-    elif not verify_password(admin_password, existing_admin["password_hash"]):
-        await db.users.update_one({"email": admin_email}, {"$set": {"password_hash": hash_password(admin_password)}})
+        await db.users.insert_one({"email": admin_email, "password_hash": hash_password(admin_password), "name": "Super Admin", "role": "super_admin", "status": "active", "recovery_email": admin_email, "created_at": datetime.now(timezone.utc)})
+        logger.info(f"Seeded super admin: {admin_email}")
 
-    # Seed demo shop owner + shop + categories + products + orders
-    demo_email = "demo@thewishop.com"
-    existing_demo = await db.users.find_one({"email": demo_email})
-    if not existing_demo:
-        # Create shop
-        shop_doc = {
-            "name": "The Elite Shop", "slug": "the-elite-shop",
-            "description": "Premium products curated for the modern lifestyle",
-            "logo_url": "", "contact_phone": "0912 345 678", "contact_email": "hello@theeliteshop.com",
-            "address": "123 Nguyen Hue, District 1, HCMC", "social_facebook": "https://facebook.com/theeliteshop",
-            "social_instagram": "https://instagram.com/theeliteshop", "theme_color": "#0055FF",
-            "status": "active", "expiry_date": "", "created_at": now
-        }
-        shop_result = await db.shops.insert_one(shop_doc)
+    # Also ensure old admin email is removed or updated
+    old_admin = await db.users.find_one({"email": "admin@thewishop.com", "role": "super_admin"})
+    if old_admin and admin_email != "admin@thewishop.com":
+        await db.users.delete_one({"_id": old_admin["_id"]})
+        logger.info("Removed old admin@thewishop.com account")
+
+    # Seed all 3 shops from seed_data.py
+    from seed_data import (
+        SHOP1_USER, SHOP1, get_shop1_categories, get_shop1_products, get_shop1_orders, get_shop1_posts,
+        SHOP2_USER, SHOP2, get_shop2_categories, get_shop2_products, get_shop2_orders, get_shop2_posts,
+        SHOP3_USER, SHOP3, get_shop3_categories, get_shop3_products, get_shop3_orders, get_shop3_posts,
+    )
+
+    async def seed_shop(user_info, shop_info, get_cats, get_prods, get_orders, get_posts):
+        existing = await db.users.find_one({"email": user_info["email"]})
+        if existing:
+            return
+        shop_doc = {**shop_info, "created_at": datetime.now(timezone.utc)}
+        try:
+            shop_result = await db.shops.insert_one(shop_doc)
+        except Exception as e:
+            logger.warning(f"Shop {shop_info['name']} already exists or error: {e}")
+            existing_shop = await db.shops.find_one({"slug": shop_info["slug"]})
+            if existing_shop:
+                shop_id = str(existing_shop["_id"])
+                await db.users.insert_one({"email": user_info["email"], "password_hash": hash_password(user_info["password"]), "name": user_info["name"], "role": "shop_owner", "shop_id": shop_id, "status": "active", "created_at": datetime.now(timezone.utc)})
+            return
         shop_id = str(shop_result.inserted_id)
 
-        # Create demo user
-        await db.users.insert_one({"email": demo_email, "password_hash": hash_password("demo123"), "name": "Demo Shop Owner", "role": "shop_owner", "shop_id": shop_id, "status": "active", "created_at": now})
-        logger.info("Seeded demo shop owner")
+        await db.users.insert_one({"email": user_info["email"], "password_hash": hash_password(user_info["password"]), "name": user_info["name"], "role": "shop_owner", "shop_id": shop_id, "status": "active", "created_at": datetime.now(timezone.utc)})
 
-        # Categories
-        categories = [
-            {"id": "cat-1", "shop_id": shop_id, "name": "Electronics", "description": "Gadgets and devices", "position": 1, "created_at": now},
-            {"id": "cat-2", "shop_id": shop_id, "name": "Fashion", "description": "Clothing and accessories", "position": 2, "created_at": now},
-            {"id": "cat-3", "shop_id": shop_id, "name": "Home & Garden", "description": "Home decor and garden", "position": 3, "created_at": now},
-            {"id": "cat-4", "shop_id": shop_id, "name": "Kitchen", "description": "Kitchen essentials", "position": 4, "created_at": now},
-            {"id": "cat-5", "shop_id": shop_id, "name": "Beauty & Health", "description": "Skincare, wellness and self-care", "position": 5, "created_at": now},
-            {"id": "cat-6", "shop_id": shop_id, "name": "Sports & Outdoors", "description": "Fitness gear and outdoor equipment", "position": 6, "created_at": now},
-        ]
-        await db.categories.insert_many(categories)
+        cats = get_cats(shop_id)
+        if cats:
+            await db.categories.insert_many(cats)
 
-        # Products
-        products = [
-            {"id": "prod-1", "shop_id": shop_id, "name": "Sony Wireless Headphones", "price": 2490000, "category": "Electronics", "category_id": "cat-1", "stock": 25, "position": 1, "is_active": True, "image_url": "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&h=400&fit=crop", "images": ["https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&h=400&fit=crop", "https://images.unsplash.com/photo-1484704849700-f032a568e944?w=400&h=400&fit=crop", "https://images.unsplash.com/photo-1524678606370-a47ad25cb82a?w=400&h=400&fit=crop"], "video_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ", "description": "Premium wireless headphones with active noise cancellation and 30h battery life.", "created_at": now},
-            {"id": "prod-2", "shop_id": shop_id, "name": "Black Studio Headphones", "price": 1850000, "category": "Electronics", "category_id": "cat-1", "stock": 18, "position": 2, "is_active": True, "image_url": "https://images.unsplash.com/photo-1583394838336-acd977736f90?w=400&h=400&fit=crop", "images": ["https://images.unsplash.com/photo-1583394838336-acd977736f90?w=400&h=400&fit=crop", "https://images.unsplash.com/photo-1487215078519-e21cc028cb29?w=400&h=400&fit=crop"], "video_url": "", "description": "Professional studio-grade headphones for music production.", "created_at": now},
-            {"id": "prod-3", "shop_id": shop_id, "name": "Grey Casual Sneakers", "price": 1200000, "category": "Fashion", "category_id": "cat-2", "stock": 40, "position": 1, "is_active": True, "image_url": "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&h=400&fit=crop", "images": ["https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&h=400&fit=crop", "https://images.unsplash.com/photo-1460353581641-37baddab0fa2?w=400&h=400&fit=crop", "https://images.unsplash.com/photo-1491553895911-0055eca6402d?w=400&h=400&fit=crop"], "video_url": "", "description": "Comfortable grey sneakers perfect for everyday wear.", "created_at": now},
-            {"id": "prod-4", "shop_id": shop_id, "name": "Minimalist Smartphone", "price": 14500000, "category": "Electronics", "category_id": "cat-1", "stock": 10, "position": 3, "is_active": True, "image_url": "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=400&h=400&fit=crop", "images": ["https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=400&h=400&fit=crop", "https://images.unsplash.com/photo-1512054502232-10a0a035d672?w=400&h=400&fit=crop"], "video_url": "", "description": "Sleek smartphone with edge-to-edge display and triple camera system.", "created_at": now},
-            {"id": "prod-5", "shop_id": shop_id, "name": "Minimalist Succulent Pot", "price": 320000, "category": "Home & Garden", "category_id": "cat-3", "stock": 60, "position": 1, "is_active": True, "image_url": "https://images.unsplash.com/photo-1485955900006-10f4d324d411?w=400&h=400&fit=crop", "images": ["https://images.unsplash.com/photo-1485955900006-10f4d324d411?w=400&h=400&fit=crop"], "video_url": "", "description": "Modern ceramic pot perfect for small succulents and cacti.", "created_at": now},
-            {"id": "prod-6", "shop_id": shop_id, "name": "Handwoven Rattan Baskets", "price": 450000, "category": "Home & Garden", "category_id": "cat-3", "stock": 30, "position": 2, "is_active": True, "image_url": "https://images.unsplash.com/photo-1616486029423-aaa4789e8c9a?w=400&h=400&fit=crop", "images": ["https://images.unsplash.com/photo-1616486029423-aaa4789e8c9a?w=400&h=400&fit=crop"], "video_url": "", "description": "Beautifully handwoven rattan baskets for storage and decoration.", "created_at": now},
-            {"id": "prod-7", "shop_id": shop_id, "name": "Ceramic Coffee Set", "price": 380000, "category": "Kitchen", "category_id": "cat-4", "stock": 20, "position": 1, "is_active": True, "image_url": "https://images.unsplash.com/photo-1514432324607-a09d9b4aefda?w=400&h=400&fit=crop", "images": ["https://images.unsplash.com/photo-1514432324607-a09d9b4aefda?w=400&h=400&fit=crop", "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400&h=400&fit=crop"], "video_url": "", "description": "Elegant ceramic coffee cup and saucer set, handmade.", "created_at": now},
-            {"id": "prod-8", "shop_id": shop_id, "name": "Smart Watch Pro", "price": 3200000, "category": "Electronics", "category_id": "cat-1", "stock": 15, "position": 4, "is_active": True, "image_url": "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&h=400&fit=crop", "images": ["https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&h=400&fit=crop", "https://images.unsplash.com/photo-1546868871-af0de0ae72be?w=400&h=400&fit=crop"], "video_url": "", "description": "Feature-packed smartwatch with health tracking and GPS.", "created_at": now},
-            {"id": "prod-9", "shop_id": shop_id, "name": "Leather Crossbody Bag", "price": 890000, "category": "Fashion", "category_id": "cat-2", "stock": 35, "position": 2, "is_active": True, "image_url": "https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=400&h=400&fit=crop", "images": ["https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=400&h=400&fit=crop"], "video_url": "", "description": "Genuine leather crossbody bag with adjustable strap.", "created_at": now},
-            {"id": "prod-10", "shop_id": shop_id, "name": "AirPods Pro Max", "price": 6500000, "category": "Electronics", "category_id": "cat-1", "stock": 8, "position": 5, "is_active": True, "image_url": "https://images.unsplash.com/photo-1606220588913-b3aacb4d2f46?w=400&h=400&fit=crop", "images": ["https://images.unsplash.com/photo-1606220588913-b3aacb4d2f46?w=400&h=400&fit=crop", "https://images.unsplash.com/photo-1600294037681-c80b4cb5b434?w=400&h=400&fit=crop", "https://images.unsplash.com/photo-1588423771073-b8903fde1c68?w=400&h=400&fit=crop"], "video_url": "", "description": "Over-ear headphones with spatial audio and transparency mode.", "created_at": now},
-            {"id": "prod-11", "shop_id": shop_id, "name": "Designer Sunglasses", "price": 1650000, "category": "Fashion", "category_id": "cat-2", "stock": 22, "position": 3, "is_active": True, "image_url": "https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=400&h=400&fit=crop", "images": ["https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=400&h=400&fit=crop"], "video_url": "", "description": "UV-protected designer sunglasses with polarized lenses.", "created_at": now},
-            {"id": "prod-12", "shop_id": shop_id, "name": "Japanese Kitchen Knife Set", "price": 2100000, "category": "Kitchen", "category_id": "cat-4", "stock": 12, "position": 2, "is_active": True, "image_url": "https://images.unsplash.com/photo-1593618998160-e34014e67546?w=400&h=400&fit=crop", "images": ["https://images.unsplash.com/photo-1593618998160-e34014e67546?w=400&h=400&fit=crop", "https://images.unsplash.com/photo-1566454825481-9c31bd88bcea?w=400&h=400&fit=crop"], "video_url": "", "description": "Professional-grade Japanese steel knife set with wooden block.", "created_at": now},
-            # Electronics (6 more)
-            {"id": "prod-13", "shop_id": shop_id, "name": "Portable Bluetooth Speaker", "price": 1290000, "category": "Electronics", "category_id": "cat-1", "stock": 30, "position": 6, "is_active": True, "image_url": "https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?w=400&h=400&fit=crop", "images": ["https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?w=400&h=400&fit=crop"], "video_url": "", "description": "Waterproof portable speaker with 360-degree sound and 12h battery.", "created_at": now},
-            {"id": "prod-14", "shop_id": shop_id, "name": "Wireless Charging Pad", "price": 590000, "category": "Electronics", "category_id": "cat-1", "stock": 45, "position": 7, "is_active": True, "image_url": "https://images.unsplash.com/photo-1586953208448-b95a79798f07?w=400&h=400&fit=crop", "images": ["https://images.unsplash.com/photo-1586953208448-b95a79798f07?w=400&h=400&fit=crop"], "video_url": "", "description": "Fast wireless charging pad compatible with all Qi-enabled devices.", "created_at": now},
-            {"id": "prod-15", "shop_id": shop_id, "name": "Mechanical Gaming Keyboard", "price": 2150000, "category": "Electronics", "category_id": "cat-1", "stock": 20, "position": 8, "is_active": True, "image_url": "https://images.unsplash.com/photo-1618384887929-16ec33fab9ef?w=400&h=400&fit=crop", "images": ["https://images.unsplash.com/photo-1618384887929-16ec33fab9ef?w=400&h=400&fit=crop"], "video_url": "", "description": "RGB mechanical keyboard with Cherry MX switches.", "created_at": now},
-            {"id": "prod-16", "shop_id": shop_id, "name": "USB-C Hub Adapter", "price": 780000, "category": "Electronics", "category_id": "cat-1", "stock": 50, "position": 9, "is_active": True, "image_url": "https://images.unsplash.com/photo-1625842268584-8f3296236761?w=400&h=400&fit=crop", "images": ["https://images.unsplash.com/photo-1625842268584-8f3296236761?w=400&h=400&fit=crop"], "video_url": "", "description": "7-in-1 USB-C hub with HDMI, USB 3.0, SD card reader.", "created_at": now},
-            {"id": "prod-17", "shop_id": shop_id, "name": "Noise Cancelling Earbuds", "price": 1750000, "category": "Electronics", "category_id": "cat-1", "stock": 28, "position": 10, "is_active": True, "image_url": "https://images.unsplash.com/photo-1590658268037-6bf12f032f55?w=400&h=400&fit=crop", "images": ["https://images.unsplash.com/photo-1590658268037-6bf12f032f55?w=400&h=400&fit=crop"], "video_url": "", "description": "True wireless earbuds with hybrid ANC and 8h playback.", "created_at": now},
-            {"id": "prod-18", "shop_id": shop_id, "name": "Tablet Stand Holder", "price": 350000, "category": "Electronics", "category_id": "cat-1", "stock": 40, "position": 11, "is_active": True, "image_url": "https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=400&h=400&fit=crop", "images": ["https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=400&h=400&fit=crop"], "video_url": "", "description": "Adjustable aluminum tablet and phone stand for desk.", "created_at": now},
-            # Fashion (5 more)
-            {"id": "prod-19", "shop_id": shop_id, "name": "Canvas Tote Bag", "price": 420000, "category": "Fashion", "category_id": "cat-2", "stock": 55, "position": 4, "is_active": True, "image_url": "https://images.unsplash.com/photo-1544816155-12df9643f363?w=400&h=400&fit=crop", "images": ["https://images.unsplash.com/photo-1544816155-12df9643f363?w=400&h=400&fit=crop"], "video_url": "", "description": "Eco-friendly canvas tote bag for daily use.", "created_at": now},
-            {"id": "prod-20", "shop_id": shop_id, "name": "Vintage Analog Watch", "price": 2800000, "category": "Fashion", "category_id": "cat-2", "stock": 15, "position": 5, "is_active": True, "image_url": "https://images.unsplash.com/photo-1524592094714-0f0654e20314?w=400&h=400&fit=crop", "images": ["https://images.unsplash.com/photo-1524592094714-0f0654e20314?w=400&h=400&fit=crop"], "video_url": "", "description": "Classic vintage-style analog watch with leather strap.", "created_at": now},
-            {"id": "prod-21", "shop_id": shop_id, "name": "Minimalist Wallet", "price": 650000, "category": "Fashion", "category_id": "cat-2", "stock": 40, "position": 6, "is_active": True, "image_url": "https://images.unsplash.com/photo-1627123424574-724758594e93?w=400&h=400&fit=crop", "images": ["https://images.unsplash.com/photo-1627123424574-724758594e93?w=400&h=400&fit=crop"], "video_url": "", "description": "Slim RFID-blocking wallet crafted from genuine leather.", "created_at": now},
-            {"id": "prod-22", "shop_id": shop_id, "name": "Linen Summer Dress", "price": 780000, "category": "Fashion", "category_id": "cat-2", "stock": 25, "position": 7, "is_active": True, "image_url": "https://images.unsplash.com/photo-1596783074918-c84cb06531ca?w=400&h=400&fit=crop", "images": ["https://images.unsplash.com/photo-1596783074918-c84cb06531ca?w=400&h=400&fit=crop"], "video_url": "", "description": "Breathable linen dress, relaxed fit for summer days.", "created_at": now},
-            {"id": "prod-23", "shop_id": shop_id, "name": "Beaded Bracelet Set", "price": 280000, "category": "Fashion", "category_id": "cat-2", "stock": 60, "position": 8, "is_active": True, "image_url": "https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=400&h=400&fit=crop", "images": ["https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=400&h=400&fit=crop"], "video_url": "", "description": "Handmade natural stone beaded bracelet set of 3.", "created_at": now},
-            # Home & Garden (5 more)
-            {"id": "prod-24", "shop_id": shop_id, "name": "Scented Soy Candle Set", "price": 390000, "category": "Home & Garden", "category_id": "cat-3", "stock": 35, "position": 3, "is_active": True, "image_url": "https://images.unsplash.com/photo-1602028915047-37269d1a73f7?w=400&h=400&fit=crop", "images": ["https://images.unsplash.com/photo-1602028915047-37269d1a73f7?w=400&h=400&fit=crop"], "video_url": "", "description": "Set of 3 hand-poured soy candles.", "created_at": now},
-            {"id": "prod-25", "shop_id": shop_id, "name": "Macrame Wall Hanging", "price": 520000, "category": "Home & Garden", "category_id": "cat-3", "stock": 18, "position": 4, "is_active": True, "image_url": "https://images.unsplash.com/photo-1622127922040-13cab637ee78?w=400&h=400&fit=crop", "images": ["https://images.unsplash.com/photo-1622127922040-13cab637ee78?w=400&h=400&fit=crop"], "video_url": "", "description": "Handwoven cotton macrame wall decor.", "created_at": now},
-            {"id": "prod-26", "shop_id": shop_id, "name": "Indoor Plant Starter Kit", "price": 680000, "category": "Home & Garden", "category_id": "cat-3", "stock": 22, "position": 5, "is_active": True, "image_url": "https://images.unsplash.com/photo-1459411552884-841db9b3cc2a?w=400&h=400&fit=crop", "images": ["https://images.unsplash.com/photo-1459411552884-841db9b3cc2a?w=400&h=400&fit=crop"], "video_url": "", "description": "Complete kit with 3 pots, soil, seeds, and care guide.", "created_at": now},
-            {"id": "prod-27", "shop_id": shop_id, "name": "Bamboo Desk Organizer", "price": 290000, "category": "Home & Garden", "category_id": "cat-3", "stock": 40, "position": 6, "is_active": True, "image_url": "https://images.unsplash.com/photo-1544457070-4cd773b4d71e?w=400&h=400&fit=crop", "images": ["https://images.unsplash.com/photo-1544457070-4cd773b4d71e?w=400&h=400&fit=crop"], "video_url": "", "description": "Multi-compartment bamboo desk organizer.", "created_at": now},
-            {"id": "prod-28", "shop_id": shop_id, "name": "Linen Throw Pillow Cover", "price": 180000, "category": "Home & Garden", "category_id": "cat-3", "stock": 50, "position": 7, "is_active": True, "image_url": "https://images.unsplash.com/photo-1584100936595-c0654b55a2e2?w=400&h=400&fit=crop", "images": ["https://images.unsplash.com/photo-1584100936595-c0654b55a2e2?w=400&h=400&fit=crop"], "video_url": "", "description": "Natural linen throw pillow cover, 45x45cm.", "created_at": now},
-            # Kitchen (4 more)
-            {"id": "prod-29", "shop_id": shop_id, "name": "Pour-Over Coffee Dripper", "price": 450000, "category": "Kitchen", "category_id": "cat-4", "stock": 30, "position": 3, "is_active": True, "image_url": "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400&h=400&fit=crop", "images": ["https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400&h=400&fit=crop"], "video_url": "", "description": "Glass pour-over coffee dripper with reusable filter.", "created_at": now},
-            {"id": "prod-30", "shop_id": shop_id, "name": "Wooden Cutting Board", "price": 560000, "category": "Kitchen", "category_id": "cat-4", "stock": 25, "position": 4, "is_active": True, "image_url": "https://images.unsplash.com/photo-1594226801341-41427b4e5c22?w=400&h=400&fit=crop", "images": ["https://images.unsplash.com/photo-1594226801341-41427b4e5c22?w=400&h=400&fit=crop"], "video_url": "", "description": "Premium acacia wood cutting board with juice groove.", "created_at": now},
-            {"id": "prod-31", "shop_id": shop_id, "name": "Insulated Water Bottle", "price": 380000, "category": "Kitchen", "category_id": "cat-4", "stock": 45, "position": 5, "is_active": True, "image_url": "https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=400&h=400&fit=crop", "images": ["https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=400&h=400&fit=crop"], "video_url": "", "description": "Double-wall stainless steel bottle, keeps cold 24h.", "created_at": now},
-            {"id": "prod-32", "shop_id": shop_id, "name": "Silicone Cooking Utensil Set", "price": 420000, "category": "Kitchen", "category_id": "cat-4", "stock": 35, "position": 6, "is_active": True, "image_url": "https://images.unsplash.com/photo-1556909114-44e3e70034e2?w=400&h=400&fit=crop", "images": ["https://images.unsplash.com/photo-1556909114-44e3e70034e2?w=400&h=400&fit=crop"], "video_url": "", "description": "Heat-resistant silicone utensil set of 6.", "created_at": now},
-            # Beauty & Health (5 new)
-            {"id": "prod-33", "shop_id": shop_id, "name": "Jade Face Roller", "price": 290000, "category": "Beauty & Health", "category_id": "cat-5", "stock": 40, "position": 1, "is_active": True, "image_url": "https://images.unsplash.com/photo-1590439471364-192aa70c0b53?w=400&h=400&fit=crop", "images": ["https://images.unsplash.com/photo-1590439471364-192aa70c0b53?w=400&h=400&fit=crop"], "video_url": "", "description": "Natural jade stone face roller for massage.", "created_at": now},
-            {"id": "prod-34", "shop_id": shop_id, "name": "Organic Skincare Gift Set", "price": 850000, "category": "Beauty & Health", "category_id": "cat-5", "stock": 20, "position": 2, "is_active": True, "image_url": "https://images.unsplash.com/photo-1556228578-0d85b1a4d571?w=400&h=400&fit=crop", "images": ["https://images.unsplash.com/photo-1556228578-0d85b1a4d571?w=400&h=400&fit=crop"], "video_url": "", "description": "Organic cleanser, toner, and moisturizer set.", "created_at": now},
-            {"id": "prod-35", "shop_id": shop_id, "name": "Essential Oil Diffuser", "price": 620000, "category": "Beauty & Health", "category_id": "cat-5", "stock": 30, "position": 3, "is_active": True, "image_url": "https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?w=400&h=400&fit=crop", "images": ["https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?w=400&h=400&fit=crop"], "video_url": "", "description": "Ultrasonic aroma diffuser with LED mood lighting.", "created_at": now},
-            {"id": "prod-36", "shop_id": shop_id, "name": "Bamboo Toothbrush Pack", "price": 120000, "category": "Beauty & Health", "category_id": "cat-5", "stock": 80, "position": 4, "is_active": True, "image_url": "https://images.unsplash.com/photo-1607613009820-a29f7bb81c04?w=400&h=400&fit=crop", "images": ["https://images.unsplash.com/photo-1607613009820-a29f7bb81c04?w=400&h=400&fit=crop"], "video_url": "", "description": "Eco-friendly bamboo toothbrush set of 4.", "created_at": now},
-            {"id": "prod-37", "shop_id": shop_id, "name": "Hair Care Oil Serum", "price": 380000, "category": "Beauty & Health", "category_id": "cat-5", "stock": 35, "position": 5, "is_active": True, "image_url": "https://images.unsplash.com/photo-1526947425960-945c6e72858f?w=400&h=400&fit=crop", "images": ["https://images.unsplash.com/photo-1526947425960-945c6e72858f?w=400&h=400&fit=crop"], "video_url": "", "description": "Argan and jojoba oil blend for healthy hair.", "created_at": now},
-            # Sports & Outdoors (5 new)
-            {"id": "prod-38", "shop_id": shop_id, "name": "Yoga Mat Premium", "price": 750000, "category": "Sports & Outdoors", "category_id": "cat-6", "stock": 25, "position": 1, "is_active": True, "image_url": "https://images.unsplash.com/photo-1601925260368-ae2f83cf8b7f?w=400&h=400&fit=crop", "images": ["https://images.unsplash.com/photo-1601925260368-ae2f83cf8b7f?w=400&h=400&fit=crop"], "video_url": "", "description": "Non-slip TPE yoga mat, 6mm thick with carrying strap.", "created_at": now},
-            {"id": "prod-39", "shop_id": shop_id, "name": "Resistance Bands Set", "price": 350000, "category": "Sports & Outdoors", "category_id": "cat-6", "stock": 50, "position": 2, "is_active": True, "image_url": "https://images.unsplash.com/photo-1598289431512-b97b0917affc?w=400&h=400&fit=crop", "images": ["https://images.unsplash.com/photo-1598289431512-b97b0917affc?w=400&h=400&fit=crop"], "video_url": "", "description": "Set of 5 resistance bands with door anchor.", "created_at": now},
-            {"id": "prod-40", "shop_id": shop_id, "name": "Hiking Backpack 40L", "price": 1450000, "category": "Sports & Outdoors", "category_id": "cat-6", "stock": 15, "position": 3, "is_active": True, "image_url": "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400&h=400&fit=crop", "images": ["https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400&h=400&fit=crop"], "video_url": "", "description": "Waterproof hiking backpack with rain cover.", "created_at": now},
-            {"id": "prod-41", "shop_id": shop_id, "name": "Jump Rope Speed Pro", "price": 220000, "category": "Sports & Outdoors", "category_id": "cat-6", "stock": 60, "position": 4, "is_active": True, "image_url": "https://images.unsplash.com/photo-1434682881908-b43d0467b798?w=400&h=400&fit=crop", "images": ["https://images.unsplash.com/photo-1434682881908-b43d0467b798?w=400&h=400&fit=crop"], "video_url": "", "description": "Adjustable speed jump rope with ball bearings.", "created_at": now},
-            {"id": "prod-42", "shop_id": shop_id, "name": "Camping Hammock", "price": 580000, "category": "Sports & Outdoors", "category_id": "cat-6", "stock": 20, "position": 5, "is_active": True, "image_url": "https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=400&h=400&fit=crop", "images": ["https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=400&h=400&fit=crop"], "video_url": "", "description": "Lightweight nylon camping hammock with tree straps.", "created_at": now},
-        ]
-        await db.products.insert_many(products)
+        prods = get_prods(shop_id)
+        if prods:
+            await db.products.insert_many(prods)
 
-        # Seed sample orders
-        orders = [
-            {"id": "ORD-DEMO001", "shop_id": shop_id, "customer_name": "Nguyen Van A", "customer_phone": "0901234567", "customer_email": "a@mail.com", "customer_address": "456 Le Loi, Q1, HCMC", "items": [{"product_id": "prod-1", "name": "Sony Wireless Headphones", "price": 2490000, "quantity": 1, "subtotal": 2490000, "image_url": "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&h=400&fit=crop"}], "total_amount": 2490000, "note": "", "status": "pending", "created_at": now},
-            {"id": "ORD-DEMO002", "shop_id": shop_id, "customer_name": "Tran Thi B", "customer_phone": "0907654321", "customer_email": "b@mail.com", "customer_address": "789 Hai Ba Trung, Q3, HCMC", "items": [{"product_id": "prod-3", "name": "Grey Casual Sneakers", "price": 1200000, "quantity": 2, "subtotal": 2400000, "image_url": "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&h=400&fit=crop"}, {"product_id": "prod-7", "name": "Ceramic Coffee Set", "price": 380000, "quantity": 1, "subtotal": 380000, "image_url": "https://images.unsplash.com/photo-1514432324607-a09d9b4aefda?w=400&h=400&fit=crop"}], "total_amount": 2780000, "note": "Please gift wrap", "status": "confirmed", "created_at": now - timedelta(hours=2)},
-            {"id": "ORD-DEMO003", "shop_id": shop_id, "customer_name": "Le Van C", "customer_phone": "0912345678", "customer_email": "c@mail.com", "customer_address": "101 Vo Van Tan, Q3, HCMC", "items": [{"product_id": "prod-4", "name": "Minimalist Smartphone", "price": 14500000, "quantity": 1, "subtotal": 14500000, "image_url": "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=400&h=400&fit=crop"}], "total_amount": 14500000, "note": "", "status": "completed", "created_at": now - timedelta(days=1)},
-        ]
-        await db.orders.insert_many(orders)
-        logger.info("Seeded demo data: categories, products, orders")
+        orders = get_orders(shop_id)
+        if orders:
+            await db.orders.insert_many(orders)
+
+        posts = get_posts(shop_id)
+        if posts:
+            await db.posts.insert_many(posts)
+
+        # Seed pages from custom_pages in shop_info
+        custom_pages = shop_info.get("custom_pages", [])
+        if custom_pages:
+            for pg in custom_pages:
+                pg["shop_id"] = shop_id
+                pg["created_at"] = datetime.now(timezone.utc)
+                pg["updated_at"] = datetime.now(timezone.utc)
+            await db.pages.insert_many(custom_pages)
+
+        logger.info(f"Seeded shop: {shop_info['name']} ({len(cats)} cats, {len(prods)} products, {len(orders)} orders, {len(posts)} posts)")
+
+    await seed_shop(SHOP1_USER, SHOP1, get_shop1_categories, get_shop1_products, get_shop1_orders, get_shop1_posts)
+    await seed_shop(SHOP2_USER, SHOP2, get_shop2_categories, get_shop2_products, get_shop2_orders, get_shop2_posts)
+    await seed_shop(SHOP3_USER, SHOP3, get_shop3_categories, get_shop3_products, get_shop3_orders, get_shop3_posts)
 
     # Write test credentials
     memory_dir = Path("/app/memory")
@@ -839,10 +1135,18 @@ async def startup_event():
         f.write("## Super Admin\n")
         f.write(f"- Email: {admin_email}\n")
         f.write(f"- Password: {admin_password}\n\n")
-        f.write("## Demo Shop Owner\n")
-        f.write("- Email: demo@thewishop.com\n")
-        f.write("- Password: demo123\n")
-        f.write("- Shop: The Elite Shop (slug: the-elite-shop)\n")
+        f.write("## Shop Owner 1 - The Elite Shop\n")
+        f.write(f"- Email: {SHOP1_USER['email']}\n")
+        f.write(f"- Password: {SHOP1_USER['password']}\n")
+        f.write("- Shop slug: the-elite-shop\n\n")
+        f.write("## Shop Owner 2 - Green Living\n")
+        f.write(f"- Email: {SHOP2_USER['email']}\n")
+        f.write(f"- Password: {SHOP2_USER['password']}\n")
+        f.write("- Shop slug: green-living\n\n")
+        f.write("## Shop Owner 3 - Cho Xanh 365\n")
+        f.write(f"- Email: {SHOP3_USER['email']}\n")
+        f.write(f"- Password: {SHOP3_USER['password']}\n")
+        f.write("- Shop slug: cho-xanh-365\n")
 
 @app.on_event("shutdown")
 async def shutdown_db_client():

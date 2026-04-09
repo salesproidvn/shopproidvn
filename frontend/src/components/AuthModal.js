@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
-import { formatApiErrorDetail } from '../utils/format';
-import { setCurrentUser } from '../utils/mockData';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -61,16 +59,8 @@ const AuthModal = ({ open, onOpenChange }) => {
   };
 
   const handleSocialLogin = (provider) => {
-    const socialUser = {
-      id: `social-${provider}-${Date.now()}`,
-      email: `user@${provider}.com`,
-      name: `${provider.charAt(0).toUpperCase() + provider.slice(1)} User`,
-      role: 'customer'
-    };
-    setCurrentUser(socialUser);
-    resetForm();
-    onOpenChange(false);
-    window.location.reload();
+    // Social login not yet implemented with backend
+    setError(`${provider} login coming soon`);
   };
 
   const switchMode = () => {
