@@ -112,14 +112,28 @@ const StorefrontPage = () => {
   useEffect(() => {
     let result = [...products];
     if (selectedCategory && selectedCategory !== 'all') {
-      // Include sub-category products when parent is selected
-      const subCatIds = categories.filter(c => c.parent_id === selectedCategory).map(c => c.id);
-      const matchIds = [selectedCategory, ...subCatIds];
-      result = result.filter(p => matchIds.includes(p.category_id));
+      // Find if selected is a subcategory
+      const selectedCat = categories.find(c => c.id === selectedCategory);
+      const isSubCategory = selectedCat && selectedCat.parent_id;
+      
+      if (isSubCategory) {
+        // When subcategory selected: show products tagged with this sub OR with the parent
+        const parentId = selectedCat.parent_id;
+        const siblingSubIds = categories.filter(c => c.parent_id === parentId).map(c => c.id);
+        result = result.filter(p => 
+          p.category_id === selectedCategory || 
+          (p.category_id === parentId)
+        );
+      } else {
+        // When parent selected: include products from this parent AND all its subs
+        const subCatIds = categories.filter(c => c.parent_id === selectedCategory).map(c => c.id);
+        const matchIds = [selectedCategory, ...subCatIds];
+        result = result.filter(p => matchIds.includes(p.category_id));
+      }
     }
     if (searchQuery) { const q = searchQuery.toLowerCase(); result = result.filter(p => p.name.toLowerCase().includes(q)); }
     setFilteredProducts(result);
-  }, [selectedCategory, searchQuery, products]);
+  }, [selectedCategory, searchQuery, products, categories]);
 
   const addToCart = (product) => {
     ctxAddToCart(product.id, product, 1);
@@ -626,7 +640,7 @@ const StorefrontPage = () => {
             <div className="px-4 py-3 border-b border-[#F1F5F9]">
               {(shop.menu_items || []).filter(mi => mi.enabled).sort((a, b) => a.position - b.position).map((mi, idx) => (
                 mi.type === 'scroll_shop' ? (
-                  <button key={mi.id} onClick={() => { setMobileMenuOpen(false); setMobileExpandedCat(null); setSelectedCategory('all'); window.scrollTo({ top: 300, behavior: 'smooth' }); }}
+                  <button key={mi.id} onClick={() => { setMobileMenuOpen(false); setMobileExpandedCat(null); setSelectedCategory('all'); setTimeout(() => document.getElementById('products-section')?.scrollIntoView({ behavior: 'smooth' }), 100); }}
                     className="flex items-center gap-3 w-full py-3 text-sm font-medium text-[#0F172A]" data-testid={`mobile-menu-${idx}`}>
                     <Store className="w-4 h-4 text-[#94A3B8]" />
                     {mi.label}
@@ -678,7 +692,7 @@ const StorefrontPage = () => {
                             setMobileMenuOpen(false);
                             setMobileExpandedCat(null);
                             setSelectedCategory(cat.id);
-                            window.scrollTo({ top: 300, behavior: 'smooth' });
+                            setTimeout(() => document.getElementById('products-section')?.scrollIntoView({ behavior: 'smooth' }), 100);
                           }
                         }}
                         className="flex items-center justify-between w-full py-3 px-1"
@@ -705,7 +719,7 @@ const StorefrontPage = () => {
                           {/* Subcategory chips */}
                           <div className="flex flex-wrap gap-2 mb-3 pl-11">
                             <button
-                              onClick={() => { setMobileMenuOpen(false); setMobileExpandedCat(null); setSelectedCategory(cat.id); window.scrollTo({ top: 300, behavior: 'smooth' }); }}
+                              onClick={() => { setMobileMenuOpen(false); setMobileExpandedCat(null); setSelectedCategory(cat.id); setTimeout(() => document.getElementById('products-section')?.scrollIntoView({ behavior: 'smooth' }), 100); }}
                               className="px-3 py-1.5 text-xs font-medium rounded-full border transition-colors"
                               style={{ borderColor: themeColor, color: themeColor }}
                               data-testid={`mobile-sub-all-${cat.id}`}
@@ -715,7 +729,7 @@ const StorefrontPage = () => {
                             {subs.map(sub => (
                               <button
                                 key={sub.id}
-                                onClick={() => { setMobileMenuOpen(false); setMobileExpandedCat(null); setSelectedCategory(sub.id); window.scrollTo({ top: 300, behavior: 'smooth' }); }}
+                                onClick={() => { setMobileMenuOpen(false); setMobileExpandedCat(null); setSelectedCategory(sub.id); setTimeout(() => document.getElementById('products-section')?.scrollIntoView({ behavior: 'smooth' }), 100); }}
                                 className="px-3 py-1.5 text-xs font-medium text-[#475569] rounded-full border border-[#E2E8F0] hover:border-[#CBD5E1] hover:bg-[#F8FAFC] transition-colors"
                                 data-testid={`mobile-sub-${sub.id}`}
                               >
