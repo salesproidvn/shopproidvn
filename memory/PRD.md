@@ -28,8 +28,12 @@ Multi-tenant e-commerce platform with Super Admin, Shop Owner, and public Storef
 - [x] Login page without hardcoded credentials
 - [x] "Forgot Password" link on login page
 - [x] Super Admin can view any shop's dashboard via ?shop_id= query parameter
+- [x] Super Admin can change own password via Settings tab
 - [x] Shop limits management (max_products, max_posts)
 - [x] Server maintenance module (cleanup old orders, orphaned images)
+- [x] PWA Support (manifest.json, service worker, installable to home screen)
+- [x] Push Notifications for new orders (shop owner opt-in via Settings toggle)
+- [x] PWA Install prompt + manual install instructions (Android/Chrome, iPhone/Safari)
 
 ## API Endpoints
 ### Auth
