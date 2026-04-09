@@ -52,7 +52,6 @@ const StorefrontPage = () => {
   const scrollPosRef = useRef(0);
   const [showCategoryMenu, setShowCategoryMenu] = useState(false);
   const [expandedCategories, setExpandedCategories] = useState({});
-  const [postCarouselIndex, setPostCarouselIndex] = useState(0);
   const [bannerIndex, setBannerIndex] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -226,7 +225,7 @@ const StorefrontPage = () => {
     );
   };
 
-  // Post Slider Component (single post at a time with arrows)
+  // Post Grid Component (grid listing like products)
   const PostCarousel = () => {
     if (!posts.length || shop?.blog_enabled === false) return null;
     return (
@@ -235,44 +234,30 @@ const StorefrontPage = () => {
           <h3 className="text-xl sm:text-2xl font-bold text-[#0F172A]">{t.latestPosts}</h3>
           <Link to={`/shop/${slug}/posts`}><Button variant="ghost" size="sm" className="text-sm rounded-[5px]" style={{ color: themeColor }}>{t.readMore} &rarr;</Button></Link>
         </div>
-        <div className="relative">
-          <div className="overflow-hidden">
-            <div className="flex transition-transform duration-500 ease-in-out" style={{ transform: `translateX(-${postCarouselIndex * 100}%)` }}>
-              {posts.map(post => (
-                <div key={post.id} className="w-full flex-shrink-0 px-1">
-                  <Link to={`/shop/${slug}/posts/${post.id}`} className="flex bg-white border border-[#E2E8F0] rounded-[5px] overflow-hidden hover:shadow-lg transition-all group" data-testid={`carousel-post-${post.id}`}>
-                    {post.thumbnail && (
-                      <div className="w-1/3 sm:w-1/4 flex-shrink-0 overflow-hidden">
-                        <img src={post.thumbnail} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform min-h-[120px]" />
-                      </div>
-                    )}
-                    <div className="flex-1 p-4 flex flex-col justify-center">
-                      <p className="text-[10px] text-[#94A3B8] mb-1 flex items-center gap-1"><Calendar className="w-3 h-3" />{new Date(post.created_at).toLocaleDateString('vi-VN')}</p>
-                      <h4 className="font-semibold text-sm sm:text-base text-[#0F172A] line-clamp-2 mb-1">{post.title}</h4>
-                      <p className="text-xs text-[#64748B] line-clamp-2 hidden sm:block" dangerouslySetInnerHTML={{ __html: post.description.replace(/<[^>]+>/g, '') }} />
-                    </div>
-                  </Link>
-                </div>
-              ))}
-            </div>
-          </div>
-          {posts.length > 1 && (
-            <div className="flex items-center justify-center gap-3 mt-3">
-              <Button variant="outline" size="icon" className="w-8 h-8 rounded-[5px]" disabled={postCarouselIndex === 0} onClick={() => setPostCarouselIndex(prev => Math.max(0, prev - 1))}>
-                <ChevronLeft className="w-4 h-4" />
-              </Button>
-              <div className="flex gap-1">
-                {posts.map((_, idx) => (
-                  <button key={idx} onClick={() => setPostCarouselIndex(idx)}
-                    className={`w-2 h-2 rounded-full transition-all ${idx === postCarouselIndex ? 'w-4' : ''}`}
-                    style={{ backgroundColor: idx === postCarouselIndex ? themeColor : '#E2E8F0' }} />
-                ))}
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 lg:gap-5" data-testid="post-grid">
+          {posts.map(post => (
+            <Link key={post.id} to={`/shop/${slug}/posts/${post.id}`}
+              className="group bg-white border border-[#E2E8F0] rounded-[5px] overflow-hidden hover:shadow-lg transition-all"
+              data-testid={`post-card-${post.id}`}>
+              <div className="aspect-square bg-[#F8FAFC] overflow-hidden">
+                {post.thumbnail ? (
+                  <img src={post.thumbnail} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#F0F9FF] to-[#E0F2FE]">
+                    <FileText className="w-10 h-10 text-[#CBD5E1]" />
+                  </div>
+                )}
               </div>
-              <Button variant="outline" size="icon" className="w-8 h-8 rounded-[5px]" disabled={postCarouselIndex >= posts.length - 1} onClick={() => setPostCarouselIndex(prev => Math.min(posts.length - 1, prev + 1))}>
-                <ChevronRight className="w-4 h-4" />
-              </Button>
-            </div>
-          )}
+              <div className="p-3 sm:p-4">
+                <p className="text-[10px] text-[#94A3B8] mb-1 flex items-center gap-1">
+                  <Calendar className="w-3 h-3" />
+                  {new Date(post.created_at).toLocaleDateString('vi-VN')}
+                </p>
+                <h4 className="font-medium text-[#0F172A] text-sm sm:text-base line-clamp-2 mb-1">{post.title}</h4>
+                <p className="text-xs text-[#64748B] line-clamp-2" dangerouslySetInnerHTML={{ __html: post.description?.replace(/<[^>]+>/g, '') || '' }} />
+              </div>
+            </Link>
+          ))}
         </div>
       </div>
     );
