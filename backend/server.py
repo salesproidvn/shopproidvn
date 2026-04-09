@@ -12,8 +12,10 @@ import jwt
 import secrets
 import uuid as uuid_lib
 import io
+import json
 import boto3
 from PIL import Image
+from pywebpush import webpush, WebPushException
 from pathlib import Path
 from pydantic import BaseModel, Field, EmailStr
 from typing import List, Optional
@@ -39,6 +41,11 @@ R2_PUBLIC_URL = os.environ.get("R2_PUBLIC_URL", "")
 APP_NAME = "the-wi-shop"
 
 s3_client = None
+
+# VAPID Configuration for Web Push
+VAPID_PRIVATE_KEY = os.environ.get("VAPID_PRIVATE_KEY", "").replace("\\n", "\n")
+VAPID_PUBLIC_KEY = os.environ.get("VAPID_PUBLIC_KEY", "")
+VAPID_CLAIMS_EMAIL = os.environ.get("VAPID_CLAIMS_EMAIL", "mailto:daominhhai129@gmail.com")
 
 # Create the main app and router
 app = FastAPI()
@@ -957,6 +964,94 @@ async def update_mega_menu(data: MegaMenuUpdate, request: Request):
     await db.shops.update_one({"_id": ObjectId(shop_id)}, {"$set": {"mega_menu_categories": data.items}})
     return {"message": "Mega menu updated"}
 
+# ==================== PUSH NOTIFICATIONS ====================
+
+async def send_push_to_shop(shop_id: str, title: str, body: str, url: str = "/dashboard", order_id: str = ""):
+    """Send push notification to all subscribed devices of a shop owner."""
+    if not VAPID_PRIVATE_KEY or not VAPID_PUBLIC_KEY:
+        logger.warning("VAPID keys not configured, skipping push")
+        return 0
+
+    subscriptions = await db.push_subscriptions.find({"shop_id": shop_id}).to_list(50)
+    sent = 0
+    for sub in subscriptions:
+        try:
+            webpush(
+                subscription_info=sub["subscription"],
+                data=json.dumps({
+                    "title": title,
+                    "body": body,
+                    "icon": "/icon-192.png",
+                    "url": url,
+                    "order_id": order_id,
+                    "tag": f"order-{order_id}" if order_id else "notification",
+                }),
+                vapid_private_key=VAPID_PRIVATE_KEY,
+                vapid_claims={"sub": VAPID_CLAIMS_EMAIL},
+            )
+            sent += 1
+        except WebPushException as e:
+            if e.response and e.response.status_code in [404, 410]:
+                # Subscription expired/invalid, remove it
+                await db.push_subscriptions.delete_one({"_id": sub["_id"]})
+                logger.info(f"Removed expired push subscription for shop {shop_id}")
+            else:
+                logger.error(f"Push failed for shop {shop_id}: {e}")
+        except Exception as e:
+            logger.error(f"Push error: {e}")
+    return sent
+
+@api_router.get("/dashboard/notifications/status")
+async def get_notification_status(request: Request):
+    user = await require_shop_owner(request)
+    shop_id = await resolve_shop_id(request, user)
+    count = await db.push_subscriptions.count_documents({"shop_id": shop_id})
+    shop = await db.shops.find_one({"_id": ObjectId(shop_id)}, {"notifications_enabled": 1})
+    enabled = shop.get("notifications_enabled", False) if shop else False
+    return {"enabled": enabled, "subscribed_devices": count}
+
+@api_router.post("/dashboard/notifications/subscribe")
+async def subscribe_notifications(request: Request):
+    user = await require_shop_owner(request)
+    shop_id = await resolve_shop_id(request, user)
+    body = await request.json()
+    subscription = body.get("subscription")
+    if not subscription or "endpoint" not in subscription:
+        raise HTTPException(status_code=400, detail="Invalid subscription object")
+
+    # Upsert subscription by endpoint
+    await db.push_subscriptions.update_one(
+        {"shop_id": shop_id, "subscription.endpoint": subscription["endpoint"]},
+        {"$set": {
+            "shop_id": shop_id,
+            "user_id": user["_id"],
+            "subscription": subscription,
+            "updated_at": datetime.now(timezone.utc),
+        }},
+        upsert=True,
+    )
+    # Enable notifications for this shop
+    await db.shops.update_one({"_id": ObjectId(shop_id)}, {"$set": {"notifications_enabled": True}})
+    return {"message": "Subscribed to notifications"}
+
+@api_router.post("/dashboard/notifications/unsubscribe")
+async def unsubscribe_notifications(request: Request):
+    user = await require_shop_owner(request)
+    shop_id = await resolve_shop_id(request, user)
+    body = await request.json()
+    endpoint = body.get("endpoint", "")
+    if endpoint:
+        await db.push_subscriptions.delete_one({"shop_id": shop_id, "subscription.endpoint": endpoint})
+    remaining = await db.push_subscriptions.count_documents({"shop_id": shop_id})
+    if remaining == 0:
+        await db.shops.update_one({"_id": ObjectId(shop_id)}, {"$set": {"notifications_enabled": False}})
+    return {"message": "Unsubscribed from notifications"}
+
+@api_router.get("/push/vapid-key")
+async def get_vapid_key():
+    """Public endpoint to get the VAPID public key for push subscription."""
+    return {"public_key": VAPID_PUBLIC_KEY}
+
 # ==================== PUBLIC STOREFRONT ====================
 
 @api_router.get("/shop/{slug}")
@@ -1048,6 +1143,22 @@ async def create_order(slug: str, data: OrderCreate):
     order_id = f"ORD-{secrets.token_hex(6).upper()}"
     doc = {"id": order_id, "shop_id": shop_id, "customer_name": data.customer_name, "customer_phone": data.customer_phone, "customer_email": data.customer_email, "customer_address": data.customer_address, "items": items, "total_amount": total, "note": data.note, "status": "pending", "created_at": datetime.now(timezone.utc)}
     await db.orders.insert_one(doc)
+
+    # Send push notification to shop owner if enabled
+    if shop.get("notifications_enabled"):
+        from utils.format_vnd import format_vnd
+        try:
+            item_count = sum(i["quantity"] for i in items)
+            await send_push_to_shop(
+                shop_id=shop_id,
+                title=f"Đơn hàng mới #{order_id}",
+                body=f"{data.customer_name} - {item_count} sản phẩm - {format_vnd(total)}",
+                url="/dashboard",
+                order_id=order_id,
+            )
+        except Exception as e:
+            logger.error(f"Push notification failed: {e}")
+
     return {"id": order_id, "order_id": order_id, "total_amount": total, "items": items, "message": "Order placed successfully"}
 
 @api_router.post("/shop/{slug}/contact")
@@ -1140,6 +1251,7 @@ async def startup_event():
     await db.categories.create_index([("shop_id", 1), ("id", 1)])
     await db.posts.create_index([("shop_id", 1), ("id", 1)])
     await db.pages.create_index([("shop_id", 1), ("id", 1)])
+    await db.push_subscriptions.create_index([("shop_id", 1), ("subscription.endpoint", 1)])
 
     admin_email = os.environ.get("ADMIN_EMAIL", "daominhhai129@gmail.com")
     admin_password = os.environ.get("ADMIN_PASSWORD", "admin123")

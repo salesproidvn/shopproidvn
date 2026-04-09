@@ -16,7 +16,8 @@ import {
   LayoutDashboard, Package, FolderOpen, ShoppingCart, Settings, 
   LogOut, Menu, X, Plus, Pencil, Trash2, TrendingUp, Clock, Eye, Palette, Upload, ExternalLink,
   Bold, Italic, List, ChevronUp, ChevronDown, Play, FileText, Image, Calendar, Search, LayoutGrid, GripVertical,
-  Globe, Navigation, Link2, Video, Type, ArrowUp, ArrowDown, EyeOff, Copy, Grid3X3
+  Globe, Navigation, Link2, Video, Type, ArrowUp, ArrowDown, EyeOff, Copy, Grid3X3,
+  Bell, BellOff, Smartphone, Download
 } from 'lucide-react';
 import { toast } from 'sonner';
 import NotificationBell from '../components/NotificationBell';
@@ -85,11 +86,45 @@ const ShopOwnerDashboard = () => {
   const [shopMenuItems, setShopMenuItems] = useState([]);
   const [megaMenuItems, setMegaMenuItems] = useState([]);
 
+  // Push Notification & PWA Install state
+  const [notifEnabled, setNotifEnabled] = useState(false);
+  const [notifLoading, setNotifLoading] = useState(false);
+  const [notifDevices, setNotifDevices] = useState(0);
+  const [deferredInstallPrompt, setDeferredInstallPrompt] = useState(null);
+  const [isAppInstalled, setIsAppInstalled] = useState(false);
+
   // Set admin view context for mock handler when admin views a shop
   useEffect(() => {
     setAdminViewShopId(adminViewShopId);
     return () => setAdminViewShopId(null);
   }, [adminViewShopId]);
+
+  // PWA Install prompt capture
+  useEffect(() => {
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+    setIsAppInstalled(!!isStandalone);
+
+    const handler = (e) => {
+      e.preventDefault();
+      setDeferredInstallPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    window.addEventListener('appinstalled', () => setIsAppInstalled(true));
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  // Fetch notification status
+  useEffect(() => {
+    if (!user || !activeTab.includes('settings')) return;
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    import('../utils/pushNotifications').then(({ getNotificationStatus }) => {
+      getNotificationStatus(token).then(status => {
+        setNotifEnabled(status.enabled);
+        setNotifDevices(status.subscribed_devices);
+      });
+    });
+  }, [user, activeTab]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -298,6 +333,44 @@ const ShopOwnerDashboard = () => {
   const openOrderDetail = (order) => {
     setSelectedOrder(order);
     setShowOrderModal(true);
+  };
+
+  const handleToggleNotifications = async () => {
+    setNotifLoading(true);
+    const token = localStorage.getItem('token');
+    try {
+      const { isPushSupported, subscribeToPush, unsubscribeFromPush, getNotificationStatus } = await import('../utils/pushNotifications');
+      if (!isPushSupported()) {
+        toast.error(t.pushNotSupported || 'Trình duyệt không hỗ trợ thông báo đẩy');
+        setNotifLoading(false);
+        return;
+      }
+      if (!notifEnabled) {
+        await subscribeToPush(token);
+        toast.success(t.notificationsEnabled || 'Đã bật thông báo đơn hàng mới!');
+      } else {
+        await unsubscribeFromPush(token);
+        toast.success(t.notificationsDisabled || 'Đã tắt thông báo');
+      }
+      const status = await getNotificationStatus(token);
+      setNotifEnabled(status.enabled);
+      setNotifDevices(status.subscribed_devices);
+    } catch (err) {
+      toast.error(err.message || 'Không thể thay đổi cài đặt thông báo');
+    }
+    setNotifLoading(false);
+  };
+
+  const handleInstallPWA = async () => {
+    if (deferredInstallPrompt) {
+      deferredInstallPrompt.prompt();
+      const { outcome } = await deferredInstallPrompt.userChoice;
+      if (outcome === 'accepted') {
+        setIsAppInstalled(true);
+        toast.success(t.appInstalled || 'Ứng dụng đã được cài đặt!');
+      }
+      setDeferredInstallPrompt(null);
+    }
   };
 
   const handleLogout = async () => {
@@ -1403,6 +1476,105 @@ const ShopOwnerDashboard = () => {
           {/* Settings Tab */}
           {activeTab === 'settings' && shop && (
             <div className="space-y-6">
+              {/* Push Notifications Card */}
+              <Card className="border-0 shadow-sm" data-testid="notification-settings-card">
+                <CardHeader className="p-4">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Bell className="w-4 h-4" style={{ color: themeColor }} />
+                    {t.orderNotifications || 'Thông báo đơn hàng mới'}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 pt-0 space-y-4">
+                  <p className="text-sm text-[#64748B]">
+                    {t.notificationDesc || 'Nhận thông báo đẩy ngay khi có khách hàng đặt đơn hàng mới trên gian hàng của bạn.'}
+                  </p>
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0]">
+                    <div className="flex items-center gap-3">
+                      {notifEnabled ? (
+                        <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: themeColor + '15' }}>
+                          <Bell className="w-5 h-5" style={{ color: themeColor }} />
+                        </div>
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-[#F1F5F9] flex items-center justify-center">
+                          <BellOff className="w-5 h-5 text-[#94A3B8]" />
+                        </div>
+                      )}
+                      <div>
+                        <p className="text-sm font-medium text-[#0F172A]">
+                          {notifEnabled
+                            ? (t.notificationsOn || 'Thông báo đang bật')
+                            : (t.notificationsOff || 'Thông báo đang tắt')}
+                        </p>
+                        {notifEnabled && notifDevices > 0 && (
+                          <p className="text-xs text-[#64748B]">
+                            {notifDevices} {t.devicesSubscribed || 'thiết bị đã đăng ký'}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <Switch
+                      checked={notifEnabled}
+                      onCheckedChange={handleToggleNotifications}
+                      disabled={notifLoading}
+                      data-testid="notification-toggle"
+                    />
+                  </div>
+                  {!('Notification' in window) && (
+                    <p className="text-xs text-amber-600 bg-amber-50 p-2 rounded-lg">
+                      {t.pushNotSupported || 'Trình duyệt này không hỗ trợ thông báo đẩy. Hãy sử dụng Chrome, Edge hoặc Firefox.'}
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Install App Card */}
+              <Card className="border-0 shadow-sm" data-testid="install-app-card">
+                <CardHeader className="p-4">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Smartphone className="w-4 h-4" style={{ color: themeColor }} />
+                    {t.installApp || 'Cài đặt ứng dụng'}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 pt-0 space-y-4">
+                  {isAppInstalled ? (
+                    <div className="flex items-center gap-3 p-3 rounded-xl bg-green-50 border border-green-200">
+                      <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                        <Smartphone className="w-5 h-5 text-green-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-green-800">{t.appAlreadyInstalled || 'Ứng dụng đã được cài đặt!'}</p>
+                        <p className="text-xs text-green-600">{t.appInstalledDesc || 'Bạn có thể mở ứng dụng từ màn hình chính.'}</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <p className="text-sm text-[#64748B]">
+                        {t.installAppDesc || 'Cài đặt ứng dụng lên màn hình chính điện thoại để truy cập nhanh và nhận thông báo đơn hàng ngay cả khi đóng trình duyệt.'}
+                      </p>
+                      {deferredInstallPrompt ? (
+                        <Button
+                          onClick={handleInstallPWA}
+                          style={{ backgroundColor: themeColor }}
+                          className="hover:opacity-90 w-full sm:w-auto"
+                          data-testid="install-app-btn"
+                        >
+                          <Download className="w-4 h-4 mr-2" />
+                          {t.installNow || 'Cài đặt ngay'}
+                        </Button>
+                      ) : (
+                        <div className="p-3 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0]">
+                          <p className="text-sm font-medium text-[#0F172A] mb-2">{t.howToInstall || 'Cách cài đặt:'}</p>
+                          <div className="space-y-2 text-xs text-[#64748B]">
+                            <p><strong>Android/Chrome:</strong> {t.installAndroid || 'Nhấn vào menu (⋮) → "Thêm vào màn hình chính" hoặc "Cài đặt ứng dụng"'}</p>
+                            <p><strong>iPhone/Safari:</strong> {t.installIOS || 'Nhấn vào nút Chia sẻ (□↑) → "Thêm vào Màn hình chính"'}</p>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+
               <Card className="border-0 shadow-sm">
                 <CardHeader className="p-4">
                   <CardTitle className="text-base flex items-center gap-2"><ExternalLink className="w-4 h-4" /> {t.shopPreview}</CardTitle>

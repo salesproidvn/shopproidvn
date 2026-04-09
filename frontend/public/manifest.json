@@ -1,0 +1,26 @@
+{
+  "short_name": "Ocean Pro",
+  "name": "Ocean Pro Web - Quản lý bán hàng",
+  "description": "Nền tảng thương mại điện tử thông minh - Quản lý gian hàng, đơn hàng, sản phẩm",
+  "icons": [
+    {
+      "src": "%PUBLIC_URL%/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "%PUBLIC_URL%/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#0055FF",
+  "background_color": "#F8FAFC",
+  "scope": "/",
+  "categories": ["business", "shopping"]
+}
