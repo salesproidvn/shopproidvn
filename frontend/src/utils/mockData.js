@@ -630,7 +630,16 @@ export const handleMockRequest = (method, path, body) => {
   }
 
   if (m === 'get' && path === '/admin/shops') {
-    return { data: mockShops.map(s => ({ ...s, order_count: mockOrders.filter(o => o.shop_id === s.id).length, product_count: mockProducts.filter(p => p.shop_id === s.id).length })) };
+    return { data: mockShops.map(s => ({
+      ...s,
+      order_count: mockOrders.filter(o => o.shop_id === s.id).length,
+      product_count: mockProducts.filter(p => p.shop_id === s.id).length,
+      category_count: mockCategories.filter(c => c.shop_id === s.id && !c.parent_id).length,
+      post_count: (mockPosts || []).filter(p => p.shop_id === s.id).length,
+      page_count: (s.custom_pages || []).length,
+      menu_item_count: (s.menu_items || []).length,
+      mega_menu_count: (s.mega_menu_categories || []).filter(mc => mc.enabled).length
+    })) };
   }
 
   if (m === 'get' && path === '/admin/users') {

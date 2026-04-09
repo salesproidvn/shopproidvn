@@ -301,6 +301,7 @@ export const vi = {
 
   // Blog Posts
   posts: 'Bài viết',
+  pages: 'Trang',
   addPost: 'Thêm bài viết',
   editPost: 'Sửa bài viết',
   deletePost: 'Xóa bài viết',
@@ -747,6 +748,7 @@ export const en = {
 
   // Blog Posts
   posts: 'Posts',
+  pages: 'Pages',
   addPost: 'Add Post',
   editPost: 'Edit Post',
   deletePost: 'Delete Post',

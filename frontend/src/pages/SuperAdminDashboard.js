@@ -265,90 +265,102 @@ const SuperAdminDashboard = () => {
                 <CardTitle>{t.allShops}</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="overflow-x-auto">
-                  <table className="w-full" data-testid="shops-table">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left py-3 px-4 font-medium text-[#64748B]">{t.shopName}</th>
-                        <th className="text-left py-3 px-4 font-medium text-[#64748B]">{t.owner}</th>
-                        <th className="text-left py-3 px-4 font-medium text-[#64748B]">{t.orders}</th>
-                        <th className="text-left py-3 px-4 font-medium text-[#64748B]">{t.products}</th>
-                        <th className="text-left py-3 px-4 font-medium text-[#64748B]">{t.status}</th>
-                        <th className="text-left py-3 px-4 font-medium text-[#64748B]">{t.expiryDate}</th>
-                        <th className="text-left py-3 px-4 font-medium text-[#64748B]">{t.shopLimits}</th>
-                        <th className="text-left py-3 px-4 font-medium text-[#64748B]">{t.actions}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {shops.map((shop) => (
-                        <tr key={shop.id} className="border-b hover:bg-[#F8FAFC]">
-                          <td className="py-3 px-4">
-                            <div>
-                              <div className="font-medium text-[#0F172A]">{shop.name}</div>
-                              <div className="text-sm text-[#64748B]">/{shop.slug}</div>
-                            </div>
-                          </td>
-                          <td className="py-3 px-4 text-[#64748B]">{shop.owner?.email || '-'}</td>
-                          <td className="py-3 px-4 text-[#0F172A]">{shop.order_count}</td>
-                          <td className="py-3 px-4 text-[#0F172A]">{shop.product_count || 0}</td>
-                          <td className="py-3 px-4">
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${shop.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                              {shop.status}
-                            </span>
-                            {shop.expiry_date && new Date(shop.expiry_date) < new Date() && (
-                              <span className="ml-2 px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700">{t.expired}</span>
-                            )}
-                          </td>
-                          <td className="py-3 px-4">
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="date"
-                                value={shop.expiry_date ? shop.expiry_date.split('T')[0] : ''}
-                                onChange={(e) => handleSetExpiry(shop.id, e.target.value ? new Date(e.target.value).toISOString() : null)}
-                                className="text-sm border rounded px-2 py-1 w-36"
-                                data-testid={`expiry-input-${shop.id}`}
-                              />
-                              {shop.expiry_date && (
-                                <button onClick={() => handleSetExpiry(shop.id, null)} className="text-xs text-red-500 hover:text-red-600">
-                                  <X className="w-4 h-4" />
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                          <td className="py-3 px-4">
-                            <div className="flex flex-col gap-1">
-                              <div className="flex items-center gap-1">
-                                <label className="text-[10px] text-[#94A3B8] w-12">{t.maxProducts}:</label>
-                                <input type="number" min="0" value={shop.max_products ?? 100}
-                                  onChange={(e) => handleSetLimits(shop.id, 'max_products', e.target.value)}
-                                  className="text-xs border rounded px-1 py-0.5 w-16 text-center"
-                                  data-testid={`max-products-${shop.id}`} />
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <label className="text-[10px] text-[#94A3B8] w-12">{t.maxPosts}:</label>
-                                <input type="number" min="0" value={shop.max_posts ?? 50}
-                                  onChange={(e) => handleSetLimits(shop.id, 'max_posts', e.target.value)}
-                                  className="text-xs border rounded px-1 py-0.5 w-16 text-center"
-                                  data-testid={`max-posts-${shop.id}`} />
-                              </div>
-                            </div>
-                          </td>
-                          <td className="py-3 px-4">
-                            <div className="flex gap-2 flex-wrap">
-                              <Link to={`/dashboard?shop=${shop.id}`}>
-                                <Button variant="outline" size="sm" className="gap-1.5" data-testid={`view-shop-${shop.id}`}>
-                                  <Eye className="w-3.5 h-3.5" /> {t.viewShop}
-                                </Button>
-                              </Link>
-                              <Button variant="outline" size="sm" onClick={() => handleShopStatus(shop.id, shop.status === 'active' ? 'suspended' : 'active')} data-testid={`toggle-shop-${shop.id}`}>
-                                {shop.status === 'active' ? t.suspend : t.activate}
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <div className="space-y-4">
+                  {shops.map((shop) => (
+                    <div key={shop.id} className="border border-[#E2E8F0] rounded-xl p-4 hover:shadow-md transition-shadow" data-testid={`shop-card-${shop.id}`}>
+                      {/* Row 1: Shop name, status, actions */}
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-sm" style={{ backgroundColor: shop.theme_color || '#0055FF' }}>
+                            {shop.name?.[0]}
+                          </div>
+                          <div>
+                            <div className="font-semibold text-[#0F172A]">{shop.name}</div>
+                            <div className="text-xs text-[#94A3B8]">/{shop.slug} · {shop.owner?.email || '-'}</div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${shop.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                            {shop.status}
+                          </span>
+                          {shop.expiry_date && new Date(shop.expiry_date) < new Date() && (
+                            <span className="px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700">{t.expired}</span>
+                          )}
+                          <Link to={`/dashboard?shop=${shop.id}`}>
+                            <Button variant="outline" size="sm" className="gap-1.5" data-testid={`view-shop-${shop.id}`}>
+                              <Eye className="w-3.5 h-3.5" /> {t.viewShop}
+                            </Button>
+                          </Link>
+                          <Button variant="outline" size="sm" onClick={() => handleShopStatus(shop.id, shop.status === 'active' ? 'suspended' : 'active')} data-testid={`toggle-shop-${shop.id}`}>
+                            {shop.status === 'active' ? t.suspend : t.activate}
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Row 2: Count stats grid */}
+                      <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-7 gap-2 mb-3" data-testid={`shop-counts-${shop.id}`}>
+                        <div className="bg-[#F8FAFC] rounded-lg p-2.5 text-center">
+                          <div className="text-lg font-bold text-[#0F172A]">{shop.product_count || 0}</div>
+                          <div className="text-[10px] text-[#94A3B8] font-medium uppercase tracking-wide">{t.products}</div>
+                        </div>
+                        <div className="bg-[#F8FAFC] rounded-lg p-2.5 text-center">
+                          <div className="text-lg font-bold text-[#0F172A]">{shop.category_count || 0}</div>
+                          <div className="text-[10px] text-[#94A3B8] font-medium uppercase tracking-wide">{t.categories}</div>
+                        </div>
+                        <div className="bg-[#F8FAFC] rounded-lg p-2.5 text-center">
+                          <div className="text-lg font-bold text-[#0F172A]">{shop.order_count || 0}</div>
+                          <div className="text-[10px] text-[#94A3B8] font-medium uppercase tracking-wide">{t.orders}</div>
+                        </div>
+                        <div className="bg-[#F8FAFC] rounded-lg p-2.5 text-center">
+                          <div className="text-lg font-bold text-[#0F172A]">{shop.post_count || 0}</div>
+                          <div className="text-[10px] text-[#94A3B8] font-medium uppercase tracking-wide">{t.posts}</div>
+                        </div>
+                        <div className="bg-[#F8FAFC] rounded-lg p-2.5 text-center">
+                          <div className="text-lg font-bold text-[#0F172A]">{shop.page_count || 0}</div>
+                          <div className="text-[10px] text-[#94A3B8] font-medium uppercase tracking-wide">{t.pages}</div>
+                        </div>
+                        <div className="bg-[#F8FAFC] rounded-lg p-2.5 text-center">
+                          <div className="text-lg font-bold text-[#0F172A]">{shop.menu_item_count || 0}</div>
+                          <div className="text-[10px] text-[#94A3B8] font-medium uppercase tracking-wide">{t.menuItems}</div>
+                        </div>
+                        <div className="bg-[#F8FAFC] rounded-lg p-2.5 text-center">
+                          <div className="text-lg font-bold text-[#0F172A]">{shop.mega_menu_count || 0}</div>
+                          <div className="text-[10px] text-[#94A3B8] font-medium uppercase tracking-wide">Mega Menu</div>
+                        </div>
+                      </div>
+
+                      {/* Row 3: Limits + Expiry */}
+                      <div className="flex items-center gap-4 pt-2 border-t border-[#F1F5F9] text-xs text-[#64748B]">
+                        <div className="flex items-center gap-2">
+                          <span>{t.expiryDate}:</span>
+                          <input type="date"
+                            value={shop.expiry_date ? shop.expiry_date.split('T')[0] : ''}
+                            onChange={(e) => handleSetExpiry(shop.id, e.target.value ? new Date(e.target.value).toISOString() : null)}
+                            className="text-xs border rounded px-2 py-1 w-36"
+                            data-testid={`expiry-input-${shop.id}`} />
+                          {shop.expiry_date && (
+                            <button onClick={() => handleSetExpiry(shop.id, null)} className="text-red-500 hover:text-red-600">
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span>{t.maxProducts}:</span>
+                          <input type="number" min="0" value={shop.max_products ?? 100}
+                            onChange={(e) => handleSetLimits(shop.id, 'max_products', e.target.value)}
+                            className="text-xs border rounded px-1 py-0.5 w-16 text-center"
+                            data-testid={`max-products-${shop.id}`} />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span>{t.maxPosts}:</span>
+                          <input type="number" min="0" value={shop.max_posts ?? 50}
+                            onChange={(e) => handleSetLimits(shop.id, 'max_posts', e.target.value)}
+                            className="text-xs border rounded px-1 py-0.5 w-16 text-center"
+                            data-testid={`max-posts-${shop.id}`} />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </CardContent>
             </Card>
