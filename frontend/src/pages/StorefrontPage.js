@@ -641,20 +641,17 @@ const StorefrontPage = () => {
               {(shop.menu_items || []).filter(mi => mi.enabled).sort((a, b) => a.position - b.position).map((mi, idx) => (
                 mi.type === 'scroll_shop' ? (
                   <button key={mi.id} onClick={() => { setMobileMenuOpen(false); setMobileExpandedCat(null); setSelectedCategory('all'); setTimeout(() => document.getElementById('products-section')?.scrollIntoView({ behavior: 'smooth' }), 100); }}
-                    className="flex items-center gap-3 w-full py-3 text-sm font-medium text-[#0F172A]" data-testid={`mobile-menu-${idx}`}>
-                    <Store className="w-4 h-4 text-[#94A3B8]" />
+                    className="w-full py-3 text-sm font-medium text-[#0F172A] text-left" data-testid={`mobile-menu-${idx}`}>
                     {mi.label}
                   </button>
                 ) : mi.type === 'external' ? (
                   <a key={mi.id} href={mi.url} target="_blank" rel="noopener noreferrer" onClick={() => { setMobileMenuOpen(false); setMobileExpandedCat(null); }}
-                    className="flex items-center gap-3 py-3 text-sm font-medium text-[#0F172A]" data-testid={`mobile-menu-${idx}`}>
-                    <Globe className="w-4 h-4 text-[#94A3B8]" />
+                    className="block py-3 text-sm font-medium text-[#0F172A]" data-testid={`mobile-menu-${idx}`}>
                     {mi.label}
                   </a>
                 ) : (
                   <Link key={mi.id} to={mi.url} onClick={() => { setMobileMenuOpen(false); setMobileExpandedCat(null); }}
-                    className="flex items-center gap-3 py-3 text-sm font-medium text-[#0F172A]" data-testid={`mobile-menu-${idx}`}>
-                    <BookOpen className="w-4 h-4 text-[#94A3B8]" />
+                    className="block py-3 text-sm font-medium text-[#0F172A]" data-testid={`mobile-menu-${idx}`}>
                     {mi.label}
                   </Link>
                 )
