@@ -339,6 +339,14 @@ const LoginPage = () => {
                     <div className="text-red-600 text-xs bg-red-50 p-3 rounded-xl border border-red-100" data-testid="auth-error">{error}</div>
                   )}
 
+                  {mode === 'login' && (
+                    <button type="button" onClick={() => { setEmail('demo1@proid.vn'); setPassword('iLoveProID@'); }}
+                      className="w-full h-9 rounded-xl border border-dashed border-[#CBD5E1] text-xs font-medium text-[#64748B] hover:border-[#0055FF] hover:text-[#0055FF] hover:bg-[#F0F7FF] transition-all"
+                      data-testid="demo-autofill-btn">
+                      Demo Autofill
+                    </button>
+                  )}
+
                   <Button type="submit" className="w-full h-11 bg-gradient-to-r from-[#0055FF] to-[#00C2FF] hover:opacity-90 rounded-xl text-sm font-semibold shadow-lg shadow-[#0055FF]/20" disabled={loading} data-testid="auth-submit-button">
                     {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (
                       <>{mode === 'login' ? t.login : t.register} <ArrowRight className="w-4 h-4 ml-2" /></>
