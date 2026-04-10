@@ -17,7 +17,7 @@ import {
   LogOut, Menu, X, Plus, Pencil, Trash2, TrendingUp, Clock, Eye, Palette, Upload, ExternalLink,
   Bold, Italic, List, ChevronUp, ChevronDown, Play, FileText, Image, Calendar, Search, LayoutGrid, GripVertical,
   Globe, Navigation, Link2, Video, Type, ArrowUp, ArrowDown, EyeOff, Copy, Grid3X3,
-  Bell, BellOff, Smartphone, Download, Mail
+  Bell, BellOff, Smartphone, Download, Mail, Loader2, Check
 } from 'lucide-react';
 import { toast } from 'sonner';
 import NotificationBell from '../components/NotificationBell';
@@ -255,6 +255,72 @@ const ShopOwnerDashboard = () => {
   const [mediaCallback, setMediaCallback] = useState(null);
   const [mediaMultiple, setMediaMultiple] = useState(false);
   const [mediaMaxSelect, setMediaMaxSelect] = useState(1);
+
+  // Media Tab state
+  const [mediaList, setMediaList] = useState([]);
+  const [mediaLoading, setMediaLoading] = useState(false);
+  const [mediaPage, setMediaPage] = useState(1);
+  const [mediaTotalPages, setMediaTotalPages] = useState(1);
+  const [mediaTotal, setMediaTotal] = useState(0);
+  const [mediaUploading, setMediaUploading] = useState(false);
+  const [mediaSelected, setMediaSelected] = useState([]);
+  const mediaBulkInputRef = useRef(null);
+
+  const fetchMediaList = async (p = 1) => {
+    setMediaLoading(true);
+    try {
+      const { data } = await axios.get(`${API}/dashboard/media?page=${p}&limit=40`);
+      setMediaList(data.items || []);
+      setMediaTotalPages(data.pages || 1);
+      setMediaTotal(data.total || 0);
+      setMediaPage(p);
+    } catch { toast.error(t.failedToLoad); }
+    setMediaLoading(false);
+  };
+
+  const handleBulkUpload = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    setMediaUploading(true);
+    let uploaded = 0;
+    for (const file of files) {
+      const formData = new FormData();
+      formData.append('file', file);
+      try {
+        await axios.post(`${API}/upload/image`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+        uploaded++;
+      } catch { toast.error(`Lỗi: ${file.name}`); }
+    }
+    if (uploaded > 0) toast.success(`Đã upload ${uploaded}/${files.length} ảnh`);
+    setMediaUploading(false);
+    if (mediaBulkInputRef.current) mediaBulkInputRef.current.value = '';
+    fetchMediaList(1);
+  };
+
+  const handleDeleteMedia = async (fileId) => {
+    try {
+      await axios.delete(`${API}/dashboard/media/${fileId}`);
+      setMediaList(mediaList.filter(m => m.id !== fileId));
+      setMediaSelected(mediaSelected.filter(s => s !== fileId));
+      setMediaTotal(prev => prev - 1);
+      toast.success('Đã xóa');
+    } catch { toast.error('Lỗi xóa ảnh'); }
+  };
+
+  const handleBulkDeleteMedia = async () => {
+    if (!mediaSelected.length || !window.confirm(`Xóa ${mediaSelected.length} ảnh đã chọn?`)) return;
+    let deleted = 0;
+    for (const id of mediaSelected) {
+      try { await axios.delete(`${API}/dashboard/media/${id}`); deleted++; } catch {}
+    }
+    toast.success(`Đã xóa ${deleted} ảnh`);
+    setMediaSelected([]);
+    fetchMediaList(mediaPage);
+  };
+
+  useEffect(() => {
+    if (activeTab === 'media') fetchMediaList(1);
+  }, [activeTab]);
 
   const openMediaLibrary = (callback, { multiple = false, maxSelect = 1 } = {}) => {
     setMediaCallback(() => callback);
@@ -819,6 +885,7 @@ const ShopOwnerDashboard = () => {
     { id: 'posts', label: t.posts, icon: FileText },
     { id: 'pages', label: t.customPages, icon: Globe },
     { id: 'orders', label: t.orders, icon: ShoppingCart },
+    { id: 'media', label: t.mediaLibrary || 'Thư viện ảnh', icon: Image },
     { id: 'menu', label: t.menuManager, icon: Navigation },
     { id: 'layout', label: t.displayLayout, icon: LayoutGrid },
     { id: 'settings', label: t.settings, icon: Settings },
@@ -980,6 +1047,7 @@ const ShopOwnerDashboard = () => {
                   {activeTab === 'posts' && t.posts}
                   {activeTab === 'pages' && t.customPages}
                   {activeTab === 'orders' && t.orders}
+                  {activeTab === 'media' && (t.mediaLibrary || 'Thư viện ảnh')}
                   {activeTab === 'menu' && t.menuManager}
                   {activeTab === 'layout' && t.displayLayout}
                   {activeTab === 'settings' && t.settings}
@@ -1389,8 +1457,104 @@ const ShopOwnerDashboard = () => {
                       </CardContent>
                     </Card>
                   ))}
+
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Media Library Tab */}
+          {activeTab === 'media' && (
+            <div className="space-y-4">
+              <Card className="border-0 shadow-sm">
+                <CardContent className="p-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                    <div>
+                      <h3 className="text-sm font-bold text-[#0F172A]">{t.mediaLibrary || 'Thư viện ảnh'}</h3>
+                      <p className="text-xs text-[#94A3B8] mt-0.5">{mediaTotal} ảnh đã upload</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {mediaSelected.length > 0 && (
+                        <Button type="button" variant="destructive" size="sm" className="text-xs gap-1" onClick={handleBulkDeleteMedia} data-testid="media-bulk-delete-btn">
+                          <Trash2 className="w-3 h-3" /> Xóa {mediaSelected.length} ảnh
+                        </Button>
+                      )}
+                      <input type="file" ref={mediaBulkInputRef} onChange={handleBulkUpload} accept="image/*" multiple className="hidden" />
+                      <Button type="button" size="sm" style={{ backgroundColor: themeColor }} className="text-xs gap-1 text-white hover:opacity-90" onClick={() => mediaBulkInputRef.current?.click()} disabled={mediaUploading} data-testid="media-bulk-upload-btn">
+                        {mediaUploading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+                        Upload ảnh
+                      </Button>
+                    </div>
+                  </div>
+
+                  {mediaLoading ? (
+                    <div className="flex items-center justify-center py-16">
+                      <Loader2 className="w-8 h-8 animate-spin text-[#94A3B8]" />
+                    </div>
+                  ) : mediaList.length === 0 ? (
+                    <div className="text-center py-16 border-2 border-dashed border-[#E2E8F0] rounded-xl cursor-pointer hover:border-[#94A3B8] transition-colors" onClick={() => mediaBulkInputRef.current?.click()} data-testid="media-empty-upload">
+                      <Image className="w-16 h-16 text-[#E2E8F0] mx-auto mb-3" />
+                      <p className="text-sm font-medium text-[#64748B]">Chưa có ảnh nào</p>
+                      <p className="text-xs text-[#94A3B8] mt-1">Click để upload hoặc kéo thả ảnh vào đây</p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex items-center gap-2 mb-3">
+                        <button type="button" onClick={() => {
+                          if (mediaSelected.length === mediaList.length) setMediaSelected([]);
+                          else setMediaSelected(mediaList.map(m => m.id));
+                        }} className="text-xs text-[#64748B] hover:text-[#0F172A] transition-colors" data-testid="media-select-all">
+                          {mediaSelected.length === mediaList.length ? 'Bỏ chọn tất cả' : 'Chọn tất cả'}
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-3" data-testid="media-tab-grid">
+                        {mediaList.map(item => {
+                          const isSelected = mediaSelected.includes(item.id);
+                          return (
+                            <div key={item.id} className={`relative group aspect-square rounded-lg overflow-hidden border-2 cursor-pointer transition-all ${isSelected ? 'border-blue-500 ring-2 ring-blue-200' : 'border-[#E2E8F0] hover:border-[#CBD5E1]'}`}
+                              onClick={() => setMediaSelected(prev => prev.includes(item.id) ? prev.filter(s => s !== item.id) : [...prev, item.id])}
+                              data-testid={`media-tab-item-${item.id}`}>
+                              <img src={`${API}/files/${item.id}`} alt={item.original_filename} className="w-full h-full object-cover" loading="lazy" />
+                              {isSelected && (
+                                <div className="absolute top-1.5 left-1.5 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
+                                  <Check className="w-3 h-3 text-white" />
+                                </div>
+                              )}
+                              <button type="button" onClick={(e) => { e.stopPropagation(); handleDeleteMedia(item.id); }}
+                                className="absolute top-1.5 right-1.5 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                data-testid={`media-tab-delete-${item.id}`}>
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent px-2 py-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <p className="text-[10px] text-white truncate">{item.original_filename}</p>
+                                <p className="text-[9px] text-white/70">{(item.size / 1024).toFixed(0)} KB</p>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {mediaTotalPages > 1 && (
+                        <div className="flex justify-center gap-1.5 mt-4">
+                          {Array.from({ length: mediaTotalPages }, (_, i) => (
+                            <Button key={i} type="button" variant={mediaPage === i + 1 ? 'default' : 'outline'} size="sm"
+                              className="w-8 h-8 text-xs" onClick={() => fetchMediaList(i + 1)}
+                              style={mediaPage === i + 1 ? { backgroundColor: themeColor } : {}}>
+                              {i + 1}
+                            </Button>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {mediaUploading && (
+                    <div className="mt-4 flex items-center gap-2 text-sm text-[#64748B]">
+                      <Loader2 className="w-4 h-4 animate-spin" /> Đang upload...
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             </div>
           )}
 
