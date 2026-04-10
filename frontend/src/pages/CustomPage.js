@@ -67,7 +67,7 @@ const CustomPage = () => {
       <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-lg border-b border-[#E2E8F0]">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center h-14 gap-3">
-            <Button variant="ghost" size="icon" className="rounded-full" onClick={() => navigate(`/shop/${slug}`)} data-testid="custom-page-back">
+            <Button variant="ghost" size="icon" className="rounded-full" onClick={() => navigate(-1)} data-testid="custom-page-back">
               <ArrowLeft className="w-5 h-5" />
             </Button>
             <div className="flex items-center gap-2">

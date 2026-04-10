@@ -58,14 +58,18 @@ const StorefrontPage = () => {
 
   useEffect(() => { fetchShopData(); }, [slug]);
 
-  // Restore scroll position when returning to storefront
+  // Save scroll position continuously & restore when returning
   useEffect(() => {
     if (loading) return;
     const savedPos = sessionStorage.getItem(`scroll-${slug}`);
     if (savedPos) {
-      setTimeout(() => window.scrollTo(0, parseInt(savedPos)), 150);
+      const pos = parseInt(savedPos);
       sessionStorage.removeItem(`scroll-${slug}`);
+      setTimeout(() => window.scrollTo(0, pos), 200);
     }
+    const handleScroll = () => sessionStorage.setItem(`scroll-${slug}`, window.scrollY);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
   }, [slug, loading]);
 
   // Auto-slide banner
@@ -257,12 +261,11 @@ const StorefrontPage = () => {
       <div className="mb-8" data-testid="post-carousel">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-xl sm:text-2xl font-bold text-[#0F172A]">{t.latestPosts}</h3>
-          <Link to={`/shop/${slug}/posts`} onClick={() => sessionStorage.setItem(`scroll-${slug}`, window.scrollY)}><Button variant="ghost" size="sm" className="text-sm rounded-[5px]" style={{ color: themeColor }}>{t.readMore} &rarr;</Button></Link>
+          <Link to={`/shop/${slug}/posts`}><Button variant="ghost" size="sm" className="text-sm rounded-[5px]" style={{ color: themeColor }}>{t.readMore} &rarr;</Button></Link>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 lg:gap-5" data-testid="post-grid">
           {posts.map(post => (
             <Link key={post.id} to={`/shop/${slug}/posts/${post.id}`}
-              onClick={() => sessionStorage.setItem(`scroll-${slug}`, window.scrollY)}
               className="group bg-white border border-[#E2E8F0] rounded-[5px] overflow-hidden hover:shadow-lg transition-all"
               data-testid={`post-card-${post.id}`}>
               <div className="aspect-square bg-[#F8FAFC] overflow-hidden">
@@ -450,11 +453,29 @@ const StorefrontPage = () => {
     const embedUrl = ytMatch ? `https://www.youtube.com/embed/${ytMatch[1]}` : (selectedProduct.video_url || null);
     return (
       <div className="fixed inset-0 z-50 bg-white overflow-y-auto" data-testid="product-fullpage">
-        <button onClick={() => { const pos = scrollPosRef.current; setSelectedProduct(null); setActiveImage(0); setShowVideo(null); if (searchParams.get('product')) { searchParams.delete('product'); setSearchParams(searchParams, { replace: true }); } setTimeout(() => window.scrollTo(0, pos), 0); }}
-          className="fixed top-4 right-4 z-[60] w-10 h-10 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-lg transition-colors"
-          data-testid="product-close-btn">
-          <X className="w-5 h-5" />
-        </button>
+        <header className="sticky top-0 z-[60] bg-white/90 backdrop-blur-lg border-b border-[#E2E8F0]">
+          <div className="max-w-5xl mx-auto px-4">
+            <div className="flex items-center justify-between h-14">
+              <button onClick={() => { const pos = scrollPosRef.current; setSelectedProduct(null); setActiveImage(0); setShowVideo(null); if (searchParams.get('product')) { searchParams.delete('product'); setSearchParams(searchParams, { replace: true }); } setTimeout(() => window.scrollTo(0, pos), 0); }}
+                className="flex items-center gap-2 text-sm text-[#334155] hover:text-[#0F172A] transition-colors"
+                data-testid="product-close-btn">
+                <ArrowLeft className="w-4 h-4" /> {t.back || 'Quay lại'}
+              </button>
+              <span className="font-semibold text-[#0F172A] text-sm truncate max-w-[200px]">{shop?.name}</span>
+              <button onClick={() => {
+                const url = `${window.location.origin}/shop/${slug}?product=${selectedProduct.id}`;
+                if (navigator.share) {
+                  navigator.share({ title: selectedProduct.name, text: `${selectedProduct.name} - ${formatVND(selectedProduct.price)}`, url });
+                } else {
+                  navigator.clipboard.writeText(url);
+                  toast.success(t.linkCopied || 'Link copied!');
+                }
+              }} className="flex items-center gap-2 text-sm text-[#334155] hover:text-[#0F172A] transition-colors" data-testid="product-share-top-btn">
+                <Share2 className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </header>
         <div className="max-w-5xl mx-auto px-4 py-8">
           <div className="grid md:grid-cols-2 gap-8">
             <div className="flex flex-col">
