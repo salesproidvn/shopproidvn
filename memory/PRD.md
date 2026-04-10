@@ -43,7 +43,7 @@ Multi-tenant e-commerce platform with Super Admin, Shop Owner, and public Storef
 - [x] Demo Autofill button on login page
 - [x] Scroll restoration across storefront views
 
-## Pending Issues
+- [x] Login button on storefront header when user is logged out - Apr 10, 2026
 - [ ] VCF file download may contain empty info (fix applied, needs user verification)
 - [ ] Product video URL display issue (needs user verification on specific URL format)
 

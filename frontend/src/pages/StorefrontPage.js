@@ -649,10 +649,16 @@ const StorefrontPage = () => {
                   <Input type="text" placeholder={t.search} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9 rounded-full bg-[#F8FAFC] h-9 text-sm" data-testid="search-input" />
                 </div>
               </div>
-              {user && (user.role === 'shop_owner' || user.role === 'super_admin') && (
+              {user && (user.role === 'shop_owner' || user.role === 'super_admin') ? (
                 <Link to={user.role === 'super_admin' ? '/admin' : '/dashboard'} data-testid="storefront-dashboard-btn">
                   <Button variant="outline" size="sm" className="rounded-full text-xs hover:text-white" style={{ borderColor: themeColor, color: themeColor }} onMouseEnter={(e) => { e.target.style.backgroundColor = themeColor; e.target.style.color = 'white'; }} onMouseLeave={(e) => { e.target.style.backgroundColor = 'transparent'; e.target.style.color = themeColor; }}>
                     <LayoutDashboard className="w-3 h-3 mr-1" /> {t.dashboard}
+                  </Button>
+                </Link>
+              ) : !user && (
+                <Link to="/" data-testid="storefront-login-btn">
+                  <Button size="sm" className="rounded-full text-xs text-white" style={{ backgroundColor: themeColor }}>
+                    {t.login || 'Đăng nhập'}
                   </Button>
                 </Link>
               )}
