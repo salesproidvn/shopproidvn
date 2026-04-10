@@ -2429,32 +2429,45 @@ const ShopOwnerDashboard = () => {
           <DialogDescription className="sr-only">{t.productDetail}</DialogDescription>
           {selectedProduct && (() => {
             const images = selectedProduct.images?.length > 0 ? selectedProduct.images : [selectedProduct.image_url];
-            const ytMatch = selectedProduct.video_url?.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-            const embedUrl = ytMatch ? `https://www.youtube.com/embed/${ytMatch[1]}` : (selectedProduct.video_url || null);
+            const getVideoEmbed = (url) => {
+              if (!url) return null;
+              const ytMatch = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+              if (ytMatch) return `https://www.youtube.com/embed/${ytMatch[1]}`;
+              const ttMatch = url.match(/tiktok\.com\/@[^/]+\/video\/(\d+)/);
+              if (ttMatch) return `https://www.tiktok.com/embed/v2/${ttMatch[1]}`;
+              return null;
+            };
+            const allVideoEmbeds = [];
+            const mainEmbed = getVideoEmbed(selectedProduct.video_url);
+            if (mainEmbed) allVideoEmbeds.push(mainEmbed);
+            (selectedProduct.video_links || []).forEach(vl => {
+              const embed = getVideoEmbed(vl);
+              if (embed) allVideoEmbeds.push(embed);
+            });
             return (
               <div className="grid md:grid-cols-2">
                 <div className="flex flex-col">
                   <div className="aspect-square bg-[#F8FAFC] relative overflow-hidden">
-                    {detailShowVideo && embedUrl ? (
-                      <iframe src={embedUrl} title="Product video" className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
+                    {detailShowVideo !== false && allVideoEmbeds[detailShowVideo] ? (
+                      <iframe src={allVideoEmbeds[detailShowVideo]} title="Product video" className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
                     ) : (
                       <img src={images[detailActiveImage]} alt={selectedProduct.name} className="w-full h-full object-cover" />
                     )}
                   </div>
-                  {(images.length > 1 || embedUrl) && (
+                  {(images.length > 1 || allVideoEmbeds.length > 0) && (
                     <div className="flex gap-2 p-3 overflow-x-auto">
                       {images.map((img, idx) => (
                         <button key={idx} onClick={() => { setDetailActiveImage(idx); setDetailShowVideo(false); }}
-                          className={`w-14 h-14 rounded-lg overflow-hidden flex-shrink-0 border-2 transition-all ${!detailShowVideo && detailActiveImage === idx ? 'border-[#0055FF] ring-1 ring-[#0055FF]' : 'border-transparent hover:border-[#E2E8F0]'}`}>
+                          className={`w-14 h-14 rounded-lg overflow-hidden flex-shrink-0 border-2 transition-all ${detailShowVideo === false && detailActiveImage === idx ? 'border-[#0055FF] ring-1 ring-[#0055FF]' : 'border-transparent hover:border-[#E2E8F0]'}`}>
                           <img src={img} alt="" className="w-full h-full object-cover" />
                         </button>
                       ))}
-                      {embedUrl && (
-                        <button onClick={() => setDetailShowVideo(true)}
-                          className={`w-14 h-14 rounded-lg flex-shrink-0 border-2 transition-all flex items-center justify-center bg-[#0F172A] ${detailShowVideo ? 'border-[#0055FF] ring-1 ring-[#0055FF]' : 'border-transparent hover:border-[#E2E8F0]'}`}>
+                      {allVideoEmbeds.map((_, vidIdx) => (
+                        <button key={`vid-${vidIdx}`} onClick={() => setDetailShowVideo(vidIdx)}
+                          className={`w-14 h-14 rounded-lg flex-shrink-0 border-2 transition-all flex items-center justify-center bg-[#0F172A] ${detailShowVideo === vidIdx ? 'border-[#0055FF] ring-1 ring-[#0055FF]' : 'border-transparent hover:border-[#E2E8F0]'}`}>
                           <Play className="w-5 h-5 text-white fill-white" />
                         </button>
-                      )}
+                      ))}
                     </div>
                   )}
                 </div>
