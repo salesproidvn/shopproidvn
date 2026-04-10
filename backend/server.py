@@ -617,7 +617,7 @@ async def cleanup_images(request: Request):
 # ==================== IMAGE UPLOAD ====================
 
 @api_router.post("/upload/image")
-async def upload_image(file: UploadFile = File(...)):
+async def upload_image(file: UploadFile = File(...), request: Request = None):
     allowed = ["image/jpeg", "image/png", "image/gif", "image/webp"]
     if file.content_type not in allowed:
         raise HTTPException(status_code=400, detail="Invalid file type")
@@ -626,10 +626,20 @@ async def upload_image(file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail="File too large (max 10MB before compression)")
 
     original_size = len(data)
-    # Compress and resize to stay under 300KB
     compressed_data, out_content_type = compress_image(data, file.content_type)
     compressed_size = len(compressed_data)
     logger.info(f"Image compressed: {original_size / 1024:.0f}KB -> {compressed_size / 1024:.0f}KB ({file.filename})")
+
+    # Try to get shop_id from auth
+    shop_id = None
+    try:
+        user = await get_current_user(request)
+        if user.get("role") == "shop_owner":
+            shop_id = user.get("shop_id")
+        elif user.get("role") == "super_admin":
+            shop_id = "admin"
+    except:
+        pass
 
     file_id = str(uuid_lib.uuid4())
     ext = "webp"
@@ -637,7 +647,7 @@ async def upload_image(file: UploadFile = File(...)):
     try:
         result = put_object(path, compressed_data, out_content_type)
         await db.files.insert_one({
-            "id": file_id, "storage_path": result["path"],
+            "id": file_id, "shop_id": shop_id, "storage_path": result["path"],
             "original_filename": file.filename, "content_type": out_content_type,
             "size": compressed_size, "original_size": original_size,
             "is_deleted": False, "created_at": datetime.now(timezone.utc)
@@ -647,6 +657,31 @@ async def upload_image(file: UploadFile = File(...)):
     except Exception as e:
         logger.error(f"Upload to R2 failed: {e}")
         raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
+
+@api_router.get("/dashboard/media")
+async def get_media_library(request: Request, page: int = 1, limit: int = 40):
+    user = await require_shop_owner(request)
+    shop_id = await resolve_shop_id(request, user)
+    skip = (page - 1) * limit
+    total = await db.files.count_documents({"shop_id": shop_id, "is_deleted": False})
+    files = await db.files.find(
+        {"shop_id": shop_id, "is_deleted": False},
+        {"_id": 0, "id": 1, "original_filename": 1, "size": 1, "created_at": 1}
+    ).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    for f in files:
+        f["url"] = f"/api/files/{f['id']}"
+        f["created_at"] = serialize_datetime(f.get("created_at"))
+    return {"items": files, "total": total, "page": page, "pages": (total + limit - 1) // limit}
+
+@api_router.delete("/dashboard/media/{file_id}")
+async def delete_media(file_id: str, request: Request):
+    user = await require_shop_owner(request)
+    shop_id = await resolve_shop_id(request, user)
+    result = await db.files.update_one({"id": file_id, "shop_id": shop_id}, {"$set": {"is_deleted": True}})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="File not found")
+    return {"message": "File deleted"}
+
 
 from functools import lru_cache
 

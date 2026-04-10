@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import NotificationBell from '../components/NotificationBell';
+import MediaLibrary from '../components/MediaLibrary';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 
@@ -248,6 +249,19 @@ const ShopOwnerDashboard = () => {
 
   const [dashProductSearch, setDashProductSearch] = useState('');
   const [dashProductCategory, setDashProductCategory] = useState('all');
+
+  // Media Library state
+  const [mediaOpen, setMediaOpen] = useState(false);
+  const [mediaCallback, setMediaCallback] = useState(null);
+  const [mediaMultiple, setMediaMultiple] = useState(false);
+  const [mediaMaxSelect, setMediaMaxSelect] = useState(1);
+
+  const openMediaLibrary = (callback, { multiple = false, maxSelect = 1 } = {}) => {
+    setMediaCallback(() => callback);
+    setMediaMultiple(multiple);
+    setMediaMaxSelect(maxSelect);
+    setMediaOpen(true);
+  };
 
   // Custom Pages state
   const [customPages, setCustomPages] = useState([]);
@@ -1589,11 +1603,17 @@ const ShopOwnerDashboard = () => {
                       ))}
                       {(shopForm.banners || []).length < 8 && (
                         <>
-                          <input type="file" ref={bannerInputRef} onChange={handleBannerUpload} accept="image/*" multiple className="hidden" />
-                          <button onClick={() => bannerInputRef.current?.click()}
+                          <button type="button" onClick={() => openMediaLibrary((urls) => {
+                            const current = shopForm.banners || [];
+                            const newUrls = Array.isArray(urls) ? urls : [urls];
+                            const combined = [...current, ...newUrls].slice(0, 8);
+                            setShopForm({ ...shopForm, banners: combined });
+                            axios.put(`${API}/dashboard/shop`, { banners: combined });
+                            toast.success(`Banner đã cập nhật`);
+                          }, { multiple: true, maxSelect: 8 - (shopForm.banners || []).length })}
                             className="w-40 h-20 rounded-[5px] border-2 border-dashed border-[#E2E8F0] flex flex-col items-center justify-center gap-1 text-[#94A3B8] hover:border-[#94A3B8] transition-colors"
                             data-testid="layout-add-banner-btn">
-                            <Upload className="w-5 h-5" />
+                            <Image className="w-5 h-5" />
                             <span className="text-[10px]">{t.addBanner}</span>
                           </button>
                         </>
@@ -2031,11 +2051,17 @@ const ShopOwnerDashboard = () => {
                       ))}
                       {(shopForm.banners || []).length < 8 && (
                         <>
-                          <input type="file" ref={bannerInputRef} onChange={handleBannerUpload} accept="image/*" multiple className="hidden" />
-                          <button onClick={() => bannerInputRef.current?.click()}
+                          <button type="button" onClick={() => openMediaLibrary((urls) => {
+                            const current = shopForm.banners || [];
+                            const newUrls = Array.isArray(urls) ? urls : [urls];
+                            const combined = [...current, ...newUrls].slice(0, 8);
+                            setShopForm({ ...shopForm, banners: combined });
+                            axios.put(`${API}/dashboard/shop`, { banners: combined });
+                            toast.success(`Banner đã cập nhật`);
+                          }, { multiple: true, maxSelect: 8 - (shopForm.banners || []).length })}
                             className="w-40 h-20 rounded-[5px] border-2 border-dashed border-[#E2E8F0] flex flex-col items-center justify-center gap-1 text-[#94A3B8] hover:border-[#94A3B8] transition-colors"
                             data-testid="add-banner-btn">
-                            <Upload className="w-5 h-5" />
+                            <Image className="w-5 h-5" />
                             <span className="text-[10px]">{t.addBanner}</span>
                           </button>
                         </>
@@ -2077,18 +2103,12 @@ const ShopOwnerDashboard = () => {
                         <div className="flex-1 space-y-2">
                           <Input value={shopForm.logo_url || ''} onChange={(e) => setShopForm({ ...shopForm, logo_url: e.target.value })} placeholder="https://..." className="text-sm" data-testid="shop-logo-input" />
                           <div className="flex items-center gap-2">
-                            <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-[#E2E8F0] text-xs font-medium text-[#475569] hover:bg-[#F1F5F9] transition-colors" data-testid="shop-logo-upload-btn">
-                              <Upload className="w-3.5 h-3.5" />
-                              {t.uploadLogo || 'Tải lên'}
-                              <input type="file" accept="image/*" className="hidden" data-testid="shop-logo-file-input" onChange={(e) => {
-                                const file = e.target.files?.[0];
-                                if (file) {
-                                  const reader = new FileReader();
-                                  reader.onload = (ev) => setShopForm({ ...shopForm, logo_url: ev.target.result });
-                                  reader.readAsDataURL(file);
-                                }
-                              }} />
-                            </label>
+                            <button type="button" onClick={() => openMediaLibrary((url) => {
+                              setShopForm({ ...shopForm, logo_url: url });
+                            })} className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-[#E2E8F0] text-xs font-medium text-[#475569] hover:bg-[#F1F5F9] transition-colors" data-testid="shop-logo-upload-btn">
+                              <Image className="w-3.5 h-3.5" />
+                              {t.uploadLogo || 'Chọn ảnh'}
+                            </button>
                             {shopForm.logo_url && (
                               <button type="button" onClick={() => setShopForm({ ...shopForm, logo_url: '' })} className="text-xs text-red-500 hover:underline" data-testid="shop-logo-remove-btn">
                                 {t.remove || 'Xóa'}
@@ -2221,9 +2241,13 @@ const ShopOwnerDashboard = () => {
                   </div>
                 )}
                 <div className="flex gap-2">
-                  <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" multiple className="hidden" />
-                  <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={uploading || (productForm.images || []).length >= 8} className="text-xs" data-testid="upload-image-btn">
-                    <Upload className="w-4 h-4 mr-1" /> {uploading ? '...' : t.addMoreImages} ({(productForm.images || []).length}/8)
+                  <Button type="button" variant="outline" size="sm" onClick={() => openMediaLibrary((urls) => {
+                    const current = productForm.images || [];
+                    const newImages = Array.isArray(urls) ? urls : [urls];
+                    const combined = [...current, ...newImages].slice(0, 8);
+                    setProductForm({ ...productForm, images: combined, image_url: combined[0] || '' });
+                  }, { multiple: true, maxSelect: 8 - (productForm.images || []).length })} disabled={(productForm.images || []).length >= 8} className="text-xs" data-testid="upload-image-btn">
+                    <Image className="w-4 h-4 mr-1" /> {t.addMoreImages} ({(productForm.images || []).length}/8)
                   </Button>
                 </div>
                 <Input
@@ -2330,25 +2354,12 @@ const ShopOwnerDashboard = () => {
                   </div>
                 )}
                 <div className="flex-1 space-y-2">
-                  <label className="flex items-center gap-2 px-3 py-2 border border-[#E2E8F0] rounded-lg cursor-pointer hover:bg-[#F8FAFC] transition-colors">
-                    <Upload className="w-4 h-4 text-[#64748B]" />
-                    <span className="text-xs text-[#334155]">{t.uploadImage || 'Tải ảnh lên'}</span>
-                    <input type="file" accept="image/*" className="hidden" data-testid="category-image-upload"
-                      onChange={async (e) => {
-                        const file = e.target.files[0];
-                        if (!file) return;
-                        const formData = new FormData();
-                        formData.append('file', file);
-                        try {
-                          const res = await axios.post(`${API}/upload/image`, formData);
-                          setCategoryForm({ ...categoryForm, image_url: res.data.url });
-                          toast.success(t.imageUploaded || 'Đã tải ảnh lên!');
-                        } catch (err) {
-                          toast.error(t.uploadFailed || 'Tải ảnh thất bại');
-                        }
-                        e.target.value = '';
-                      }} />
-                  </label>
+                  <button type="button" onClick={() => openMediaLibrary((url) => {
+                    setCategoryForm({ ...categoryForm, image_url: url });
+                  })} className="flex items-center gap-2 px-3 py-2 border border-[#E2E8F0] rounded-lg cursor-pointer hover:bg-[#F8FAFC] transition-colors w-full">
+                    <Image className="w-4 h-4 text-[#64748B]" />
+                    <span className="text-xs text-[#334155]">{t.uploadImage || 'Chọn ảnh'}</span>
+                  </button>
                   <Input value={categoryForm.image_url} onChange={(e) => setCategoryForm({ ...categoryForm, image_url: e.target.value })} placeholder="https://..." className="text-xs h-8" data-testid="category-image-input" />
                 </div>
               </div>
@@ -2522,9 +2533,10 @@ const ShopOwnerDashboard = () => {
                     <button type="button" onClick={() => setPostForm({ ...postForm, thumbnail: '' })} className="absolute top-0.5 right-0.5 w-4 h-4 bg-red-500 text-white rounded-full flex items-center justify-center text-[10px]"><X className="w-3 h-3" /></button>
                   </div>
                 )}
-                <input type="file" ref={postFileInputRef} onChange={handlePostThumbnailUpload} accept="image/*" className="hidden" />
-                <Button type="button" variant="outline" size="sm" className="text-xs" onClick={() => postFileInputRef.current?.click()} data-testid="post-thumbnail-upload">
-                  <Upload className="w-3 h-3 mr-1" /> {t.uploadImage}
+                <Button type="button" variant="outline" size="sm" className="text-xs" onClick={() => openMediaLibrary((url) => {
+                  setPostForm({ ...postForm, thumbnail: url });
+                })} data-testid="post-thumbnail-upload">
+                  <Image className="w-3 h-3 mr-1" /> {t.uploadImage}
                 </Button>
               </div>
             </div>
@@ -2539,8 +2551,11 @@ const ShopOwnerDashboard = () => {
                 ))}
                 {(postForm.images || []).length < 3 && (
                   <>
-                    <input type="file" ref={postImagesInputRef} onChange={handlePostImageUpload} accept="image/*" multiple className="hidden" />
-                    <Button type="button" variant="outline" size="sm" className="text-xs h-14 w-20" onClick={() => postImagesInputRef.current?.click()} data-testid="post-images-upload">
+                    <Button type="button" variant="outline" size="sm" className="text-xs h-14 w-20" onClick={() => openMediaLibrary((urls) => {
+                      const current = postForm.images || [];
+                      const newUrls = Array.isArray(urls) ? urls : [urls];
+                      setPostForm({ ...postForm, images: [...current, ...newUrls].slice(0, 3) });
+                    }, { multiple: true, maxSelect: 3 - (postForm.images || []).length })} data-testid="post-images-upload">
                       <Image className="w-4 h-4 mr-1" /> {(postForm.images || []).length}/3
                     </Button>
                   </>
@@ -2679,22 +2694,11 @@ const ShopOwnerDashboard = () => {
                             const secs = [...pageForm.sections]; secs[idx] = { ...secs[idx], url: e.target.value }; setPageForm({ ...pageForm, sections: secs });
                           }} placeholder={t.imageUrl} className="text-sm flex-1" data-testid={`section-image-url-${idx}`} />
                           <Button type="button" variant="outline" size="sm" className="text-xs shrink-0" onClick={() => {
-                            const input = document.createElement('input');
-                            input.type = 'file'; input.accept = 'image/*';
-                            input.onchange = async (ev) => {
-                              const file = ev.target.files?.[0];
-                              if (!file) return;
-                              try {
-                                const fd = new FormData(); fd.append('file', file);
-                                const { data } = await axios.post(`${API}/upload/image`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
-                                const url = data.url || `${API}/files/${data.id}`;
-                                const secs = [...pageForm.sections]; secs[idx] = { ...secs[idx], url }; setPageForm({ ...pageForm, sections: secs });
-                                toast.success(t.uploadSuccess);
-                              } catch { toast.error(t.uploadFailed); }
-                            };
-                            input.click();
+                            openMediaLibrary((url) => {
+                              const secs = [...pageForm.sections]; secs[idx] = { ...secs[idx], url }; setPageForm({ ...pageForm, sections: secs });
+                            });
                           }} data-testid={`section-image-upload-${idx}`}>
-                            <Upload className="w-3 h-3 mr-1" /> Upload
+                            <Image className="w-3 h-3 mr-1" /> Chọn ảnh
                           </Button>
                         </div>
                         <Input value={section.caption || ''} onChange={(e) => {
@@ -2760,6 +2764,14 @@ const ShopOwnerDashboard = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      <MediaLibrary
+        open={mediaOpen}
+        onClose={() => setMediaOpen(false)}
+        onSelect={(urls) => { if (mediaCallback) mediaCallback(urls); }}
+        multiple={mediaMultiple}
+        maxSelect={mediaMaxSelect}
+      />
     </div>
   );
 };
