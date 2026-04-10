@@ -82,7 +82,7 @@ const BlogPostPage = () => {
                 <ArrowLeft className="w-5 h-5" /> {t.back || 'Back'}
               </Button>
               <Link to={`/shop/${slug}`}>
-                <span className="font-semibold text-[#0F172A]">{shop?.name}</span>
+                <span className="font-bold text-[#0F172A] text-base">{shop?.name}</span>
               </Link>
               <Button variant="ghost" size="sm" className="gap-2 rounded-[5px]" onClick={() => {
                 const url = window.location.href;

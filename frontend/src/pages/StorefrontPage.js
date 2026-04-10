@@ -474,7 +474,7 @@ const StorefrontPage = () => {
                 data-testid="product-close-btn">
                 <ArrowLeft className="w-5 h-5" /> {t.back || 'Quay lại'}
               </button>
-              <span className="font-semibold text-[#0F172A] text-sm truncate max-w-[200px]">{shop?.name}</span>
+              <Link to={`/shop/${slug}`} className="font-bold text-[#0F172A] text-base truncate max-w-[200px] hover:opacity-70 transition-opacity" data-testid="product-header-shop-name">{shop?.name}</Link>
               <button onClick={() => {
                 const url = `${window.location.origin}/shop/${slug}?product=${selectedProduct.id}`;
                 if (navigator.share) {
