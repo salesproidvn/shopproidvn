@@ -1063,23 +1063,42 @@ const StorefrontPage = () => {
             </a>
           ) : <div />}
           <button onClick={() => {
-            const vcard = [
-              'BEGIN:VCARD', 'VERSION:3.0',
-              `FN:${shop.name || ''}`,
-              `ORG:${shop.name || ''}`,
-              shop.contact_phone ? `TEL;TYPE=WORK:${shop.contact_phone}` : '',
-              shop.contact_email ? `EMAIL:${shop.contact_email}` : '',
-              shop.address ? `ADR;TYPE=WORK:;;${shop.address};;;;` : '',
-              shop.description ? `NOTE:${shop.description}` : '',
-              shop.logo_url ? `PHOTO;VALUE=URI:${shop.logo_url.startsWith('http') ? shop.logo_url : window.location.origin + shop.logo_url}` : '',
-              `URL:${window.location.origin}/shop/${slug}`,
-              'END:VCARD'
-            ].filter(Boolean).join('\n');
-            const blob = new Blob([vcard], { type: 'text/vcard' });
-            const url = URL.createObjectURL(blob);
+            const stripHtml = (html) => html ? html.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/\n/g, ' ').trim() : '';
+            const escapeLine = (s) => s ? s.replace(/\n/g, '\\n').replace(/,/g, '\\,').replace(/;/g, '\\;') : '';
+            const name = escapeLine(shop.name || '');
+            const phone = (shop.contact_phone || '').replace(/\s/g, '');
+            const email = shop.contact_email || '';
+            const addr = escapeLine(shop.address || '');
+            const note = escapeLine(stripHtml(shop.description || ''));
+            const url = `${window.location.origin}/shop/${slug}`;
+            const lines = [
+              'BEGIN:VCARD',
+              'VERSION:3.0',
+              `FN:${name}`,
+              `ORG:${name}`,
+            ];
+            if (phone) lines.push(`TEL;TYPE=WORK:${phone}`);
+            if (email) lines.push(`EMAIL;TYPE=WORK:${email}`);
+            if (addr) lines.push(`ADR;TYPE=WORK:;;${addr};;;;`);
+            if (note) lines.push(`NOTE:${note}`);
+            if (shop.logo_url && shop.logo_url.startsWith('http')) {
+              lines.push(`PHOTO;VALUE=URI:${shop.logo_url}`);
+            } else if (shop.logo_url && shop.logo_url.startsWith('data:image')) {
+              const b64match = shop.logo_url.match(/^data:image\/(png|jpeg|jpg|gif);base64,(.+)$/);
+              if (b64match) {
+                lines.push(`PHOTO;ENCODING=b;TYPE=${b64match[1].toUpperCase()}:${b64match[2]}`);
+              }
+            }
+            lines.push(`URL:${url}`);
+            if (shop.social_facebook) lines.push(`X-SOCIALPROFILE;TYPE=facebook:${shop.social_facebook}`);
+            if (shop.social_instagram) lines.push(`X-SOCIALPROFILE;TYPE=instagram:${shop.social_instagram}`);
+            lines.push('END:VCARD');
+            const vcard = lines.join('\r\n');
+            const blob = new Blob([vcard], { type: 'text/vcard;charset=utf-8' });
+            const blobUrl = URL.createObjectURL(blob);
             const a = document.createElement('a');
-            a.href = url; a.download = `${shop.name || 'contact'}.vcf`;
-            a.click(); URL.revokeObjectURL(url);
+            a.href = blobUrl; a.download = `${shop.name || 'contact'}.vcf`;
+            a.click(); URL.revokeObjectURL(blobUrl);
           }} className="flex flex-col items-center justify-center gap-1 text-white/80 hover:text-white active:bg-white/10 transition-colors" data-testid="bottom-save-contact">
             <Download className="w-5 h-5" />
             <span className="text-xs font-bold">{t.saveContact || 'Lưu liên hệ'}</span>
