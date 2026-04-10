@@ -264,19 +264,27 @@ const ShopOwnerDashboard = () => {
   };
 
   const handleImageUpload = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const formData = new FormData();
-    formData.append('file', file);
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    const currentCount = (productForm.images || []).length;
+    const remaining = 8 - currentCount;
+    if (remaining <= 0) { toast.error('Tối đa 8 ảnh / Maximum 8 images'); return; }
+    const toUpload = files.slice(0, remaining);
+    if (files.length > remaining) toast.info(`Chỉ upload ${remaining} ảnh (tối đa 8)`);
     try {
       setUploading(true);
-      const { data } = await axios.post(`${API}/upload/image`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-      const url = data.url || `${API}/files/${data.id}`;
-      const newImages = [...(productForm.images || []), url];
+      const uploaded = [];
+      for (const file of toUpload) {
+        const formData = new FormData();
+        formData.append('file', file);
+        const { data } = await axios.post(`${API}/upload/image`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        uploaded.push(data.url || `${API}/files/${data.id}`);
+      }
+      const newImages = [...(productForm.images || []), ...uploaded];
       setProductForm({ ...productForm, images: newImages, image_url: newImages[0] });
-      toast.success(t.uploadSuccess);
+      toast.success(`${uploaded.length} ảnh đã tải lên`);
     } catch (err) {
       toast.error(err.response?.data?.detail || t.uploadFailed);
     } finally {
@@ -2115,9 +2123,9 @@ const ShopOwnerDashboard = () => {
                   </div>
                 )}
                 <div className="flex gap-2">
-                  <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden" />
-                  <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={uploading} className="text-xs" data-testid="upload-image-btn">
-                    <Upload className="w-4 h-4 mr-1" /> {uploading ? '...' : t.addMoreImages}
+                  <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" multiple className="hidden" />
+                  <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={uploading || (productForm.images || []).length >= 8} className="text-xs" data-testid="upload-image-btn">
+                    <Upload className="w-4 h-4 mr-1" /> {uploading ? '...' : t.addMoreImages} ({(productForm.images || []).length}/8)
                   </Button>
                 </div>
                 <Input
