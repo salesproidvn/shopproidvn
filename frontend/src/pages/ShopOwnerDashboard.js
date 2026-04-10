@@ -405,6 +405,29 @@ const ShopOwnerDashboard = () => {
     fetchData();
   }, [user, authLoading, navigate, adminViewShopId]);
 
+  // Auto-open edit modal from storefront edit link (?tab=products&edit=xxx)
+  useEffect(() => {
+    const editId = searchParams.get('edit');
+    if (!editId || !products.length) return;
+    if (activeTab === 'products') {
+      const prod = products.find(p => p.id === editId);
+      if (prod) {
+        setProductForm(prod);
+        setShowProductModal(true);
+        searchParams.delete('edit');
+        setSearchParams(searchParams, { replace: true });
+      }
+    } else if (activeTab === 'posts') {
+      const post = posts.find(p => p.id === editId);
+      if (post) {
+        setPostForm(post);
+        setShowPostModal(true);
+        searchParams.delete('edit');
+        setSearchParams(searchParams, { replace: true });
+      }
+    }
+  }, [activeTab, products, posts, searchParams]);
+
   const fetchData = async () => {
     try {
       setLoading(true);

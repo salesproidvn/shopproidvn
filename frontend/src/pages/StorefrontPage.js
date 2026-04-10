@@ -14,7 +14,7 @@ import {
   Search, ShoppingCart, Phone, Mail, MapPin, Facebook, Instagram, Download,
   Plus, Minus, Trash2, ArrowLeft, LayoutDashboard, X, AlertTriangle, Play,
   MessageCircle, Map, FolderOpen, ChevronLeft, ChevronRight, FileText, Calendar, Share2,
-  Home, Store, Grid3X3, BookOpen, PhoneCall, Menu as MenuIcon, ChevronDown, Globe
+  Home, Store, Grid3X3, BookOpen, PhoneCall, Menu as MenuIcon, ChevronDown, Globe, Pencil
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { emitNotification } from '../context/NotificationContext';
@@ -268,8 +268,15 @@ const StorefrontPage = () => {
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 lg:gap-5" data-testid="post-grid">
           {posts.slice(0, 5).map(post => (
             <Link key={post.id} to={`/shop/${slug}/posts/${post.id}`}
-              className="group bg-white border border-[#E2E8F0] rounded-[5px] overflow-hidden hover:shadow-lg transition-all"
+              className="group bg-white border border-[#E2E8F0] rounded-[5px] overflow-hidden hover:shadow-lg transition-all relative"
               data-testid={`post-card-${post.id}`}>
+              {user?.shop_id === shop?.id && (
+                <Link to={`/dashboard?tab=posts&edit=${post.id}`} onClick={(e) => e.stopPropagation()}
+                  className="absolute top-2 right-2 z-10 w-8 h-8 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
+                  data-testid={`edit-post-storefront-${post.id}`}>
+                  <Pencil className="w-3.5 h-3.5 text-[#475569]" />
+                </Link>
+              )}
               <div className="aspect-square bg-[#F8FAFC] overflow-hidden">
                 {post.thumbnail ? (
                   <img src={post.thumbnail} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
@@ -296,8 +303,15 @@ const StorefrontPage = () => {
 
   // Product Card
   const ProductCard = ({ product }) => (
-    <div className="group bg-white border border-[#E2E8F0] rounded-[5px] overflow-hidden hover:shadow-lg transition-all cursor-pointer"
+    <div className="group bg-white border border-[#E2E8F0] rounded-[5px] overflow-hidden hover:shadow-lg transition-all cursor-pointer relative"
       onClick={() => { scrollPosRef.current = window.scrollY; setSelectedProduct(product); setActiveImage(0); setShowVideo(null); }} data-testid={`product-${product.id}`}>
+      {user?.shop_id === shop?.id && (
+        <Link to={`/dashboard?tab=products&edit=${product.id}`} onClick={(e) => e.stopPropagation()}
+          className="absolute top-2 right-2 z-10 w-8 h-8 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
+          data-testid={`edit-product-storefront-${product.id}`}>
+          <Pencil className="w-3.5 h-3.5 text-[#475569]" />
+        </Link>
+      )}
       <div className="aspect-square bg-[#F8FAFC] overflow-hidden">
         <img src={product.image_url} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
       </div>
