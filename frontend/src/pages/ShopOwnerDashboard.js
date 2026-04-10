@@ -737,6 +737,7 @@ const ShopOwnerDashboard = () => {
 
   const sectionLabels = {
     banner: t.sectionBanner,
+    categories: t.categories,
     blog: t.sectionBlog,
     featured: t.sectionFeatured,
     products: t.sectionProducts,
@@ -744,13 +745,15 @@ const ShopOwnerDashboard = () => {
 
   const sectionIcons = {
     banner: Image,
+    categories: FolderOpen,
     blog: FileText,
     featured: TrendingUp,
     products: Package,
   };
 
   const getLayoutSections = () => {
-    return shopForm.layout_sections || [
+    const sections = shopForm.layout_sections;
+    return (sections && sections.length > 0) ? sections : [
       { id: 'banner', label: 'Banner', enabled: true },
       { id: 'categories', label: 'Categories', enabled: true },
       { id: 'blog', label: 'Blog', enabled: true },
