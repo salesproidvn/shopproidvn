@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '../components/ui/sheet';
 import { ScrollArea } from '../components/ui/scroll-area';
 import { 
-  Search, ShoppingCart, Phone, Mail, MapPin, Facebook, Instagram, 
+  Search, ShoppingCart, Phone, Mail, MapPin, Facebook, Instagram, Download,
   Plus, Minus, Trash2, ArrowLeft, LayoutDashboard, X, AlertTriangle, Play,
   MessageCircle, Map, FolderOpen, ChevronLeft, ChevronRight, FileText, Calendar, Share2,
   Home, Store, Grid3X3, BookOpen, PhoneCall, Menu as MenuIcon, ChevronDown, Globe
@@ -1062,12 +1062,28 @@ const StorefrontPage = () => {
               <span className="text-xs font-bold">{t.message}</span>
             </a>
           ) : <div />}
-          {shop.address ? (
-            <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(shop.address)}`} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center justify-center gap-1 text-white/80 hover:text-white active:bg-white/10 transition-colors" data-testid="bottom-map">
-              <MapPin className="w-5 h-5" />
-              <span className="text-xs font-bold">{t.map}</span>
-            </a>
-          ) : <div />}
+          <button onClick={() => {
+            const vcard = [
+              'BEGIN:VCARD', 'VERSION:3.0',
+              `FN:${shop.name || ''}`,
+              `ORG:${shop.name || ''}`,
+              shop.contact_phone ? `TEL;TYPE=WORK:${shop.contact_phone}` : '',
+              shop.contact_email ? `EMAIL:${shop.contact_email}` : '',
+              shop.address ? `ADR;TYPE=WORK:;;${shop.address};;;;` : '',
+              shop.description ? `NOTE:${shop.description}` : '',
+              shop.logo_url ? `PHOTO;VALUE=URI:${shop.logo_url.startsWith('http') ? shop.logo_url : window.location.origin + shop.logo_url}` : '',
+              `URL:${window.location.origin}/shop/${slug}`,
+              'END:VCARD'
+            ].filter(Boolean).join('\n');
+            const blob = new Blob([vcard], { type: 'text/vcard' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = `${shop.name || 'contact'}.vcf`;
+            a.click(); URL.revokeObjectURL(url);
+          }} className="flex flex-col items-center justify-center gap-1 text-white/80 hover:text-white active:bg-white/10 transition-colors" data-testid="bottom-save-contact">
+            <Download className="w-5 h-5" />
+            <span className="text-xs font-bold">{t.saveContact || 'Lưu liên hệ'}</span>
+          </button>
           <button onClick={() => setShowCategoryMenu(!showCategoryMenu)} className="flex flex-col items-center justify-center gap-1 text-white/80 hover:text-white active:bg-white/10 transition-colors relative" data-testid="bottom-categories">
             <Grid3X3 className="w-5 h-5" />
             <span className="text-xs font-bold">{t.productCategories}</span>
