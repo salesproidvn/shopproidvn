@@ -33,6 +33,7 @@ Multi-tenant e-commerce platform with Super Admin, Shop Owner, and public Storef
 - [x] Expanded theme color picker (24 options + custom hex)
 - [x] Product SKU in grids, inline category creation, category image upload
 - [x] Product description text overflow fix (break-words, overflow-hidden for HTML content with &nbsp;)
+- [x] Product description rich text rendering (installed @tailwindcss/typography for prose classes - bold, lists, links)
 
 ## Upcoming Tasks
 - [ ] P1: Add sales analytics charts to dashboards
