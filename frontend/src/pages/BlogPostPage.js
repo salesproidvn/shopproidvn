@@ -13,6 +13,7 @@ const BlogPostPage = () => {
   const { slug, postId } = useParams();
   const { t } = useLanguage();
   const navigate = useNavigate();
+  const [lightboxImg, setLightboxImg] = useState(null);
   const [shop, setShop] = useState(null);
   const [posts, setPosts] = useState([]);
   const [products, setProducts] = useState([]);
@@ -99,7 +100,7 @@ const BlogPostPage = () => {
         </header>
         <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {selectedPost.thumbnail && (
-            <img src={selectedPost.thumbnail} alt={selectedPost.title} className="w-full h-auto max-h-[600px] object-contain mb-6 rounded-[5px]" data-testid="post-detail-thumbnail" />
+            <img src={selectedPost.thumbnail} alt={selectedPost.title} className="w-full h-auto max-h-[600px] object-contain mb-6 rounded-[5px] cursor-pointer hover:opacity-90 transition-opacity" data-testid="post-detail-thumbnail" onClick={() => setLightboxImg(selectedPost.thumbnail)} />
           )}
           <h1 className="text-2xl sm:text-3xl font-bold text-[#0F172A] mb-3" data-testid="post-detail-title">{selectedPost.title}</h1>
           <p className="text-sm text-[#94A3B8] mb-6 flex items-center gap-2">
@@ -109,8 +110,16 @@ const BlogPostPage = () => {
           {selectedPost.images?.length > 0 && (
             <div className="flex gap-3 mb-6 overflow-x-auto">
               {selectedPost.images.map((img, idx) => (
-                <img key={idx} src={img} alt="" className="h-40 rounded-[5px] object-cover flex-shrink-0" />
+                <img key={idx} src={img} alt="" className="h-40 rounded-[5px] object-cover flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity" onClick={() => setLightboxImg(img)} data-testid={`post-image-${idx}`} />
               ))}
+            </div>
+          )}
+          {lightboxImg && (
+            <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4" onClick={() => setLightboxImg(null)} data-testid="image-lightbox">
+              <button onClick={() => setLightboxImg(null)} className="absolute top-4 right-4 w-10 h-10 bg-white/20 hover:bg-white/40 text-white rounded-full flex items-center justify-center transition-colors" data-testid="lightbox-close">
+                <span className="text-2xl leading-none">&times;</span>
+              </button>
+              <img src={lightboxImg} alt="" className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl" onClick={(e) => e.stopPropagation()} />
             </div>
           )}
           <div className="prose max-w-none text-[#334155] leading-relaxed mb-8 break-words [&_ol]:list-decimal [&_ol]:pl-6 [&_ul]:list-disc [&_ul]:pl-6 [&_img]:max-w-full [&_pre]:overflow-x-auto [&_table]:overflow-x-auto" data-testid="post-detail-content" dangerouslySetInnerHTML={{ __html: selectedPost.description }} />
