@@ -275,6 +275,8 @@ class ShopUpdate(BaseModel):
 class CategoryCreate(BaseModel):
     name: str
     description: Optional[str] = ""
+    image_url: Optional[str] = ""
+    parent_id: Optional[str] = None
 
 class ProductCreate(BaseModel):
     name: str
@@ -288,6 +290,7 @@ class ProductCreate(BaseModel):
     stock: Optional[int] = 0
     position: Optional[int] = 0
     is_featured: Optional[bool] = False
+    sku: Optional[str] = ""
 
 class OrderCreate(BaseModel):
     customer_name: str
@@ -708,15 +711,15 @@ async def create_category(data: CategoryCreate, request: Request):
     if last:
         max_pos = last[0].get("position", 0)
     cat_id = f"cat-{secrets.token_hex(6)}"
-    doc = {"id": cat_id, "shop_id": shop_id, "name": data.name, "description": data.description, "position": max_pos + 1, "parent_id": None, "image_url": "", "created_at": datetime.now(timezone.utc)}
+    doc = {"id": cat_id, "shop_id": shop_id, "name": data.name, "description": data.description, "position": max_pos + 1, "parent_id": data.parent_id or None, "image_url": data.image_url or "", "created_at": datetime.now(timezone.utc)}
     await db.categories.insert_one(doc)
-    return {"id": cat_id, "name": data.name, "description": data.description, "position": max_pos + 1}
+    return {"id": cat_id, "name": data.name, "description": data.description, "position": max_pos + 1, "parent_id": data.parent_id or None, "image_url": data.image_url or ""}
 
 @api_router.put("/dashboard/categories/{cat_id}")
 async def update_category(cat_id: str, data: CategoryCreate, request: Request):
     user = await require_shop_owner(request)
     shop_id = await resolve_shop_id(request, user)
-    result = await db.categories.update_one({"id": cat_id, "shop_id": shop_id}, {"$set": {"name": data.name, "description": data.description}})
+    result = await db.categories.update_one({"id": cat_id, "shop_id": shop_id}, {"$set": {"name": data.name, "description": data.description, "image_url": data.image_url or "", "parent_id": data.parent_id or None}})
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Category not found")
     return {"message": "Category updated"}
@@ -771,7 +774,7 @@ async def create_product(data: ProductCreate, request: Request):
         "image_url": image_url, "images": images, "video_url": data.video_url or "",
         "video_links": data.video_links or [],
         "stock": data.stock, "position": data.position or 0, "is_active": True,
-        "is_featured": data.is_featured or False,
+        "is_featured": data.is_featured or False, "sku": data.sku or "",
         "created_at": datetime.now(timezone.utc)
     }
     await db.products.insert_one(doc)

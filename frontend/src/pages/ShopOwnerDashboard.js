@@ -1954,15 +1954,28 @@ const ShopOwnerDashboard = () => {
             </div>
             <div>
               <label className="block text-xs font-medium mb-1">{t.category}</label>
-              <Select value={productForm.category_id || "none"} onValueChange={(val) => setProductForm({ ...productForm, category_id: val })}>
+              <Select value={productForm.category_id || "none"} onValueChange={(val) => {
+                if (val === '__create_new__') {
+                  setCategoryForm({ name: '', description: '', parent_id: '', image_url: '' });
+                  setEditingCategory(null);
+                  setShowCategoryModal(true);
+                } else {
+                  setProductForm({ ...productForm, category_id: val });
+                }
+              }}>
                 <SelectTrigger className="text-sm" data-testid="product-category-select">
                   <SelectValue placeholder={t.selectCategory} />
                 </SelectTrigger>
                 <SelectContent className="bg-white">
                   <SelectItem value="none">{t.none}</SelectItem>
                   {categories.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                    <SelectItem key={cat.id} value={cat.id}>{cat.parent_id ? `└ ${cat.name}` : cat.name}</SelectItem>
                   ))}
+                  <div className="border-t border-[#E2E8F0] mt-1 pt-1">
+                    <SelectItem value="__create_new__" className="text-[#0055FF] font-medium">
+                      + {t.addCategory || 'Thêm danh mục mới'}
+                    </SelectItem>
+                  </div>
                 </SelectContent>
               </Select>
             </div>
@@ -2096,12 +2109,43 @@ const ShopOwnerDashboard = () => {
             </div>
             <div>
               <label className="block text-xs font-medium mb-1">{t.categoryImage}</label>
-              <Input value={categoryForm.image_url} onChange={(e) => setCategoryForm({ ...categoryForm, image_url: e.target.value })} placeholder="https://..." className="text-sm" data-testid="category-image-input" />
-              {categoryForm.image_url && (
-                <div className="mt-2 w-16 h-16 rounded-lg overflow-hidden border">
-                  <img src={categoryForm.image_url} alt="" className="w-full h-full object-cover" />
+              <div className="flex items-center gap-3">
+                {categoryForm.image_url ? (
+                  <div className="relative w-16 h-16 rounded-lg overflow-hidden border flex-shrink-0">
+                    <img src={categoryForm.image_url} alt="" className="w-full h-full object-cover" />
+                    <button type="button" onClick={() => setCategoryForm({ ...categoryForm, image_url: '' })}
+                      className="absolute top-0.5 right-0.5 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-[10px]" data-testid="category-image-remove">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="w-16 h-16 rounded-lg border-2 border-dashed border-[#CBD5E1] flex items-center justify-center bg-[#F8FAFC] flex-shrink-0">
+                    <Image className="w-5 h-5 text-[#94A3B8]" />
+                  </div>
+                )}
+                <div className="flex-1 space-y-2">
+                  <label className="flex items-center gap-2 px-3 py-2 border border-[#E2E8F0] rounded-lg cursor-pointer hover:bg-[#F8FAFC] transition-colors">
+                    <Upload className="w-4 h-4 text-[#64748B]" />
+                    <span className="text-xs text-[#334155]">{t.uploadImage || 'Tải ảnh lên'}</span>
+                    <input type="file" accept="image/*" className="hidden" data-testid="category-image-upload"
+                      onChange={async (e) => {
+                        const file = e.target.files[0];
+                        if (!file) return;
+                        const formData = new FormData();
+                        formData.append('file', file);
+                        try {
+                          const res = await axios.post(`${API}/upload/image`, formData);
+                          setCategoryForm({ ...categoryForm, image_url: res.data.url });
+                          toast.success(t.imageUploaded || 'Đã tải ảnh lên!');
+                        } catch (err) {
+                          toast.error(t.uploadFailed || 'Tải ảnh thất bại');
+                        }
+                        e.target.value = '';
+                      }} />
+                  </label>
+                  <Input value={categoryForm.image_url} onChange={(e) => setCategoryForm({ ...categoryForm, image_url: e.target.value })} placeholder="https://..." className="text-xs h-8" data-testid="category-image-input" />
                 </div>
-              )}
+              </div>
             </div>
             <div className="flex gap-3 pt-4">
               <Button type="button" variant="outline" className="flex-1 text-sm" onClick={() => setShowCategoryModal(false)}>{t.cancel}</Button>
