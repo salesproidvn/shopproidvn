@@ -43,7 +43,11 @@ const FooterLinkPicker = ({ value, linkType, onChange, shopSlug, categories, pro
     const q = search.toLowerCase();
     switch (type) {
       case 'page': return (customPages || []).filter(p => p.title?.toLowerCase().includes(q)).map(p => ({ id: p.id, name: p.title, url: `/shop/${shopSlug}/page/${p.slug || p.id}` }));
-      case 'category': return (categories || []).filter(c => c.name?.toLowerCase().includes(q)).map(c => ({ id: c.id, name: c.name, url: `/shop/${shopSlug}/category/${c.id}` }));
+      case 'category': {
+        const allCatOption = { id: 'all-categories', name: 'Tất cả danh mục', url: `/shop/${shopSlug}/categories` };
+        const catItems = (categories || []).filter(c => c.name?.toLowerCase().includes(q)).map(c => ({ id: c.id, name: c.name, url: `/shop/${shopSlug}/category/${c.id}` }));
+        return [allCatOption, ...catItems].filter(i => i.name.toLowerCase().includes(q));
+      }
       case 'post': return (posts || []).filter(p => p.title?.toLowerCase().includes(q)).map(p => ({ id: p.id, name: p.title, url: `/shop/${shopSlug}/posts/${p.id}` }));
       case 'product': return (products || []).filter(p => p.name?.toLowerCase().includes(q)).map(p => ({ id: p.id, name: p.name, url: `/shop/${shopSlug}?product=${p.id}` }));
       default: return [];
@@ -129,7 +133,11 @@ const MenuLinkPicker = ({ value, linkType, onChange, shopSlug, categories, produ
         { id: 'contact', name: 'Liên hệ', url: `/shop/${shopSlug}/contact` },
       ].filter(i => i.name.toLowerCase().includes(q));
       case 'page': return (customPages || []).filter(p => p.title?.toLowerCase().includes(q)).map(p => ({ id: p.id, name: p.title, url: `/shop/${shopSlug}/page/${p.slug || p.id}` }));
-      case 'category': return (categories || []).filter(c => c.name?.toLowerCase().includes(q)).map(c => ({ id: c.id, name: c.name, url: `/shop/${shopSlug}/category/${c.id}` }));
+      case 'category': {
+        const allCatOpt = { id: 'all-categories', name: 'Tất cả danh mục', url: `/shop/${shopSlug}/categories` };
+        const catList = (categories || []).filter(c => c.name?.toLowerCase().includes(q)).map(c => ({ id: c.id, name: c.name, url: `/shop/${shopSlug}/category/${c.id}` }));
+        return [allCatOpt, ...catList].filter(i => i.name.toLowerCase().includes(q));
+      }
       case 'post': return (posts || []).filter(p => p.title?.toLowerCase().includes(q)).map(p => ({ id: p.id, name: p.title, url: `/shop/${shopSlug}/posts/${p.id}` }));
       case 'product': return (products || []).filter(p => p.name?.toLowerCase().includes(q)).map(p => ({ id: p.id, name: p.name, url: `/shop/${shopSlug}?product=${p.id}` }));
       default: return [];
