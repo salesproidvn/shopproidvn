@@ -97,7 +97,7 @@ const BlogPostPage = () => {
         </header>
         <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {selectedPost.thumbnail && (
-            <img src={selectedPost.thumbnail} alt={selectedPost.title} className="w-full h-64 sm:h-96 object-cover mb-6 rounded-[5px]" data-testid="post-detail-thumbnail" />
+            <img src={selectedPost.thumbnail} alt={selectedPost.title} className="w-full h-auto max-h-[600px] object-contain mb-6 rounded-[5px]" data-testid="post-detail-thumbnail" />
           )}
           <h1 className="text-2xl sm:text-3xl font-bold text-[#0F172A] mb-3" data-testid="post-detail-title">{selectedPost.title}</h1>
           <p className="text-sm text-[#94A3B8] mb-6 flex items-center gap-2">
