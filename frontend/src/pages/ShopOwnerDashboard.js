@@ -691,7 +691,7 @@ const ShopOwnerDashboard = () => {
     });
   };
 
-  const quillModules = { toolbar: [['bold', 'italic', 'underline'], [{ list: 'ordered' }, { list: 'bullet' }], ['link'], ['clean']] };
+  const quillModules = { toolbar: [[{ size: ['small', false, 'large', 'huge'] }], ['bold', 'italic', 'underline'], [{ list: 'ordered' }, { list: 'bullet' }], ['link'], ['clean']] };
 
   const handleBannerUpload = async (e) => {
     const file = e.target.files?.[0];
@@ -836,7 +836,7 @@ const ShopOwnerDashboard = () => {
 
   const insertFormatting = (format) => {};
 
-  const quillModulesProduct = { toolbar: [['bold', 'italic', 'underline'], [{ list: 'ordered' }, { list: 'bullet' }], ['link'], ['clean']] };
+  const quillModulesProduct = { toolbar: [[{ size: ['small', false, 'large', 'huge'] }], ['bold', 'italic', 'underline'], [{ list: 'ordered' }, { list: 'bullet' }], ['link'], ['clean']] };
 
   const [productSearchQuery, setProductSearchQuery] = useState('');
   const filteredProductsForAttach = products.filter(p =>
