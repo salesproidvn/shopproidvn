@@ -266,7 +266,7 @@ const StorefrontPage = () => {
           <Link to={`/shop/${slug}/posts`}><Button variant="ghost" size="sm" className="text-sm rounded-[5px]" style={{ color: themeColor }}>{t.readMore} &rarr;</Button></Link>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 lg:gap-5" data-testid="post-grid">
-          {posts.map(post => (
+          {posts.slice(0, 5).map(post => (
             <Link key={post.id} to={`/shop/${slug}/posts/${post.id}`}
               className="group bg-white border border-[#E2E8F0] rounded-[5px] overflow-hidden hover:shadow-lg transition-all"
               data-testid={`post-card-${post.id}`}>
