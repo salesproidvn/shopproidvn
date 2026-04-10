@@ -9,6 +9,8 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '../components/ui/sheet';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog';
+import { Textarea } from '../components/ui/textarea';
 import { ScrollArea } from '../components/ui/scroll-area';
 import { 
   Search, ShoppingCart, Phone, Mail, MapPin, Facebook, Instagram, Download,
@@ -18,6 +20,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { emitNotification } from '../context/NotificationContext';
+import MediaLibrary from '../components/MediaLibrary';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const PRODUCTS_PER_CATEGORY = 10;
@@ -53,6 +56,14 @@ const StorefrontPage = () => {
   const productFromUrl = useRef(false);
   const productFromMegaMenu = useRef(false);
   const [showCategoryMenu, setShowCategoryMenu] = useState(false);
+
+  // Inline edit state (for shop owner editing from storefront)
+  const [editProduct, setEditProduct] = useState(null);
+  const [editPost, setEditPost] = useState(null);
+  const [editSaving, setEditSaving] = useState(false);
+  const [editMediaOpen, setEditMediaOpen] = useState(false);
+  const [editMediaTarget, setEditMediaTarget] = useState(null); // 'product' or 'post'
+  const isOwner = user?.shop_id === shop?.id;
   const [expandedCategories, setExpandedCategories] = useState({});
   const [bannerIndex, setBannerIndex] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -178,6 +189,35 @@ const StorefrontPage = () => {
     return section ? section.enabled : true;
   };
 
+  // Inline edit handlers
+  const handleSaveProduct = async () => {
+    if (!editProduct) return;
+    setEditSaving(true);
+    try {
+      await axios.put(`${API}/dashboard/products/${editProduct.id}`, editProduct);
+      toast.success('Đã cập nhật sản phẩm');
+      setEditProduct(null);
+      // Refresh products
+      const { data } = await axios.get(`${API}/shop/${slug}/products`);
+      setProducts(data);
+    } catch { toast.error('Lỗi cập nhật'); }
+    setEditSaving(false);
+  };
+
+  const handleSavePost = async () => {
+    if (!editPost) return;
+    setEditSaving(true);
+    try {
+      await axios.put(`${API}/dashboard/posts/${editPost.id}`, editPost);
+      toast.success('Đã cập nhật bài viết');
+      setEditPost(null);
+      const { data } = await axios.get(`${API}/shop/${slug}/posts`);
+      setPosts(data || []);
+    } catch { toast.error('Lỗi cập nhật'); }
+    setEditSaving(false);
+  };
+
+
   const handleCheckout = async (e) => {
     e.preventDefault();
     try {
@@ -270,12 +310,12 @@ const StorefrontPage = () => {
             <Link key={post.id} to={`/shop/${slug}/posts/${post.id}`}
               className="group bg-white border border-[#E2E8F0] rounded-[5px] overflow-hidden hover:shadow-lg transition-all relative"
               data-testid={`post-card-${post.id}`}>
-              {user?.shop_id === shop?.id && (
-                <Link to={`/dashboard?tab=posts&edit=${post.id}`} onClick={(e) => e.stopPropagation()}
+              {isOwner && (
+                <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setEditPost({...post}); }}
                   className="absolute top-2 right-2 z-10 w-8 h-8 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
                   data-testid={`edit-post-storefront-${post.id}`}>
                   <Pencil className="w-3.5 h-3.5 text-[#475569]" />
-                </Link>
+                </button>
               )}
               <div className="aspect-square bg-[#F8FAFC] overflow-hidden">
                 {post.thumbnail ? (
@@ -305,12 +345,12 @@ const StorefrontPage = () => {
   const ProductCard = ({ product }) => (
     <div className="group bg-white border border-[#E2E8F0] rounded-[5px] overflow-hidden hover:shadow-lg transition-all cursor-pointer relative"
       onClick={() => { scrollPosRef.current = window.scrollY; setSelectedProduct(product); setActiveImage(0); setShowVideo(null); }} data-testid={`product-${product.id}`}>
-      {user?.shop_id === shop?.id && (
-        <Link to={`/dashboard?tab=products&edit=${product.id}`} onClick={(e) => e.stopPropagation()}
+      {isOwner && (
+        <button type="button" onClick={(e) => { e.stopPropagation(); setEditProduct({...product}); }}
           className="absolute top-2 right-2 z-10 w-8 h-8 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
           data-testid={`edit-product-storefront-${product.id}`}>
           <Pencil className="w-3.5 h-3.5 text-[#475569]" />
-        </Link>
+        </button>
       )}
       <div className="aspect-square bg-[#F8FAFC] overflow-hidden">
         <img src={product.image_url} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
@@ -1267,6 +1307,113 @@ const StorefrontPage = () => {
           </div>
         </div>
       )}
+
+      {/* Inline Product Edit Modal */}
+      <Dialog open={!!editProduct} onOpenChange={(v) => { if (!v) setEditProduct(null); }}>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto" hideClose>
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold">Sửa sản phẩm</DialogTitle>
+            <DialogDescription className="sr-only">Edit product</DialogDescription>
+          </DialogHeader>
+          {editProduct && (
+            <div className="space-y-3 mt-2">
+              <div>
+                <label className="text-xs font-medium text-[#334155] mb-1 block">Tên sản phẩm</label>
+                <Input value={editProduct.name || ''} onChange={(e) => setEditProduct({...editProduct, name: e.target.value})} className="text-sm" data-testid="inline-edit-product-name" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-[#334155] mb-1 block">Giá (VND)</label>
+                  <Input type="number" value={editProduct.price || 0} onChange={(e) => setEditProduct({...editProduct, price: Number(e.target.value)})} className="text-sm" data-testid="inline-edit-product-price" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-[#334155] mb-1 block">SKU</label>
+                  <Input value={editProduct.sku || ''} onChange={(e) => setEditProduct({...editProduct, sku: e.target.value})} className="text-sm" data-testid="inline-edit-product-sku" />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-[#334155] mb-1 block">Ảnh ({(editProduct.images || []).length}/8)</label>
+                <div className="flex gap-2 flex-wrap">
+                  {(editProduct.images || []).map((img, idx) => (
+                    <div key={idx} className="relative w-16 h-16 rounded-lg overflow-hidden border">
+                      <img src={img} alt="" className="w-full h-full object-cover" />
+                      <button type="button" onClick={() => { const imgs = [...(editProduct.images || [])]; imgs.splice(idx, 1); setEditProduct({...editProduct, images: imgs, image_url: imgs[0] || ''}); }}
+                        className="absolute top-0 right-0 w-4 h-4 bg-red-500 text-white rounded-full flex items-center justify-center text-[8px]">x</button>
+                    </div>
+                  ))}
+                  {(editProduct.images || []).length < 8 && (
+                    <button type="button" onClick={() => { setEditMediaTarget('product'); setEditMediaOpen(true); }}
+                      className="w-16 h-16 rounded-lg border-2 border-dashed border-[#E2E8F0] flex items-center justify-center text-[#94A3B8] hover:border-[#94A3B8] transition-colors" data-testid="inline-edit-product-add-image">
+                      <Plus className="w-5 h-5" />
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div className="flex gap-2 pt-2">
+                <Button type="button" variant="outline" size="sm" className="flex-1 text-xs" onClick={() => setEditProduct(null)}>Hủy</Button>
+                <Button type="button" size="sm" className="flex-1 text-xs text-white" style={{ backgroundColor: themeColor }} onClick={handleSaveProduct} disabled={editSaving} data-testid="inline-edit-product-save">
+                  {editSaving ? 'Đang lưu...' : 'Lưu thay đổi'}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Inline Post Edit Modal */}
+      <Dialog open={!!editPost} onOpenChange={(v) => { if (!v) setEditPost(null); }}>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto" hideClose>
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold">Sửa bài viết</DialogTitle>
+            <DialogDescription className="sr-only">Edit post</DialogDescription>
+          </DialogHeader>
+          {editPost && (
+            <div className="space-y-3 mt-2">
+              <div>
+                <label className="text-xs font-medium text-[#334155] mb-1 block">Tiêu đề</label>
+                <Input value={editPost.title || ''} onChange={(e) => setEditPost({...editPost, title: e.target.value})} className="text-sm" data-testid="inline-edit-post-title" />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-[#334155] mb-1 block">Ảnh đại diện</label>
+                <div className="flex items-center gap-2">
+                  {editPost.thumbnail && <img src={editPost.thumbnail} alt="" className="w-20 h-14 rounded-lg object-cover border" />}
+                  <button type="button" onClick={() => { setEditMediaTarget('post'); setEditMediaOpen(true); }}
+                    className="px-3 py-1.5 rounded-lg border border-[#E2E8F0] text-xs text-[#475569] hover:bg-[#F8FAFC] transition-colors" data-testid="inline-edit-post-thumbnail">
+                    Chọn ảnh
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-[#334155] mb-1 block">Nội dung</label>
+                <Textarea value={(editPost.description || '').replace(/<[^>]+>/g, '')} onChange={(e) => setEditPost({...editPost, description: `<p>${e.target.value.replace(/\n/g, '</p><p>')}</p>`})} rows={6} className="text-sm" data-testid="inline-edit-post-description" />
+              </div>
+              <div className="flex gap-2 pt-2">
+                <Button type="button" variant="outline" size="sm" className="flex-1 text-xs" onClick={() => setEditPost(null)}>Hủy</Button>
+                <Button type="button" size="sm" className="flex-1 text-xs text-white" style={{ backgroundColor: themeColor }} onClick={handleSavePost} disabled={editSaving} data-testid="inline-edit-post-save">
+                  {editSaving ? 'Đang lưu...' : 'Lưu thay đổi'}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Media Library for inline edit */}
+      <MediaLibrary
+        open={editMediaOpen}
+        onClose={() => setEditMediaOpen(false)}
+        onSelect={(urls) => {
+          if (editMediaTarget === 'product' && editProduct) {
+            const newUrls = Array.isArray(urls) ? urls : [urls];
+            const combined = [...(editProduct.images || []), ...newUrls].slice(0, 8);
+            setEditProduct({...editProduct, images: combined, image_url: combined[0] || ''});
+          } else if (editMediaTarget === 'post' && editPost) {
+            setEditPost({...editPost, thumbnail: Array.isArray(urls) ? urls[0] : urls});
+          }
+        }}
+        multiple={editMediaTarget === 'product'}
+        maxSelect={editMediaTarget === 'product' ? 8 - (editProduct?.images?.length || 0) : 1}
+      />
     </div>
   );
 };
