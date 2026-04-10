@@ -177,7 +177,7 @@ const BlogPostPage = () => {
                 <div className="p-4">
                   <p className="text-xs text-[#94A3B8] mb-2">{new Date(post.created_at).toLocaleDateString('vi-VN')}</p>
                   <h3 className="font-bold text-[#0F172A] mb-2 line-clamp-2 group-hover:text-[#0055FF] transition-colors">{post.title}</h3>
-                  <div className="text-sm text-[#64748B] line-clamp-3" dangerouslySetInnerHTML={{ __html: post.description.replace(/<[^>]+>/g, '') }} />
+                  <div className="text-sm text-[#334155] line-clamp-3" dangerouslySetInnerHTML={{ __html: post.description.replace(/<[^>]+>/g, '') }} />
                   {post.attached_products?.length > 0 && (
                     <div className="flex items-center gap-1 mt-3 text-xs text-[#94A3B8]">
                       <ShoppingCart className="w-3 h-3" />

@@ -561,7 +561,7 @@ const StorefrontPage = () => {
                   <Share2 className="w-5 h-5" />
                 </Button>
               </div>
-              {selectedProduct.description && <div className="text-[#64748B] text-sm sm:text-base leading-relaxed mb-4 sm:mb-6 prose prose-sm max-w-none break-words overflow-hidden [&_img]:max-w-full [&_pre]:overflow-x-auto [&_table]:overflow-x-auto [&_ol]:list-decimal [&_ol]:pl-6 [&_ul]:list-disc [&_ul]:pl-6" data-testid="product-description" dangerouslySetInnerHTML={{ __html: selectedProduct.description }} />}
+              {selectedProduct.description && <div className="text-[#334155] text-sm sm:text-base leading-relaxed mb-4 sm:mb-6 prose prose-sm max-w-none break-words overflow-hidden [&_img]:max-w-full [&_pre]:overflow-x-auto [&_table]:overflow-x-auto [&_ol]:list-decimal [&_ol]:pl-6 [&_ul]:list-disc [&_ul]:pl-6" data-testid="product-description" dangerouslySetInnerHTML={{ __html: selectedProduct.description }} />}
             </div>
           </div>
           {/* Related Products */}
