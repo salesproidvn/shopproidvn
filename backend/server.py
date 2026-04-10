@@ -84,7 +84,11 @@ def put_object(path: str, data: bytes, content_type: str) -> dict:
     client = get_s3_client()
     if not client:
         raise HTTPException(status_code=500, detail="Storage not available - R2 not configured")
-    client.put_object(Bucket=R2_BUCKET, Key=path, Body=data, ContentType=content_type)
+    client.put_object(
+        Bucket=R2_BUCKET, Key=path, Body=data, ContentType=content_type,
+        CacheControl="public, max-age=31536000, immutable",
+        ContentDisposition="inline",
+    )
     return {"path": path, "size": len(data)}
 
 def get_object(path: str) -> tuple:
@@ -105,47 +109,53 @@ def delete_object(path: str):
 
 # ==================== IMAGE COMPRESSION ====================
 
-MAX_IMAGE_SIZE_BYTES = 300 * 1024  # 300KB
+MAX_IMAGE_SIZE_BYTES = 200 * 1024  # 200KB target - WebP is much more efficient
 
 def compress_image(data: bytes, content_type: str, max_bytes: int = MAX_IMAGE_SIZE_BYTES) -> tuple:
-    """Resize and compress image to stay under max_bytes. Returns (compressed_bytes, content_type)."""
+    """Compress image to WebP format, optimized for mobile. Returns (compressed_bytes, content_type)."""
     try:
         img = Image.open(io.BytesIO(data))
     except Exception:
-        return data, content_type  # can't process, return as-is
+        return data, content_type
 
-    # Convert RGBA to RGB for JPEG output
+    # Convert RGBA/P to RGB
     if img.mode in ("RGBA", "P"):
+        bg = Image.new("RGB", img.size, (255, 255, 255))
+        if img.mode == "P":
+            img = img.convert("RGBA")
+        bg.paste(img, mask=img.split()[3])
+        img = bg
+    elif img.mode != "RGB":
         img = img.convert("RGB")
 
-    # Step 1: Scale down large images proportionally
-    max_dim = 1920
+    # Step 1: Scale down - 1200px max is enough for mobile retina
+    max_dim = 1200
     if img.width > max_dim or img.height > max_dim:
         ratio = min(max_dim / img.width, max_dim / img.height)
         new_size = (int(img.width * ratio), int(img.height * ratio))
         img = img.resize(new_size, Image.LANCZOS)
 
-    # Step 2: Progressively lower quality until under max_bytes
-    out_type = "image/jpeg"
-    for quality in [85, 75, 65, 55, 45, 35, 25]:
+    # Step 2: WebP progressive quality reduction
+    out_type = "image/webp"
+    for quality in [82, 72, 62, 52, 42]:
         buf = io.BytesIO()
-        img.save(buf, format="JPEG", quality=quality, optimize=True)
+        img.save(buf, format="WEBP", quality=quality, method=4)
         result = buf.getvalue()
         if len(result) <= max_bytes:
             return result, out_type
 
-    # Step 3: If still too large, scale down further
-    for scale in [0.75, 0.5, 0.35, 0.25]:
+    # Step 3: Scale down further if still too large
+    for scale in [0.75, 0.5, 0.35]:
         scaled = img.resize((int(img.width * scale), int(img.height * scale)), Image.LANCZOS)
         buf = io.BytesIO()
-        scaled.save(buf, format="JPEG", quality=40, optimize=True)
+        scaled.save(buf, format="WEBP", quality=50, method=4)
         result = buf.getvalue()
         if len(result) <= max_bytes:
             return result, out_type
 
-    # Last resort: return smallest attempt
+    # Last resort
     buf = io.BytesIO()
-    img.resize((400, int(400 * img.height / img.width)), Image.LANCZOS).save(buf, format="JPEG", quality=30, optimize=True)
+    img.resize((600, int(600 * img.height / img.width)), Image.LANCZOS).save(buf, format="WEBP", quality=40, method=4)
     return buf.getvalue(), out_type
 
 # ==================== AUTH UTILS ====================
@@ -619,7 +629,7 @@ async def upload_image(file: UploadFile = File(...)):
     logger.info(f"Image compressed: {original_size / 1024:.0f}KB -> {compressed_size / 1024:.0f}KB ({file.filename})")
 
     file_id = str(uuid_lib.uuid4())
-    ext = "jpg"  # always JPEG after compression
+    ext = "webp"
     path = f"{APP_NAME}/products/{file_id}.{ext}"
     try:
         result = put_object(path, compressed_data, out_content_type)
@@ -635,14 +645,44 @@ async def upload_image(file: UploadFile = File(...)):
         logger.error(f"Upload to R2 failed: {e}")
         raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
 
+from functools import lru_cache
+
+# In-memory file cache (up to 100 files, ~20MB max)
+_file_cache = {}
+_FILE_CACHE_MAX = 100
+
 @api_router.get("/files/{file_id}")
-async def get_file(file_id: str):
+async def get_file(file_id: str, request: Request):
+    # Check If-None-Match for 304 response
+    if_none_match = request.headers.get("if-none-match")
+    if if_none_match and if_none_match.strip('"') == file_id:
+        return Response(status_code=304)
+
+    # Check in-memory cache first
+    if file_id in _file_cache:
+        data, ct = _file_cache[file_id]
+        return Response(
+            content=data, media_type=ct,
+            headers={"Cache-Control": "public, max-age=31536000, immutable", "ETag": f'"{file_id}"'}
+        )
+
     file_doc = await db.files.find_one({"id": file_id, "is_deleted": False})
     if not file_doc:
         raise HTTPException(status_code=404, detail="File not found")
     try:
         data, ct = get_object(file_doc["storage_path"])
-        return Response(content=data, media_type=file_doc.get("content_type", ct))
+        ct = file_doc.get("content_type", ct)
+
+        # Cache in memory
+        if len(_file_cache) >= _FILE_CACHE_MAX:
+            oldest = next(iter(_file_cache))
+            del _file_cache[oldest]
+        _file_cache[file_id] = (data, ct)
+
+        return Response(
+            content=data, media_type=ct,
+            headers={"Cache-Control": "public, max-age=31536000, immutable", "ETag": f'"{file_id}"'}
+        )
     except Exception as e:
         logger.error(f"Download from R2 failed: {e}")
         raise HTTPException(status_code=500, detail="Download failed")

@@ -502,12 +502,10 @@ const StorefrontPage = () => {
                 const activeVid = showVideo !== null ? allVideos[showVideo] : null;
                 return (
                   <>
-                    {/* Preload all images in hidden elements */}
-                    <div className="hidden">
-                      {images.map((img, idx) => idx !== activeImage && (
-                        <img key={`preload-${idx}`} src={img} alt="" />
-                      ))}
-                    </div>
+                    {/* Preload all images into browser cache */}
+                    {images.length > 1 && images.map((img, idx) => idx !== activeImage && (
+                      <link key={`preload-${idx}`} rel="preload" as="image" href={img} />
+                    ))}
                     <div className="aspect-square bg-[#F8FAFC] relative overflow-hidden rounded-lg" data-testid="product-main-image">
                       {activeVid ? (
                         <iframe src={activeVid.embed} title="Product video" className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowFullScreen />

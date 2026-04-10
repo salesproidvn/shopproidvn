@@ -228,7 +228,7 @@ const SingleCategoryPage = () => {
                     const imgs = selectedProduct.images?.length > 0 ? selectedProduct.images : [selectedProduct.image_url];
                     return (
                       <>
-                        <div className="hidden">{imgs.map((img, idx) => idx !== activeImage && <img key={idx} src={img} alt="" />)}</div>
+                        {imgs.length > 1 && imgs.map((img, idx) => idx !== activeImage && <link key={idx} rel="preload" as="image" href={img} />)}
                         <img src={imgs[activeImage]} alt={selectedProduct.name} className="w-full h-full object-contain" loading="eager" />
                       </>
                     );
