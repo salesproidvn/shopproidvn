@@ -34,6 +34,8 @@ const BlogPostPage = () => {
         if (postId) {
           const found = postsRes.data.find(p => p.id === postId);
           if (found) setSelectedPost(found);
+        } else {
+          setSelectedPost(null);
         }
       } catch {
         /* ignore */
