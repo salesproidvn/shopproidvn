@@ -308,7 +308,7 @@ const ShopOwnerDashboard = () => {
   };
 
   const handleBulkDeleteMedia = async () => {
-    if (!mediaSelected.length || !window.confirm(`Xóa ${mediaSelected.length} ảnh đã chọn?`)) return;
+    if (!mediaSelected.length) return;
     let deleted = 0;
     for (const id of mediaSelected) {
       try { await axios.delete(`${API}/dashboard/media/${id}`); deleted++; } catch {}
