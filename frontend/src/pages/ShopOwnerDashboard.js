@@ -2107,8 +2107,8 @@ const ShopOwnerDashboard = () => {
       </main>
 
       {/* Product Modal */}
-      <Dialog open={showProductModal} onOpenChange={(v) => { if (!v) return; setShowProductModal(v); }}>
-        <DialogContent className="sm:max-w-lg bg-white max-h-[90vh] overflow-y-auto [&>button[class*='opacity-70']]:hidden" data-testid="product-modal" onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
+      <Dialog open={showProductModal} onOpenChange={setShowProductModal}>
+        <DialogContent className="sm:max-w-lg bg-white max-h-[90vh] overflow-y-auto" hideClose data-testid="product-modal" onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle className="text-lg">{editingProduct ? t.editProduct : t.addProduct}</DialogTitle>
             <DialogDescription className="text-sm">{t.fillProductDetails}</DialogDescription>
@@ -2579,11 +2579,16 @@ const ShopOwnerDashboard = () => {
 
       {/* Custom Page Modal */}
       <Dialog open={showPageModal} onOpenChange={setShowPageModal}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-white" data-testid="page-modal">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-white" hideClose data-testid="page-modal" onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle className="text-lg">{editingPage ? t.editPage : t.createPage}</DialogTitle>
             <DialogDescription className="text-sm">{t.customPages}</DialogDescription>
           </DialogHeader>
+          <button type="button" onClick={() => setShowPageModal(false)}
+            className="absolute top-3 right-3 w-8 h-8 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-md transition-colors z-10"
+            data-testid="page-modal-close-btn">
+            <X className="w-4 h-4" />
+          </button>
           <div className="space-y-4">
             <div>
               <label className="block text-xs font-medium mb-1">{t.pageTitleLabel} *</label>
@@ -2639,9 +2644,29 @@ const ShopOwnerDashboard = () => {
 
                     {section.type === 'image' && (
                       <div className="space-y-2">
-                        <Input value={section.url || ''} onChange={(e) => {
-                          const secs = [...pageForm.sections]; secs[idx] = { ...secs[idx], url: e.target.value }; setPageForm({ ...pageForm, sections: secs });
-                        }} placeholder={t.imageUrl} className="text-sm" data-testid={`section-image-url-${idx}`} />
+                        <div className="flex gap-2">
+                          <Input value={section.url || ''} onChange={(e) => {
+                            const secs = [...pageForm.sections]; secs[idx] = { ...secs[idx], url: e.target.value }; setPageForm({ ...pageForm, sections: secs });
+                          }} placeholder={t.imageUrl} className="text-sm flex-1" data-testid={`section-image-url-${idx}`} />
+                          <Button type="button" variant="outline" size="sm" className="text-xs shrink-0" onClick={() => {
+                            const input = document.createElement('input');
+                            input.type = 'file'; input.accept = 'image/*';
+                            input.onchange = async (ev) => {
+                              const file = ev.target.files?.[0];
+                              if (!file) return;
+                              try {
+                                const fd = new FormData(); fd.append('file', file);
+                                const { data } = await axios.post(`${API}/upload/image`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+                                const url = data.url || `${API}/files/${data.id}`;
+                                const secs = [...pageForm.sections]; secs[idx] = { ...secs[idx], url }; setPageForm({ ...pageForm, sections: secs });
+                                toast.success(t.uploadSuccess);
+                              } catch { toast.error(t.uploadFailed); }
+                            };
+                            input.click();
+                          }} data-testid={`section-image-upload-${idx}`}>
+                            <Upload className="w-3 h-3 mr-1" /> Upload
+                          </Button>
+                        </div>
                         <Input value={section.caption || ''} onChange={(e) => {
                           const secs = [...pageForm.sections]; secs[idx] = { ...secs[idx], caption: e.target.value }; setPageForm({ ...pageForm, sections: secs });
                         }} placeholder="Caption (optional)" className="text-xs" />
