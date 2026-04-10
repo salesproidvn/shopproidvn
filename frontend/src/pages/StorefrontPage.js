@@ -982,10 +982,17 @@ const StorefrontPage = () => {
                   <div className="space-y-1.5 text-[#94A3B8] text-sm">
                     {(col.items || []).map((item, itemIdx) => (
                       item.url ? (
-                        <a key={itemIdx} href={item.url} target={item.url.startsWith('http') ? '_blank' : '_self'} rel="noopener noreferrer"
-                          className="block hover:text-white transition-colors" data-testid={`footer-link-${idx}-${itemIdx}`}>
-                          {item.text}
-                        </a>
+                        item.url.startsWith('http') ? (
+                          <a key={itemIdx} href={item.url} target="_blank" rel="noopener noreferrer"
+                            className="block hover:text-white transition-colors" data-testid={`footer-link-${idx}-${itemIdx}`}>
+                            {item.text}
+                          </a>
+                        ) : (
+                          <Link key={itemIdx} to={item.url}
+                            className="block hover:text-white transition-colors" data-testid={`footer-link-${idx}-${itemIdx}`}>
+                            {item.text}
+                          </Link>
+                        )
                       ) : (
                         <p key={itemIdx}>{item.text}</p>
                       )
