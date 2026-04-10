@@ -488,6 +488,7 @@ const ShopOwnerDashboard = () => {
 
   const handleSaveProduct = async (e) => {
     e.preventDefault();
+    const savedScrollY = window.scrollY;
     try {
       const data = { 
         ...productForm, 
@@ -511,7 +512,8 @@ const ShopOwnerDashboard = () => {
       }
       setShowProductModal(false);
       resetProductForm();
-      fetchDataKeepScroll();
+      await fetchData();
+      requestAnimationFrame(() => window.scrollTo(0, savedScrollY));
     } catch (err) {
       toast.error(err.response?.data?.detail || t.failedToSave);
     }
@@ -561,6 +563,7 @@ const ShopOwnerDashboard = () => {
 
   const handleSaveCategory = async (e) => {
     e.preventDefault();
+    const savedScrollY = window.scrollY;
     try {
       if (editingCategory) {
         await axios.put(`${API}/dashboard/categories/${editingCategory.id}`, categoryForm);
@@ -571,7 +574,8 @@ const ShopOwnerDashboard = () => {
       }
       setShowCategoryModal(false);
       resetCategoryForm();
-      fetchDataKeepScroll();
+      await fetchData();
+      requestAnimationFrame(() => window.scrollTo(0, savedScrollY));
     } catch (err) {
       toast.error(t.failedToSave);
     }
@@ -707,6 +711,7 @@ const ShopOwnerDashboard = () => {
   const handleSavePost = async (e) => {
     e.preventDefault();
     if (countWords(postForm.description) > 2000) { toast.error(t.maxWordsReached); return; }
+    const savedScrollY = window.scrollY;
     try {
       const data = { ...postForm, images: postForm.images || [], attached_products: postForm.attached_products || [] };
       if (editingPost) {
@@ -718,7 +723,8 @@ const ShopOwnerDashboard = () => {
       }
       setShowPostModal(false);
       resetPostForm();
-      fetchDataKeepScroll();
+      await fetchData();
+      requestAnimationFrame(() => window.scrollTo(0, savedScrollY));
     } catch (err) { toast.error(t.failedToSave); }
   };
 
@@ -2919,6 +2925,7 @@ const ShopOwnerDashboard = () => {
               <Button variant="outline" className="flex-1 text-sm" onClick={() => setShowPageModal(false)}>{t.cancel}</Button>
               <Button className="flex-1 hover:opacity-90 text-sm" style={{ backgroundColor: themeColor }} onClick={async () => {
                 if (!pageForm.title.trim()) return toast.error(t.pageTitleLabel + ' is required');
+                const savedScrollY = window.scrollY;
                 try {
                   if (editingPage) {
                     await axios.put(`${API}/dashboard/pages/${editingPage.id}`, pageForm);
@@ -2927,7 +2934,8 @@ const ShopOwnerDashboard = () => {
                   }
                   toast.success(t.pageSaved);
                   setShowPageModal(false);
-                  fetchDataKeepScroll();
+                  await fetchData();
+                  requestAnimationFrame(() => window.scrollTo(0, savedScrollY));
                 } catch (err) { toast.error(err.response?.data?.detail || t.failedToSave); }
               }} data-testid="save-page-btn">{t.save}</Button>
             </div>

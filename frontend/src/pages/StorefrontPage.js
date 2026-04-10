@@ -1362,7 +1362,7 @@ const StorefrontPage = () => {
 
       {/* Inline Post Edit Modal */}
       <Dialog open={!!editPost} onOpenChange={(v) => { if (!v) setEditPost(null); }}>
-        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto" hideClose>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto bg-white" hideClose>
           <DialogHeader>
             <DialogTitle className="text-base font-bold">Sửa bài viết</DialogTitle>
             <DialogDescription className="sr-only">Edit post</DialogDescription>
