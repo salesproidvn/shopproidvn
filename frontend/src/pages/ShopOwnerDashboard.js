@@ -2162,14 +2162,14 @@ const ShopOwnerDashboard = () => {
                       newLinks[idx] = e.target.value;
                       setProductForm({ ...productForm, video_links: newLinks });
                     }} placeholder={t.videoLinkPlaceholder} className="text-sm flex-1" data-testid={`product-video-link-${idx}`} />
-                    <Button variant="ghost" size="icon" className="h-9 w-9 text-red-400" onClick={() => {
+                    <Button variant="ghost" size="icon" className="h-9 w-9 text-red-400" type="button" onClick={() => {
                       const newLinks = (productForm.video_links || []).filter((_, i) => i !== idx);
                       setProductForm({ ...productForm, video_links: newLinks });
                     }} data-testid={`remove-video-link-${idx}`}><X className="w-3 h-3" /></Button>
                   </div>
                 ))}
                 {(productForm.video_links || []).length < 4 && (
-                  <Button variant="outline" size="sm" className="text-xs" onClick={() => {
+                  <Button variant="outline" size="sm" className="text-xs" type="button" onClick={() => {
                     setProductForm({ ...productForm, video_links: [...(productForm.video_links || []), ''] });
                   }} data-testid="add-video-link-btn">
                     <Plus className="w-3 h-3 mr-1" /> {t.addVideoLink}
