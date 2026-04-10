@@ -30,7 +30,7 @@ const ShopOwnerDashboard = () => {
   const { user, logout, loading: authLoading } = useAuth();
   const { t, lang, switchLanguage } = useLanguage();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const fileInputRef = useRef(null);
 
   // Admin viewing mode: super_admin can view any shop
@@ -43,7 +43,7 @@ const ShopOwnerDashboard = () => {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [orders, setOrders] = useState([]);
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState(() => searchParams.get('tab') || 'overview');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -114,6 +114,20 @@ const ShopOwnerDashboard = () => {
     window.addEventListener('appinstalled', () => setIsAppInstalled(true));
     return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
+
+  // Sync activeTab to URL search params
+  useEffect(() => {
+    const current = searchParams.get('tab');
+    if (activeTab !== 'overview' && current !== activeTab) {
+      const newParams = new URLSearchParams(searchParams);
+      newParams.set('tab', activeTab);
+      setSearchParams(newParams, { replace: true });
+    } else if (activeTab === 'overview' && current) {
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete('tab');
+      setSearchParams(newParams, { replace: true });
+    }
+  }, [activeTab]);
 
   // Fetch notification status
   useEffect(() => {
