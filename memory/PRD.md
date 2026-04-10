@@ -33,9 +33,7 @@ Multi-tenant e-commerce platform with Super Admin, Shop Owner, and public Storef
 - [x] Expanded theme color picker (24 options + custom hex)
 - [x] Product SKU in grids, inline category creation, category image upload
 - [x] Product description text overflow fix and rich text rendering
-- [x] Multiple image uploads for products (max 8)
-- [x] Multiple image uploads for posts (max 3)
-- [x] Multiple image uploads for banners (max 8)
+- [x] Multiple image uploads for products (max 8), posts (max 3), banners (max 8)
 - [x] Dynamic internal LinkPicker for Footer and Header Menu
 - [x] Image Lightbox popup for blog posts
 - [x] Font size options in Quill editors
@@ -45,9 +43,9 @@ Multi-tenant e-commerce platform with Super Admin, Shop Owner, and public Storef
 - [x] Login button on storefront header when user is logged out
 - [x] WordPress-style Media Library with centralized image management
 - [x] Inline editing (pencil icon) on storefront for products and posts
-- [x] Scroll preservation after modal save in Dashboard (Apr 10, 2026)
-- [x] Fixed transparent background on storefront inline edit popup (Apr 10, 2026)
-- [x] Fixed dashboard product/category/post/page update scroll-to-top issue (Apr 10, 2026)
+- [x] Scroll preservation after modal save in Dashboard
+- [x] Fixed transparent background on storefront inline edit popup
+- [x] **Custom Block Elements in Display Layout** (Apr 10, 2026) - 6 block types: Heading, Rich Text, Image, Image Grid, Video, URL/Link. Add/edit/delete/reorder/toggle blocks. Full storefront rendering.
 
 ## Pending Issues
 - [ ] P0: Storefront product category filter dropdown not working
@@ -58,47 +56,49 @@ Multi-tenant e-commerce platform with Super Admin, Shop Owner, and public Storef
 - [ ] P1: Add sales analytics charts to dashboards
 
 ## Future/Backlog Tasks
-- [ ] P1: Refactor ShopOwnerDashboard.js (2900+ lines) into smaller components
-- [ ] P1: Refactor StorefrontPage.js (1300+ lines) into smaller components
+- [ ] P1: Refactor ShopOwnerDashboard.js (3000+ lines) into smaller components
+- [ ] P1: Refactor StorefrontPage.js (1400+ lines) into smaller components
 
 ## API Endpoints
 ### Auth
-- POST /api/auth/login
-- POST /api/auth/register
-- POST /api/auth/logout
+- POST /api/auth/login, /api/auth/register, /api/auth/logout
 - GET /api/auth/me
-- POST /api/auth/forgot-password
-- POST /api/auth/reset-password
+- POST /api/auth/forgot-password, /api/auth/reset-password
 
 ### Super Admin
-- GET /api/admin/stats
-- GET /api/admin/shops
-- POST /api/admin/shops/{shop_id}/status
-- POST /api/admin/shops/{shop_id}/expiry
+- GET /api/admin/stats, /api/admin/shops
+- POST /api/admin/shops/{shop_id}/status, /api/admin/shops/{shop_id}/expiry
 - PUT /api/admin/shops/{shop_id}/limits
 
 ### Dashboard (Shop Owner)
-- GET /api/dashboard/shop
-- PUT /api/dashboard/shop
-- CRUD for products, categories, orders, posts, pages, menu, banners, footer, etc.
-- GET /api/dashboard/media (Media Library)
+- GET/PUT /api/dashboard/shop (includes layout_sections with custom blocks)
+- CRUD for products, categories, orders, posts, pages, menu, banners, footer
+- GET/DELETE /api/dashboard/media (Media Library)
 
 ### Public Storefront
-- GET /api/shop/{slug}
-- GET /api/shop/{slug}/products
-- GET /api/shop/{slug}/categories
-- GET /api/shop/{slug}/posts
-- GET /api/shop/{slug}/page/{page_slug}
-- POST /api/shop/{slug}/orders
-- POST /api/shop/{slug}/contact
+- GET /api/shop/{slug}, /api/shop/{slug}/products, /api/shop/{slug}/categories
+- GET /api/shop/{slug}/posts, /api/shop/{slug}/page/{page_slug}
+- POST /api/shop/{slug}/orders, /api/shop/{slug}/contact
 
 ### Upload
 - POST /api/upload (R2 image upload with compression)
 
+## Custom Block Data Model
+Custom blocks are stored in `shop.layout_sections[]` alongside built-in sections:
+```json
+{
+  "id": "custom_1712753000",
+  "type": "heading|rich_text|image|image_grid|video|url",
+  "label": "User-defined label",
+  "content": { /* type-specific content */ },
+  "enabled": true
+}
+```
+
 ## Key Files
 - `/app/backend/server.py` - Core backend
-- `/app/frontend/src/pages/StorefrontPage.js` - Public storefront
-- `/app/frontend/src/pages/ShopOwnerDashboard.js` - Shop owner dashboard
+- `/app/frontend/src/pages/StorefrontPage.js` - Public storefront (renders custom blocks)
+- `/app/frontend/src/pages/ShopOwnerDashboard.js` - Shop owner dashboard (block management UI)
 - `/app/frontend/src/pages/SuperAdminDashboard.js` - Super admin
 - `/app/frontend/src/pages/LoginPage.js` - Login page
 - `/app/frontend/src/components/MediaLibrary.js` - WordPress-style media manager
