@@ -105,6 +105,92 @@ const FooterLinkPicker = ({ value, linkType, onChange, shopSlug, categories, pro
 };
 
 
+const MENU_LINK_TYPES = [
+  { value: 'external', label: 'URL', icon: '🔗' },
+  { value: 'quick', label: 'Liên kết nhanh', icon: '⚡' },
+  { value: 'page', label: 'Trang', icon: '📄' },
+  { value: 'category', label: 'Danh mục', icon: '📁' },
+  { value: 'post', label: 'Bài viết', icon: '📝' },
+  { value: 'product', label: 'Sản phẩm', icon: '📦' },
+];
+
+const MenuLinkPicker = ({ value, linkType, onChange, shopSlug, categories, products, posts, customPages, testIdPrefix }) => {
+  const [search, setSearch] = useState('');
+  const [open, setOpen] = useState(false);
+  const type = linkType || 'external';
+
+  const getItems = () => {
+    const q = search.toLowerCase();
+    switch (type) {
+      case 'quick': return [
+        { id: 'home', name: 'Trang chủ', url: `/shop/${shopSlug}` },
+        { id: 'categories', name: 'Danh mục', url: `/shop/${shopSlug}/categories` },
+        { id: 'posts', name: 'Bài viết', url: `/shop/${shopSlug}/posts` },
+        { id: 'contact', name: 'Liên hệ', url: `/shop/${shopSlug}/contact` },
+      ].filter(i => i.name.toLowerCase().includes(q));
+      case 'page': return (customPages || []).filter(p => p.title?.toLowerCase().includes(q)).map(p => ({ id: p.id, name: p.title, url: `/shop/${shopSlug}/page/${p.slug || p.id}` }));
+      case 'category': return (categories || []).filter(c => c.name?.toLowerCase().includes(q)).map(c => ({ id: c.id, name: c.name, url: `/shop/${shopSlug}/category/${c.id}` }));
+      case 'post': return (posts || []).filter(p => p.title?.toLowerCase().includes(q)).map(p => ({ id: p.id, name: p.title, url: `/shop/${shopSlug}/posts/${p.id}` }));
+      case 'product': return (products || []).filter(p => p.name?.toLowerCase().includes(q)).map(p => ({ id: p.id, name: p.name, url: `/shop/${shopSlug}?product=${p.id}` }));
+      default: return [];
+    }
+  };
+
+  if (type === 'external') {
+    return (
+      <div data-testid={testIdPrefix}>
+        <div className="flex border border-[#E2E8F0] rounded-md overflow-hidden">
+          <select value={type} onChange={e => onChange('', e.target.value, null)} className="text-[10px] bg-[#F8FAFC] border-r border-[#E2E8F0] px-1.5 outline-none text-[#64748B] cursor-pointer" data-testid={`${testIdPrefix}-type`}>
+            {MENU_LINK_TYPES.map(lt => <option key={lt.value} value={lt.value}>{lt.icon} {lt.label}</option>)}
+          </select>
+          <input value={value} onChange={e => onChange(e.target.value, 'external', null)} placeholder="https://..." className="flex-1 text-xs h-8 px-2 outline-none min-w-0" data-testid={`${testIdPrefix}-input`} />
+        </div>
+      </div>
+    );
+  }
+
+  const items = getItems();
+  const selectedItem = items.find(i => i.url === value);
+
+  return (
+    <div className="relative" data-testid={testIdPrefix}>
+      <div className="flex border border-[#E2E8F0] rounded-md overflow-hidden">
+        <select value={type} onChange={e => { onChange('', e.target.value, null); setSearch(''); }} className="text-[10px] bg-[#F8FAFC] border-r border-[#E2E8F0] px-1.5 outline-none text-[#64748B] cursor-pointer" data-testid={`${testIdPrefix}-type`}>
+          {MENU_LINK_TYPES.map(lt => <option key={lt.value} value={lt.value}>{lt.icon} {lt.label}</option>)}
+        </select>
+        <div className="flex-1 relative">
+          <input
+            value={open ? search : (selectedItem?.name || value || '')}
+            onChange={e => { setSearch(e.target.value); if (!open) setOpen(true); }}
+            onFocus={() => setOpen(true)}
+            placeholder={`Tìm ${MENU_LINK_TYPES.find(l => l.value === type)?.label?.toLowerCase()}...`}
+            className="w-full text-xs h-8 px-2 outline-none"
+            data-testid={`${testIdPrefix}-search`}
+          />
+          {selectedItem && !open && <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] text-green-600">&#10003;</span>}
+        </div>
+      </div>
+      {open && (
+        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-[#E2E8F0] rounded-md shadow-lg max-h-48 overflow-y-auto" data-testid={`${testIdPrefix}-dropdown`}>
+          {items.length === 0 ? (
+            <div className="px-3 py-2 text-xs text-[#94A3B8]">Không tìm thấy kết quả</div>
+          ) : items.map(item => (
+            <button key={item.id} className={`w-full text-left px-3 py-2 text-xs hover:bg-[#F1F5F9] transition-colors flex items-center justify-between ${value === item.url ? 'bg-[#F1F5F9] font-medium' : ''}`}
+              onClick={() => { onChange(item.url, type, item.name); setOpen(false); setSearch(''); }}
+              data-testid={`${testIdPrefix}-option-${item.id}`}
+            >
+              <span className="truncate">{item.name}</span>
+              {value === item.url && <span className="text-green-600 text-[10px] ml-2 shrink-0">&#10003;</span>}
+            </button>
+          ))}
+        </div>
+      )}
+      {open && <div className="fixed inset-0 z-40" onClick={() => { setOpen(false); setSearch(''); }} />}
+    </div>
+  );
+};
+
+
 const ShopOwnerDashboard = () => {
   const { user, logout, loading: authLoading } = useAuth();
   const { t, lang, switchLanguage } = useLanguage();
@@ -1291,43 +1377,26 @@ const ShopOwnerDashboard = () => {
                         setShopMenuItems(items);
                       }} data-testid={`menu-down-${idx}`}><ArrowDown className="w-3 h-3" /></Button>
                     </div>
-                    <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
                       <Input value={item.label} onChange={(e) => {
                         const items = [...shopMenuItems]; items[idx] = { ...items[idx], label: e.target.value }; setShopMenuItems(items);
                       }} placeholder={t.menuItemLabel} className="text-sm h-8" data-testid={`menu-label-${idx}`} />
-                      <div className="relative">
-                        <Input value={item.url} onChange={(e) => {
-                          const items = [...shopMenuItems]; items[idx] = { ...items[idx], url: e.target.value }; setShopMenuItems(items);
-                        }} placeholder={t.menuItemUrl} className="text-sm h-8 pr-8" data-testid={`menu-url-${idx}`} />
-                      </div>
-                      <Select value={item.url || '__pick__'} onValueChange={(val) => {
-                        if (val === '__pick__') return;
-                        const items = [...shopMenuItems];
-                        const entry = val.startsWith('/shop/') ? val : val;
-                        items[idx] = { ...items[idx], url: entry };
-                        // Auto-set label if empty
-                        if (!items[idx].label) {
-                          const pg = customPages.find(p => `/shop/${shop?.slug}/page/${p.slug}` === val);
-                          const po = posts.find(p => `/shop/${shop?.slug}/posts/${p.id}` === val);
-                          if (pg) items[idx].label = pg.title;
-                          if (po) items[idx].label = po.title;
-                        }
-                        setShopMenuItems(items);
-                      }}>
-                        <SelectTrigger className="h-8 text-xs" data-testid={`menu-link-picker-${idx}`}><SelectValue placeholder={t.quickLink} /></SelectTrigger>
-                        <SelectContent className="bg-white max-h-60">
-                          <SelectItem value="__pick__" disabled className="text-[#94A3B8]">— {t.quickLink} —</SelectItem>
-                          <SelectItem value={`/shop/${shop?.slug}`}>🏠 {t.menuHome}</SelectItem>
-                          <SelectItem value={`/shop/${shop?.slug}/categories`}>📂 {t.menuCategories}</SelectItem>
-                          <SelectItem value={`/shop/${shop?.slug}/contact`}>📞 {t.menuContact}</SelectItem>
-                          {posts.length > 0 && posts.map(po => (
-                            <SelectItem key={po.id} value={`/shop/${shop?.slug}/posts/${po.id}`}>📝 {po.title}</SelectItem>
-                          ))}
-                          {customPages.length > 0 && customPages.map(pg => (
-                            <SelectItem key={pg.id} value={`/shop/${shop?.slug}/page/${pg.slug}`}>📄 {pg.title}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <MenuLinkPicker
+                        value={item.url || ''}
+                        linkType={item.link_type || (item.url?.startsWith('http') ? 'external' : item.url?.includes('/page/') ? 'page' : item.url?.includes('/posts/') ? 'post' : item.url?.includes('/category/') ? 'category' : item.url?.includes('?product=') ? 'product' : item.url ? 'quick' : 'external')}
+                        onChange={(url, linkType, autoLabel) => {
+                          const items = [...shopMenuItems];
+                          items[idx] = { ...items[idx], url, link_type: linkType };
+                          if (autoLabel && !items[idx].label) items[idx].label = autoLabel;
+                          setShopMenuItems(items);
+                        }}
+                        shopSlug={shop?.slug}
+                        categories={categories}
+                        products={products}
+                        posts={posts}
+                        customPages={customPages}
+                        testIdPrefix={`menu-link-${idx}`}
+                      />
                     </div>
                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => {
                       const items = [...shopMenuItems]; items[idx] = { ...items[idx], enabled: !items[idx].enabled }; setShopMenuItems(items);
