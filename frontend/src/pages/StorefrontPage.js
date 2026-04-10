@@ -1063,7 +1063,7 @@ const StorefrontPage = () => {
             </a>
           ) : <div />}
           {shop.contact_phone ? (
-            <a href={`sms:${shop.contact_phone}`} className="flex flex-col items-center justify-center gap-1 text-white/80 hover:text-white active:bg-white/10 transition-colors" data-testid="bottom-message">
+            <a href={`https://zalo.me/${shop.contact_phone.replace(/\s/g, '')}`} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center justify-center gap-1 text-white/80 hover:text-white active:bg-white/10 transition-colors" data-testid="bottom-message">
               <MessageCircle className="w-5 h-5" />
               <span className="text-xs font-bold">{t.message}</span>
             </a>
