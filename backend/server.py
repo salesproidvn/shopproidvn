@@ -212,8 +212,11 @@ async def require_shop_owner(request: Request) -> dict:
     return user
 
 def generate_shop_slug(name: str) -> str:
-    import re
-    slug = re.sub(r'[^\w\s-]', '', name.lower().strip())
+    import re, unicodedata
+    nfkd = unicodedata.normalize('NFKD', name)
+    ascii_str = ''.join(c for c in nfkd if not unicodedata.combining(c))
+    slug = re.sub(r'[^\w\s-]', '', ascii_str.lower().strip())
+    slug = slug.replace('đ', 'd').replace('Đ', 'd')
     return re.sub(r'[-\s]+', '-', slug)[:50]
 
 def set_auth_cookies(response: Response, access_token: str, refresh_token: str):
