@@ -371,6 +371,12 @@ const ShopOwnerDashboard = () => {
     }
   };
 
+  const fetchDataKeepScroll = async () => {
+    const scrollY = window.scrollY;
+    await fetchData();
+    requestAnimationFrame(() => window.scrollTo(0, scrollY));
+  };
+
   const handleImageUpload = async (e) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
@@ -439,7 +445,7 @@ const ShopOwnerDashboard = () => {
       }
       setShowProductModal(false);
       resetProductForm();
-      fetchData();
+      fetchDataKeepScroll();
     } catch (err) {
       toast.error(err.response?.data?.detail || t.failedToSave);
     }
@@ -450,7 +456,7 @@ const ShopOwnerDashboard = () => {
     try {
       await axios.delete(`${API}/dashboard/products/${prodId}`);
       toast.success(t.productDeleted);
-      fetchData();
+      fetchDataKeepScroll();
     } catch (err) {
       toast.error(t.failedToDelete);
     }
@@ -499,7 +505,7 @@ const ShopOwnerDashboard = () => {
       }
       setShowCategoryModal(false);
       resetCategoryForm();
-      fetchData();
+      fetchDataKeepScroll();
     } catch (err) {
       toast.error(t.failedToSave);
     }
@@ -510,7 +516,7 @@ const ShopOwnerDashboard = () => {
     try {
       await axios.delete(`${API}/dashboard/categories/${catId}`);
       toast.success(t.categoryDeleted);
-      fetchData();
+      fetchDataKeepScroll();
     } catch (err) {
       toast.error(t.failedToDelete);
     }
@@ -526,7 +532,7 @@ const ShopOwnerDashboard = () => {
     try {
       await axios.put(`${API}/dashboard/shop`, shopForm);
       toast.success(t.shopUpdated);
-      fetchData();
+      fetchDataKeepScroll();
     } catch (err) {
       toast.error(t.failedToSave);
     }
@@ -536,7 +542,7 @@ const ShopOwnerDashboard = () => {
     try {
       await axios.put(`${API}/dashboard/orders/${orderId}/status`, { status });
       toast.success(t.orderStatusUpdated);
-      fetchData();
+      fetchDataKeepScroll();
     } catch (err) {
       toast.error(t.failedToUpdate);
     }
@@ -620,7 +626,7 @@ const ShopOwnerDashboard = () => {
         positions: sorted.map(c => ({ id: c.id, position: c.position }))
       });
       toast.success(t.positionSaved);
-      fetchData();
+      fetchDataKeepScroll();
     } catch (err) {
       toast.error(t.failedToUpdate);
     }
@@ -646,7 +652,7 @@ const ShopOwnerDashboard = () => {
       }
       setShowPostModal(false);
       resetPostForm();
-      fetchData();
+      fetchDataKeepScroll();
     } catch (err) { toast.error(t.failedToSave); }
   };
 
@@ -655,7 +661,7 @@ const ShopOwnerDashboard = () => {
     try {
       await axios.delete(`${API}/dashboard/posts/${postId}`);
       toast.success(t.postDeleted);
-      fetchData();
+      fetchDataKeepScroll();
     } catch { toast.error(t.failedToDelete); }
   };
 
@@ -1376,7 +1382,7 @@ const ShopOwnerDashboard = () => {
                             try {
                               await axios.delete(`${API}/dashboard/pages/${pg.id}`);
                               toast.success(t.pageDeleted);
-                              fetchData();
+                              fetchDataKeepScroll();
                             } catch { toast.error(t.failedToSave); }
                           }} data-testid={`delete-page-${pg.id}`}><Trash2 className="w-3.5 h-3.5 text-red-400" /></Button>
                         </div>
@@ -1462,7 +1468,7 @@ const ShopOwnerDashboard = () => {
                     try {
                       await axios.put(`${API}/dashboard/menu`, { items: shopMenuItems });
                       toast.success(t.menuSaved);
-                      fetchData();
+                      fetchDataKeepScroll();
                     } catch { toast.error(t.failedToSave); }
                   }} data-testid="save-menu-btn">
                     {t.saveChanges}
@@ -1525,7 +1531,7 @@ const ShopOwnerDashboard = () => {
                     try {
                       await axios.put(`${API}/dashboard/mega-menu${shopQuery}`, { items: megaMenuItems.map(it => ({ category_id: it.category_id, enabled: it.enabled, position: it.position })) });
                       toast.success(t.megaMenuSaved || 'Mega menu đã lưu');
-                      fetchData();
+                      fetchDataKeepScroll();
                     } catch { toast.error(t.failedToSave); }
                   }} data-testid="save-mega-menu-btn">
                     {t.saveChanges}
@@ -1727,7 +1733,7 @@ const ShopOwnerDashboard = () => {
                       try {
                         await axios.put(`${API}/dashboard/shop`, { footer_columns: shopForm.footer_columns || [] });
                         toast.success(t.footerSaved);
-                        fetchData();
+                        fetchDataKeepScroll();
                       } catch { toast.error(t.failedToSave); }
                     }} data-testid="save-footer-btn">
                       {t.saveChanges}
@@ -1911,7 +1917,7 @@ const ShopOwnerDashboard = () => {
                       try {
                         await axios.put(`${API}/dashboard/shop`, { custom_domain: shopForm.custom_domain || '' });
                         toast.success(t.shopUpdated);
-                        fetchData();
+                        fetchDataKeepScroll();
                       } catch (err) { toast.error(t.failedToSave); }
                     }} style={{ backgroundColor: themeColor }} className="hover:opacity-90 text-sm" data-testid="save-domain-btn">
                       {t.saveChanges}
@@ -2757,7 +2763,7 @@ const ShopOwnerDashboard = () => {
                   }
                   toast.success(t.pageSaved);
                   setShowPageModal(false);
-                  fetchData();
+                  fetchDataKeepScroll();
                 } catch (err) { toast.error(err.response?.data?.detail || t.failedToSave); }
               }} data-testid="save-page-btn">{t.save}</Button>
             </div>
