@@ -995,7 +995,10 @@ const ShopOwnerDashboard = () => {
                           <div className="p-2 lg:p-3">
                             <h3 className="font-medium text-[#0F172A] text-xs lg:text-sm truncate cursor-pointer hover:text-[#0055FF]" onClick={() => openProductDetail(product)}>{product.name}</h3>
                             <p className="font-bold mt-1 text-xs lg:text-sm" style={{ color: themeColor }}>{formatVND(product.price)}</p>
-                            <div className="flex items-center gap-2 mt-0.5">
+                            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                              {product.category_id && categories.find(c => c.id === product.category_id) && (
+                                <span className="text-[10px] lg:text-xs px-1.5 py-0.5 bg-[#F1F5F9] text-[#475569] rounded">{categories.find(c => c.id === product.category_id)?.name}</span>
+                              )}
                               <p className="text-[10px] lg:text-xs text-[#64748B]">{t.stock}: {product.stock || 0}</p>
                               {product.sku && <p className="text-[10px] lg:text-xs text-[#94A3B8]">SKU: {product.sku}</p>}
                             </div>
