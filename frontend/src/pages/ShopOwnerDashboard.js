@@ -2373,7 +2373,7 @@ const ShopOwnerDashboard = () => {
                   <p className="text-2xl font-bold mb-4" style={{ color: themeColor }}>{formatVND(selectedProduct.price)}</p>
                   <p className="text-sm text-[#64748B] mb-2">{t.stock}: {selectedProduct.stock || 0}</p>
                   {selectedProduct.description && (
-                    <div className="text-sm text-[#64748B] mb-4 flex-1 whitespace-pre-wrap">{selectedProduct.description}</div>
+                    <div className="text-sm text-[#64748B] mb-4 flex-1 prose prose-sm max-w-none break-words [&_ol]:list-decimal [&_ol]:pl-6 [&_ul]:list-disc [&_ul]:pl-6 [&_img]:max-w-full" dangerouslySetInnerHTML={{ __html: selectedProduct.description }} />
                   )}
                   <div className="flex gap-3 mt-auto pt-4">
                     <Button variant="outline" className="flex-1 text-sm" onClick={(e) => { e.stopPropagation(); setShowProductDetailModal(false); setTimeout(() => openEditProduct(selectedProduct), 100); }} data-testid="product-detail-edit-btn">
