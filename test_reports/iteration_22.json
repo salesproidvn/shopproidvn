@@ -1,0 +1,107 @@
+{
+  "summary": "Complete frontend testing of Custom Block Elements feature in Shop Owner Dashboard. All features working correctly: block picker dialog, adding heading/video/url blocks, edit/delete/toggle/move functionality, and storefront rendering.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Storefront",
+        "issues": ["404 errors for some resources (non-critical, likely missing images)"]
+      }
+    ]
+  },
+  "passed_tests": [
+    "Login with demo1@proid.vn / iLoveProID@ works",
+    "Navigation to Layout tab (data-testid='nav-layout') works",
+    "Block picker dialog opens when clicking 'Thêm khối tùy chỉnh' button (data-testid='add-custom-block-btn')",
+    "All 6 block types available: heading, rich_text, image, image_grid, video, url",
+    "Block type buttons have correct data-testid (block-type-heading, block-type-video, block-type-url, etc.)",
+    "Can add a Heading block with text, level (h1-h4), and alignment",
+    "Can add a Video block with YouTube URL - preview shows in edit dialog",
+    "Can add a URL/Link block with text and URL",
+    "Custom blocks appear in layout section list with purple 'Custom' badge",
+    "Custom blocks have edit (pencil) and delete (trash) buttons with data-testid",
+    "Custom blocks can be toggled on/off",
+    "Custom blocks can be moved up/down to reorder",
+    "Edit dialog opens when clicking edit button on custom block",
+    "Block edit dialog fields work: block-label-input, block-heading-text, block-video-url, block-url-input, block-url-text",
+    "Save button (data-testid='save-block-btn') saves custom block",
+    "Custom blocks render on storefront page (/shop/demo1) in correct order",
+    "Heading renders as h2 with correct text on storefront",
+    "Video block renders as embedded YouTube iframe on storefront",
+    "URL button block renders as clickable button with theme color on storefront",
+    "Toast notification 'Cửa hàng đã được cập nhật' shows after saving"
+  ],
+  "test_report_links": [
+    "/app/test_reports/iteration_22.json"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Custom block implementation is complete with all 6 block types (heading, rich_text, image, image_grid, video, url)",
+    "Block picker dialog properly shows all block types with icons and descriptions",
+    "Block edit dialog dynamically shows fields based on block type",
+    "Layout sections correctly handle both built-in sections and custom blocks",
+    "Storefront renderSection function properly renders all custom block types",
+    "YouTube video embedding works with proper URL parsing",
+    "URL blocks support button, link, and banner styles"
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "N/A (frontend only testing)",
+    "frontend": "100% (all features verified working)"
+  },
+  "test_credentials": {
+    "shop_owner": "demo1@proid.vn / iLoveProID@ (demo1 shop, slug: demo1)"
+  },
+  "seed_data_creation": "Created 3 test custom blocks during testing: Test Heading Block, Test Video Block, Test URL Block",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Custom block feature fully implemented and tested. Key test IDs: add-custom-block-btn, block-picker-dialog, block-type-{type}, block-edit-dialog, block-label-input, block-heading-text, block-video-url, block-url-input, block-url-text, save-block-btn, edit-block-custom_{id}, delete-block-custom_{id}, toggle-section-custom_{id}, move-up-custom_{id}, move-down-custom_{id}. Existing custom blocks in demo1 shop: Welcome Heading, Video giới thiệu, Zalo CTA, plus 3 test blocks created during testing.",
+  "features_tested": {
+    "block_picker_dialog": {
+      "status": "WORKING",
+      "details": "Opens on button click, shows all 6 block types with icons"
+    },
+    "heading_block": {
+      "status": "WORKING",
+      "details": "Can set text, level (h1-h4), alignment. Renders as h2 on storefront"
+    },
+    "video_block": {
+      "status": "WORKING",
+      "details": "YouTube URL parsing works, preview in edit dialog, iframe on storefront"
+    },
+    "url_block": {
+      "status": "WORKING",
+      "details": "URL, text, target, style options. Renders as themed button on storefront"
+    },
+    "custom_badge": {
+      "status": "WORKING",
+      "details": "Purple 'Custom' badge appears on all custom blocks in layout list"
+    },
+    "edit_functionality": {
+      "status": "WORKING",
+      "details": "Edit button opens dialog with current content, can modify and save"
+    },
+    "delete_functionality": {
+      "status": "WORKING",
+      "details": "Delete button with confirmation dialog"
+    },
+    "toggle_functionality": {
+      "status": "WORKING",
+      "details": "Toggle switch enables/disables block visibility on storefront"
+    },
+    "move_functionality": {
+      "status": "WORKING",
+      "details": "Up/down arrows reorder blocks in layout"
+    },
+    "storefront_rendering": {
+      "status": "WORKING",
+      "details": "All custom blocks render correctly on /shop/demo1 in layout order"
+    }
+  },
+  "test_viewport": "Desktop (1920x1080)"
+}

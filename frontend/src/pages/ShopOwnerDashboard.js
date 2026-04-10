@@ -250,6 +250,11 @@ const ShopOwnerDashboard = () => {
   const [dashProductSearch, setDashProductSearch] = useState('');
   const [dashProductCategory, setDashProductCategory] = useState('all');
 
+  // Custom Block state
+  const [showBlockPicker, setShowBlockPicker] = useState(false);
+  const [editingBlock, setEditingBlock] = useState(null);
+  const [blockForm, setBlockForm] = useState({});
+
   // Media Library state
   const [mediaOpen, setMediaOpen] = useState(false);
   const [mediaCallback, setMediaCallback] = useState(null);
@@ -849,6 +854,67 @@ const ShopOwnerDashboard = () => {
     blog: FileText,
     featured: TrendingUp,
     products: Package,
+  };
+
+  const BLOCK_TYPES = [
+    { type: 'heading', label: 'Heading', icon: Type, desc: 'Tiêu đề lớn' },
+    { type: 'rich_text', label: 'Rich Text', icon: FileText, desc: 'Nội dung văn bản' },
+    { type: 'image', label: 'Image', icon: Image, desc: 'Hình ảnh đơn' },
+    { type: 'image_grid', label: 'Image Grid', icon: Grid3X3, desc: 'Lưới hình ảnh' },
+    { type: 'video', label: 'Video', icon: Video, desc: 'Video YouTube/TikTok' },
+    { type: 'url', label: 'URL / Link', icon: Link2, desc: 'Liên kết tùy chỉnh' },
+  ];
+
+  const blockTypeIcons = { heading: Type, rich_text: FileText, image: Image, image_grid: Grid3X3, video: Video, url: Link2 };
+  const blockTypeLabels = { heading: 'Heading', rich_text: 'Rich Text', image: 'Image', image_grid: 'Image Grid', video: 'Video', url: 'URL / Link' };
+
+  const addCustomBlock = (type) => {
+    const id = `custom_${Date.now()}`;
+    const defaults = {
+      heading: { text: '', level: 'h2' },
+      rich_text: { html: '' },
+      image: { url: '', alt: '', link: '' },
+      image_grid: { images: [], columns: 3 },
+      video: { url: '' },
+      url: { url: '', text: '', target: '_blank' },
+    };
+    const newBlock = { id, type, label: blockTypeLabels[type], content: defaults[type], enabled: true };
+    setShowBlockPicker(false);
+    setEditingBlock(newBlock);
+    setBlockForm(defaults[type]);
+  };
+
+  const saveCustomBlock = async () => {
+    if (!editingBlock) return;
+    const sections = [...getLayoutSections()];
+    const idx = sections.findIndex(s => s.id === editingBlock.id);
+    const updatedBlock = { ...editingBlock, content: blockForm };
+    if (idx >= 0) {
+      sections[idx] = updatedBlock;
+    } else {
+      sections.push(updatedBlock);
+    }
+    setShopForm({ ...shopForm, layout_sections: sections });
+    setEditingBlock(null);
+    try {
+      await axios.put(`${API}/dashboard/shop`, { layout_sections: sections });
+      toast.success(t.shopUpdated);
+    } catch { toast.error(t.failedToSave); }
+  };
+
+  const deleteCustomBlock = async (blockId) => {
+    if (!window.confirm('Xóa khối này?')) return;
+    const sections = getLayoutSections().filter(s => s.id !== blockId);
+    setShopForm({ ...shopForm, layout_sections: sections });
+    try {
+      await axios.put(`${API}/dashboard/shop`, { layout_sections: sections });
+      toast.success(t.shopUpdated);
+    } catch { toast.error(t.failedToSave); }
+  };
+
+  const openEditBlock = (block) => {
+    setEditingBlock(block);
+    setBlockForm(block.content || {});
   };
 
   const getLayoutSections = () => {
@@ -1723,18 +1789,33 @@ const ShopOwnerDashboard = () => {
                 <CardContent className="p-4 pt-0">
                   <div className="space-y-2" data-testid="layout-sections">
                     {getLayoutSections().map((section, idx) => {
-                      const IconComp = sectionIcons[section.id] || Package;
+                      const isCustom = section.id?.startsWith('custom_');
+                      const IconComp = isCustom ? (blockTypeIcons[section.type] || Package) : (sectionIcons[section.id] || Package);
+                      const label = isCustom ? (section.label || blockTypeLabels[section.type] || section.type) : (sectionLabels[section.id] || section.label);
                       return (
                         <div key={section.id} className={`flex items-center gap-3 p-3 rounded-[5px] border transition-all ${section.enabled ? 'bg-white border-[#E2E8F0]' : 'bg-[#F8FAFC] border-dashed border-[#E2E8F0] opacity-60'}`} data-testid={`layout-section-${section.id}`}>
                           <GripVertical className="w-4 h-4 text-[#94A3B8] flex-shrink-0" />
-                          <div className="w-8 h-8 rounded-[5px] flex items-center justify-center flex-shrink-0" style={{ backgroundColor: section.enabled ? themeColor + '15' : '#F1F5F9' }}>
-                            <IconComp className="w-4 h-4" style={{ color: section.enabled ? themeColor : '#94A3B8' }} />
+                          <div className="w-8 h-8 rounded-[5px] flex items-center justify-center flex-shrink-0" style={{ backgroundColor: section.enabled ? (isCustom ? '#8B5CF6' : themeColor) + '15' : '#F1F5F9' }}>
+                            <IconComp className="w-4 h-4" style={{ color: section.enabled ? (isCustom ? '#8B5CF6' : themeColor) : '#94A3B8' }} />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="font-medium text-sm text-[#0F172A]">{sectionLabels[section.id] || section.label}</p>
-                            <p className="text-[10px] text-[#94A3B8]">{t.position}: {idx + 1}</p>
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium text-sm text-[#0F172A]">{label}</p>
+                              {isCustom && <span className="text-[9px] px-1.5 py-0.5 bg-purple-100 text-purple-600 rounded font-medium">Custom</span>}
+                            </div>
+                            <p className="text-[10px] text-[#94A3B8]">{t.position}: {idx + 1}{isCustom && section.type ? ` · ${section.type}` : ''}</p>
                           </div>
-                          <div className="flex items-center gap-2 flex-shrink-0">
+                          <div className="flex items-center gap-1.5 flex-shrink-0">
+                            {isCustom && (
+                              <>
+                                <Button variant="ghost" size="icon" className="w-7 h-7 text-[#64748B] hover:text-[#0F172A]" onClick={() => openEditBlock(section)} data-testid={`edit-block-${section.id}`}>
+                                  <Pencil className="w-3.5 h-3.5" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="w-7 h-7 text-red-400 hover:text-red-600" onClick={() => deleteCustomBlock(section.id)} data-testid={`delete-block-${section.id}`}>
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </Button>
+                              </>
+                            )}
                             <div className="flex flex-col gap-0.5">
                               <Button variant="ghost" size="icon" className="w-6 h-6" disabled={idx === 0} onClick={() => moveSection(idx, 'up')} data-testid={`move-up-${section.id}`}>
                                 <ChevronUp className="w-3 h-3" />
@@ -1758,6 +1839,9 @@ const ShopOwnerDashboard = () => {
                       );
                     })}
                   </div>
+                  <Button variant="outline" className="w-full mt-4 border-dashed border-2 text-sm h-10" onClick={() => setShowBlockPicker(true)} data-testid="add-custom-block-btn">
+                    <Plus className="w-4 h-4 mr-2" /> Thêm khối tùy chỉnh
+                  </Button>
                 </CardContent>
               </Card>
 
@@ -2950,6 +3034,207 @@ const ShopOwnerDashboard = () => {
         multiple={mediaMultiple}
         maxSelect={mediaMaxSelect}
       />
+
+      {/* Block Type Picker Dialog */}
+      <Dialog open={showBlockPicker} onOpenChange={setShowBlockPicker}>
+        <DialogContent className="sm:max-w-md bg-white" data-testid="block-picker-dialog">
+          <DialogHeader>
+            <DialogTitle className="text-base">Chọn loại khối</DialogTitle>
+            <DialogDescription className="text-sm text-[#64748B]">Thêm khối tùy chỉnh vào trang chủ cửa hàng</DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-3 mt-2">
+            {BLOCK_TYPES.map(bt => (
+              <button key={bt.type} type="button" onClick={() => addCustomBlock(bt.type)}
+                className="flex flex-col items-center gap-2 p-4 rounded-lg border-2 border-[#E2E8F0] hover:border-purple-400 hover:bg-purple-50 transition-all"
+                data-testid={`block-type-${bt.type}`}>
+                <bt.icon className="w-6 h-6 text-purple-500" />
+                <span className="text-sm font-medium text-[#0F172A]">{bt.label}</span>
+                <span className="text-[10px] text-[#94A3B8]">{bt.desc}</span>
+              </button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Block Edit Dialog */}
+      <Dialog open={!!editingBlock} onOpenChange={(v) => { if (!v) setEditingBlock(null); }}>
+        <DialogContent className="sm:max-w-lg bg-white max-h-[90vh] overflow-y-auto" hideClose data-testid="block-edit-dialog">
+          <DialogHeader>
+            <DialogTitle className="text-base">{editingBlock ? `Chỉnh sửa: ${blockTypeLabels[editingBlock.type] || editingBlock.type}` : 'Chỉnh sửa khối'}</DialogTitle>
+            <DialogDescription className="sr-only">Edit custom block</DialogDescription>
+          </DialogHeader>
+          <button type="button" onClick={() => setEditingBlock(null)}
+            className="absolute top-3 right-3 w-8 h-8 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-md transition-colors z-10">
+            <X className="w-4 h-4" />
+          </button>
+          {editingBlock && (
+            <div className="space-y-4 mt-2">
+              {/* Label */}
+              <div>
+                <label className="block text-xs font-medium mb-1">Tên hiển thị (nội bộ)</label>
+                <Input value={editingBlock.label || ''} onChange={(e) => setEditingBlock({...editingBlock, label: e.target.value})} placeholder="Ví dụ: Banner giới thiệu" className="text-sm" data-testid="block-label-input" />
+              </div>
+
+              {/* Heading */}
+              {editingBlock.type === 'heading' && (
+                <>
+                  <div>
+                    <label className="block text-xs font-medium mb-1">Nội dung tiêu đề</label>
+                    <Input value={blockForm.text || ''} onChange={(e) => setBlockForm({...blockForm, text: e.target.value})} placeholder="Nhập tiêu đề..." className="text-sm" data-testid="block-heading-text" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium mb-1">Kích thước</label>
+                    <Select value={blockForm.level || 'h2'} onValueChange={(v) => setBlockForm({...blockForm, level: v})}>
+                      <SelectTrigger className="text-sm" data-testid="block-heading-level"><SelectValue /></SelectTrigger>
+                      <SelectContent className="bg-white">
+                        <SelectItem value="h1">H1 - Rất lớn</SelectItem>
+                        <SelectItem value="h2">H2 - Lớn</SelectItem>
+                        <SelectItem value="h3">H3 - Vừa</SelectItem>
+                        <SelectItem value="h4">H4 - Nhỏ</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium mb-1">Căn chỉnh</label>
+                    <Select value={blockForm.align || 'left'} onValueChange={(v) => setBlockForm({...blockForm, align: v})}>
+                      <SelectTrigger className="text-sm" data-testid="block-heading-align"><SelectValue /></SelectTrigger>
+                      <SelectContent className="bg-white">
+                        <SelectItem value="left">Trái</SelectItem>
+                        <SelectItem value="center">Giữa</SelectItem>
+                        <SelectItem value="right">Phải</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </>
+              )}
+
+              {/* Rich Text */}
+              {editingBlock.type === 'rich_text' && (
+                <div>
+                  <label className="block text-xs font-medium mb-1">Nội dung</label>
+                  <ReactQuill theme="snow" value={blockForm.html || ''} onChange={(val) => setBlockForm({...blockForm, html: val})} modules={quillModulesProduct} className="bg-white [&_.ql-container]:min-h-[150px]" data-testid="block-richtext-editor" />
+                </div>
+              )}
+
+              {/* Image */}
+              {editingBlock.type === 'image' && (
+                <>
+                  <div>
+                    <label className="block text-xs font-medium mb-1">Hình ảnh</label>
+                    <div className="flex items-center gap-3">
+                      {blockForm.url && <img src={blockForm.url} alt="" className="w-32 h-20 rounded-lg object-cover border" />}
+                      <Button type="button" variant="outline" size="sm" className="text-xs" onClick={() => openMediaLibrary((urls) => {
+                        const u = Array.isArray(urls) ? urls[0] : urls;
+                        setBlockForm({...blockForm, url: u});
+                      })} data-testid="block-image-select">
+                        <Image className="w-4 h-4 mr-1" /> Chọn ảnh
+                      </Button>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium mb-1">Alt text</label>
+                    <Input value={blockForm.alt || ''} onChange={(e) => setBlockForm({...blockForm, alt: e.target.value})} placeholder="Mô tả hình ảnh" className="text-sm" data-testid="block-image-alt" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium mb-1">Link khi click (tùy chọn)</label>
+                    <Input value={blockForm.link || ''} onChange={(e) => setBlockForm({...blockForm, link: e.target.value})} placeholder="https://..." className="text-sm" data-testid="block-image-link" />
+                  </div>
+                </>
+              )}
+
+              {/* Image Grid */}
+              {editingBlock.type === 'image_grid' && (
+                <>
+                  <div>
+                    <label className="block text-xs font-medium mb-1">Số cột</label>
+                    <Select value={String(blockForm.columns || 3)} onValueChange={(v) => setBlockForm({...blockForm, columns: parseInt(v)})}>
+                      <SelectTrigger className="text-sm" data-testid="block-grid-columns"><SelectValue /></SelectTrigger>
+                      <SelectContent className="bg-white">
+                        <SelectItem value="2">2 cột</SelectItem>
+                        <SelectItem value="3">3 cột</SelectItem>
+                        <SelectItem value="4">4 cột</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium mb-1">Hình ảnh ({(blockForm.images || []).length})</label>
+                    <div className="flex gap-2 flex-wrap">
+                      {(blockForm.images || []).map((img, idx) => (
+                        <div key={idx} className="relative w-20 h-20 rounded-lg overflow-hidden border group">
+                          <img src={img.url} alt="" className="w-full h-full object-cover" />
+                          <button type="button" onClick={() => { const imgs = [...(blockForm.images || [])]; imgs.splice(idx, 1); setBlockForm({...blockForm, images: imgs}); }}
+                            className="absolute top-0.5 right-0.5 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-[8px] opacity-0 group-hover:opacity-100 transition-opacity">
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                      <Button type="button" variant="outline" size="sm" className="w-20 h-20 border-dashed border-2" onClick={() => openMediaLibrary((urls) => {
+                        const newUrls = (Array.isArray(urls) ? urls : [urls]).map(u => ({ url: u, alt: '', link: '' }));
+                        setBlockForm({...blockForm, images: [...(blockForm.images || []), ...newUrls]});
+                      }, { multiple: true, maxSelect: 12 })} data-testid="block-grid-add-image">
+                        <Plus className="w-5 h-5 text-[#94A3B8]" />
+                      </Button>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Video */}
+              {editingBlock.type === 'video' && (
+                <div>
+                  <label className="block text-xs font-medium mb-1">URL Video (YouTube, TikTok)</label>
+                  <Input value={blockForm.url || ''} onChange={(e) => setBlockForm({...blockForm, url: e.target.value})} placeholder="https://youtube.com/watch?v=..." className="text-sm" data-testid="block-video-url" />
+                  {blockForm.url && (() => {
+                    const ytMatch = blockForm.url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+                    if (ytMatch) return <div className="mt-2 aspect-video rounded-lg overflow-hidden"><iframe src={`https://www.youtube.com/embed/${ytMatch[1]}`} className="w-full h-full" allowFullScreen title="Preview" /></div>;
+                    return <p className="text-[10px] text-[#94A3B8] mt-1">Xem trước sẽ hiện khi URL hợp lệ</p>;
+                  })()}
+                </div>
+              )}
+
+              {/* URL / Link */}
+              {editingBlock.type === 'url' && (
+                <>
+                  <div>
+                    <label className="block text-xs font-medium mb-1">URL</label>
+                    <Input value={blockForm.url || ''} onChange={(e) => setBlockForm({...blockForm, url: e.target.value})} placeholder="https://..." className="text-sm" data-testid="block-url-input" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium mb-1">Text hiển thị</label>
+                    <Input value={blockForm.text || ''} onChange={(e) => setBlockForm({...blockForm, text: e.target.value})} placeholder="Click vào đây" className="text-sm" data-testid="block-url-text" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium mb-1">Mở trong</label>
+                    <Select value={blockForm.target || '_blank'} onValueChange={(v) => setBlockForm({...blockForm, target: v})}>
+                      <SelectTrigger className="text-sm" data-testid="block-url-target"><SelectValue /></SelectTrigger>
+                      <SelectContent className="bg-white">
+                        <SelectItem value="_blank">Tab mới</SelectItem>
+                        <SelectItem value="_self">Tab hiện tại</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium mb-1">Kiểu hiển thị</label>
+                    <Select value={blockForm.style || 'button'} onValueChange={(v) => setBlockForm({...blockForm, style: v})}>
+                      <SelectTrigger className="text-sm" data-testid="block-url-style"><SelectValue /></SelectTrigger>
+                      <SelectContent className="bg-white">
+                        <SelectItem value="button">Nút bấm</SelectItem>
+                        <SelectItem value="link">Liên kết text</SelectItem>
+                        <SelectItem value="banner">Banner có nền</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </>
+              )}
+
+              <div className="flex gap-3 pt-2">
+                <Button type="button" variant="outline" className="flex-1 text-sm" onClick={() => setEditingBlock(null)}>Hủy</Button>
+                <Button type="button" className="flex-1 text-sm text-white hover:opacity-90" style={{ backgroundColor: themeColor }} onClick={saveCustomBlock} data-testid="save-block-btn">Lưu khối</Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
