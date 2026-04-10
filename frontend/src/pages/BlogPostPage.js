@@ -78,8 +78,8 @@ const BlogPostPage = () => {
         <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-lg border-b border-[#E2E8F0]">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between h-14">
-              <Button variant="ghost" size="sm" className="gap-2 rounded-[5px]" onClick={goBack} data-testid="post-back-btn">
-                <ArrowLeft className="w-4 h-4" /> {t.back || 'Back'}
+              <Button variant="ghost" size="sm" className="gap-2 rounded-[5px] text-base font-semibold" onClick={goBack} data-testid="post-back-btn">
+                <ArrowLeft className="w-5 h-5" /> {t.back || 'Back'}
               </Button>
               <Link to={`/shop/${slug}`}>
                 <span className="font-semibold text-[#0F172A]">{shop?.name}</span>
@@ -152,8 +152,8 @@ const BlogPostPage = () => {
       <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-lg border-b border-[#E2E8F0]">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-14">
-            <Button variant="ghost" size="sm" className="gap-2 rounded-[5px]" onClick={goBack} data-testid="posts-back-btn">
-              <ArrowLeft className="w-4 h-4" /> {t.back || 'Back'}
+            <Button variant="ghost" size="sm" className="gap-2 rounded-[5px] text-base font-semibold" onClick={goBack} data-testid="posts-back-btn">
+              <ArrowLeft className="w-5 h-5" /> {t.back || 'Back'}
             </Button>
             <span className="font-bold text-[#0F172A]">{t.posts}</span>
             <div className="w-20" />

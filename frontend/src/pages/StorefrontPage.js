@@ -470,9 +470,9 @@ const StorefrontPage = () => {
                     const pos = scrollPosRef.current; setSelectedProduct(null); setActiveImage(0); setShowVideo(null); if (searchParams.get('product')) { searchParams.delete('product'); setSearchParams(searchParams, { replace: true }); } setTimeout(() => window.scrollTo(0, pos), 0);
                   }
                 }}
-                className="flex items-center gap-2 text-sm text-[#334155] hover:text-[#0F172A] transition-colors"
+                className="flex items-center gap-2 text-base font-semibold text-[#0F172A] hover:opacity-70 transition-opacity px-3 py-2 -ml-3 rounded-lg"
                 data-testid="product-close-btn">
-                <ArrowLeft className="w-4 h-4" /> {t.back || 'Quay lại'}
+                <ArrowLeft className="w-5 h-5" /> {t.back || 'Quay lại'}
               </button>
               <span className="font-semibold text-[#0F172A] text-sm truncate max-w-[200px]">{shop?.name}</span>
               <button onClick={() => {
