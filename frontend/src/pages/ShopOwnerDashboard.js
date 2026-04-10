@@ -694,19 +694,25 @@ const ShopOwnerDashboard = () => {
   const quillModules = { toolbar: [[{ size: ['small', false, 'large', 'huge'] }], ['bold', 'italic', 'underline'], [{ list: 'ordered' }, { list: 'bullet' }], ['link'], ['clean']] };
 
   const handleBannerUpload = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
     const currentBanners = shopForm.banners || [];
-    if (currentBanners.length >= 3) { toast.error(t.bannerMaxReached); return; }
-    const formData = new FormData();
-    formData.append('file', file);
+    const remaining = 8 - currentBanners.length;
+    if (remaining <= 0) { toast.error(t.bannerMaxReached); return; }
+    const toUpload = files.slice(0, remaining);
+    if (files.length > remaining) toast.info(`Chỉ upload ${remaining} ảnh (tối đa 8)`);
     try {
-      const { data } = await axios.post(`${API}/upload/image`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
-      const url = data.url || `${API}/files/${data.id}`;
-      const newBanners = [...currentBanners, url];
+      const uploaded = [];
+      for (const file of toUpload) {
+        const formData = new FormData();
+        formData.append('file', file);
+        const { data } = await axios.post(`${API}/upload/image`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+        uploaded.push(data.url || `${API}/files/${data.id}`);
+      }
+      const newBanners = [...currentBanners, ...uploaded];
       setShopForm({ ...shopForm, banners: newBanners });
       await axios.put(`${API}/dashboard/shop`, { banners: newBanners });
-      toast.success(t.bannerUploaded);
+      toast.success(`${uploaded.length} banner đã tải lên`);
     } catch { toast.error(t.uploadFailed); }
     if (bannerInputRef.current) bannerInputRef.current.value = '';
   };
@@ -1560,7 +1566,7 @@ const ShopOwnerDashboard = () => {
                 </CardHeader>
                 <CardContent className="p-4 pt-0 space-y-4">
                   <div>
-                    <label className="block text-xs font-medium mb-2">{t.banners} ({(shopForm.banners || []).length}/3)</label>
+                    <label className="block text-xs font-medium mb-2">{t.banners} ({(shopForm.banners || []).length}/8)</label>
                     <div className="flex gap-3 flex-wrap">
                       {(shopForm.banners || []).map((url, idx) => (
                         <div key={idx} className="relative w-40 h-20 rounded-[5px] overflow-hidden bg-[#F8FAFC] border">
@@ -1570,9 +1576,9 @@ const ShopOwnerDashboard = () => {
                           </button>
                         </div>
                       ))}
-                      {(shopForm.banners || []).length < 3 && (
+                      {(shopForm.banners || []).length < 8 && (
                         <>
-                          <input type="file" ref={bannerInputRef} onChange={handleBannerUpload} accept="image/*" className="hidden" />
+                          <input type="file" ref={bannerInputRef} onChange={handleBannerUpload} accept="image/*" multiple className="hidden" />
                           <button onClick={() => bannerInputRef.current?.click()}
                             className="w-40 h-20 rounded-[5px] border-2 border-dashed border-[#E2E8F0] flex flex-col items-center justify-center gap-1 text-[#94A3B8] hover:border-[#94A3B8] transition-colors"
                             data-testid="layout-add-banner-btn">
@@ -2002,7 +2008,7 @@ const ShopOwnerDashboard = () => {
                     </button>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium mb-2">{t.banners} ({(shopForm.banners || []).length}/3)</label>
+                    <label className="block text-xs font-medium mb-2">{t.banners} ({(shopForm.banners || []).length}/8)</label>
                     <div className="flex gap-3 flex-wrap">
                       {(shopForm.banners || []).map((url, idx) => (
                         <div key={idx} className="relative w-40 h-20 rounded-[5px] overflow-hidden bg-[#F8FAFC] border">
@@ -2012,9 +2018,9 @@ const ShopOwnerDashboard = () => {
                           </button>
                         </div>
                       ))}
-                      {(shopForm.banners || []).length < 3 && (
+                      {(shopForm.banners || []).length < 8 && (
                         <>
-                          <input type="file" ref={bannerInputRef} onChange={handleBannerUpload} accept="image/*" className="hidden" />
+                          <input type="file" ref={bannerInputRef} onChange={handleBannerUpload} accept="image/*" multiple className="hidden" />
                           <button onClick={() => bannerInputRef.current?.click()}
                             className="w-40 h-20 rounded-[5px] border-2 border-dashed border-[#E2E8F0] flex flex-col items-center justify-center gap-1 text-[#94A3B8] hover:border-[#94A3B8] transition-colors"
                             data-testid="add-banner-btn">

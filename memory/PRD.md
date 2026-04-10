@@ -32,15 +32,27 @@ Multi-tenant e-commerce platform with Super Admin, Shop Owner, and public Storef
 - [x] Mobile Mega Menu (full-screen overlay)
 - [x] Expanded theme color picker (24 options + custom hex)
 - [x] Product SKU in grids, inline category creation, category image upload
-- [x] Product description text overflow fix (break-words, overflow-hidden for HTML content with &nbsp;)
-- [x] Product description rich text rendering (installed @tailwindcss/typography for prose classes - bold, lists, links)
+- [x] Product description text overflow fix and rich text rendering
+- [x] Multiple image uploads for products (max 8)
+- [x] Multiple image uploads for posts (max 3)
+- [x] Multiple image uploads for banners (max 8) - Updated Apr 10, 2026
+- [x] Dynamic internal LinkPicker for Footer and Header Menu
+- [x] Image Lightbox popup for blog posts
+- [x] Font size options in Quill editors
+- [x] Save Contact VCF download button on storefront
+- [x] Demo Autofill button on login page
+- [x] Scroll restoration across storefront views
+
+## Pending Issues
+- [ ] VCF file download may contain empty info (fix applied, needs user verification)
+- [ ] Product video URL display issue (needs user verification on specific URL format)
 
 ## Upcoming Tasks
 - [ ] P1: Add sales analytics charts to dashboards
 
 ## Future/Backlog Tasks
-- [ ] P1: Refactor ShopOwnerDashboard.js (2400+ lines) into smaller components
-- [ ] P1: Refactor StorefrontPage.js (1100+ lines) into smaller components
+- [ ] P1: Refactor ShopOwnerDashboard.js (2700+ lines) into smaller components
+- [ ] P1: Refactor StorefrontPage.js (1200+ lines) into smaller components
 
 ## API Endpoints
 ### Auth
@@ -81,3 +93,4 @@ Multi-tenant e-commerce platform with Super Admin, Shop Owner, and public Storef
 - `/app/frontend/src/pages/ShopOwnerDashboard.js` - Shop owner dashboard
 - `/app/frontend/src/pages/SuperAdminDashboard.js` - Super admin
 - `/app/frontend/src/pages/LoginPage.js` - Login page
+- `/app/frontend/src/utils/i18n.js` - Translations (VI/EN)

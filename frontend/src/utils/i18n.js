@@ -378,7 +378,7 @@ export const vi = {
   removeBanner: 'Xóa banner',
   enableBanner: 'Bật banner',
   enableBlog: 'Bật bài viết',
-  bannerMaxReached: 'Tối đa 3 banner',
+  bannerMaxReached: 'Tối đa 8 banner',
   bannerUploaded: 'Banner đã được tải lên',
 
   // Layout
@@ -845,7 +845,7 @@ export const en = {
   removeBanner: 'Remove Banner',
   enableBanner: 'Enable Banner',
   enableBlog: 'Enable Blog',
-  bannerMaxReached: 'Maximum 3 banners',
+  bannerMaxReached: 'Maximum 8 banners',
   bannerUploaded: 'Banner uploaded',
 
   // Layout
