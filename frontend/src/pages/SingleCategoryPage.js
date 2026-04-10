@@ -197,11 +197,29 @@ const SingleCategoryPage = () => {
       {/* Product Detail Overlay */}
       {selectedProduct && (
         <div className="fixed inset-0 z-50 bg-white overflow-y-auto" data-testid="cat-product-fullpage">
-          <button onClick={() => { setSelectedProduct(null); setActiveImage(0); }}
-            className="fixed top-4 right-4 z-[60] w-10 h-10 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-lg transition-colors"
-            data-testid="cat-product-close-btn">
-            <X className="w-5 h-5" />
-          </button>
+          <header className="sticky top-0 z-[60] bg-white/90 backdrop-blur-lg border-b border-[#E2E8F0]">
+            <div className="max-w-5xl mx-auto px-4">
+              <div className="flex items-center justify-between h-14">
+                <button onClick={() => { setSelectedProduct(null); setActiveImage(0); }}
+                  className="flex items-center gap-2 text-sm text-[#334155] hover:text-[#0F172A] transition-colors"
+                  data-testid="cat-product-close-btn">
+                  <ArrowLeft className="w-4 h-4" /> {t.back || 'Quay lại'}
+                </button>
+                <span className="font-semibold text-[#0F172A] text-sm truncate max-w-[200px]">{shop?.name}</span>
+                <button onClick={() => {
+                  const url = `${window.location.origin}/shop/${slug}?product=${selectedProduct.id}`;
+                  if (navigator.share) {
+                    navigator.share({ title: selectedProduct.name, text: `${selectedProduct.name} - ${formatVND(selectedProduct.price)}`, url });
+                  } else {
+                    navigator.clipboard.writeText(url);
+                    toast.success(t.linkCopied || 'Link copied!');
+                  }
+                }} className="flex items-center gap-2 text-sm text-[#334155] hover:text-[#0F172A] transition-colors">
+                  <Share2 className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </header>
           <div className="max-w-5xl mx-auto px-4 py-8">
             <div className="grid md:grid-cols-2 gap-8">
               <div className="flex flex-col">
@@ -232,7 +250,7 @@ const SingleCategoryPage = () => {
                 <p className="text-3xl font-bold mb-2" style={{ color: themeColor }}>{formatVND(selectedProduct.price)}</p>
                 {selectedProduct.sku && <p className="text-xs text-[#94A3B8] mb-2">SKU: {selectedProduct.sku}</p>}
                 {category && <p className="text-sm text-[#94A3B8] mb-4">{category.name}</p>}
-                {selectedProduct.description && <div className="text-[#64748B] leading-relaxed mb-6 prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: selectedProduct.description }} />}
+                {selectedProduct.description && <div className="text-[#64748B] leading-relaxed mb-6 prose prose-sm max-w-none break-words overflow-hidden [&_img]:max-w-full [&_pre]:overflow-x-auto [&_ol]:list-decimal [&_ol]:pl-6 [&_ul]:list-disc [&_ul]:pl-6" dangerouslySetInnerHTML={{ __html: selectedProduct.description }} />}
                 <div className="flex gap-3 mt-auto">
                   <Button className="flex-1 hover:opacity-90 py-6 text-base rounded-[5px]"
                     style={{ backgroundColor: themeColor }}
