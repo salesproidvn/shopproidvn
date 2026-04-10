@@ -663,16 +663,23 @@ const ShopOwnerDashboard = () => {
   };
 
   const handlePostImageUpload = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if ((postForm.images || []).length >= 3) { toast.error('Max 3 images'); return; }
-    const formData = new FormData();
-    formData.append('file', file);
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    const currentCount = (postForm.images || []).length;
+    const remaining = 3 - currentCount;
+    if (remaining <= 0) { toast.error('Tối đa 3 ảnh / Max 3 images'); return; }
+    const toUpload = files.slice(0, remaining);
+    if (files.length > remaining) toast.info(`Chỉ upload ${remaining} ảnh (tối đa 3)`);
     try {
-      const { data } = await axios.post(`${API}/upload/image`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
-      const url = data.url || `${API}/files/${data.id}`;
-      setPostForm(prev => ({ ...prev, images: [...(prev.images || []), url] }));
-      toast.success(t.uploadSuccess);
+      const uploaded = [];
+      for (const file of toUpload) {
+        const formData = new FormData();
+        formData.append('file', file);
+        const { data } = await axios.post(`${API}/upload/image`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+        uploaded.push(data.url || `${API}/files/${data.id}`);
+      }
+      setPostForm(prev => ({ ...prev, images: [...(prev.images || []), ...uploaded] }));
+      toast.success(`${uploaded.length} ảnh đã tải lên`);
     } catch { toast.error(t.uploadFailed); }
     if (postImagesInputRef.current) postImagesInputRef.current.value = '';
   };
@@ -2502,9 +2509,9 @@ const ShopOwnerDashboard = () => {
                 ))}
                 {(postForm.images || []).length < 3 && (
                   <>
-                    <input type="file" ref={postImagesInputRef} onChange={handlePostImageUpload} accept="image/*" className="hidden" />
+                    <input type="file" ref={postImagesInputRef} onChange={handlePostImageUpload} accept="image/*" multiple className="hidden" />
                     <Button type="button" variant="outline" size="sm" className="text-xs h-14 w-20" onClick={() => postImagesInputRef.current?.click()} data-testid="post-images-upload">
-                      <Image className="w-4 h-4" />
+                      <Image className="w-4 h-4 mr-1" /> {(postForm.images || []).length}/3
                     </Button>
                   </>
                 )}
