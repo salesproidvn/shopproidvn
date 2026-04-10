@@ -480,69 +480,14 @@ const StorefrontPage = () => {
   // Section renderer based on layout order
   const renderSection = (section) => {
     if (!section.enabled) return null;
-    // Built-in sections
     switch (section.id) {
       case 'banner': return <BannerSlider key="banner" />;
       case 'categories': return <CategoryGrid key="categories" />;
       case 'blog': return <PostCarousel key="blog" />;
       case 'featured': return <FeaturedProducts key="featured" />;
-      case 'products': return null;
-      default: break;
+      case 'products': return null; // products rendered separately below filters
+      default: return null;
     }
-    // Custom blocks
-    if (section.id?.startsWith('custom_') && section.content) {
-      const c = section.content;
-      switch (section.type) {
-        case 'heading': {
-          const Tag = ['h1','h2','h3','h4'].includes(c.level) ? c.level : 'h2';
-          const sizes = { h1: 'text-3xl sm:text-4xl', h2: 'text-2xl sm:text-3xl', h3: 'text-xl sm:text-2xl', h4: 'text-lg sm:text-xl' };
-          return c.text ? <div key={section.id} className="mb-6" style={{ textAlign: c.align || 'left' }}><Tag className={`${sizes[Tag]} font-bold text-[#0F172A]`}>{c.text}</Tag></div> : null;
-        }
-        case 'rich_text':
-          return c.html ? <div key={section.id} className="prose max-w-none mb-6 text-[#334155]" dangerouslySetInnerHTML={{ __html: c.html }} /> : null;
-        case 'image':
-          if (!c.url) return null;
-          const imgEl = <img src={c.url} alt={c.alt || ''} className="w-full rounded-lg" />;
-          return <div key={section.id} className="mb-6">{c.link ? <a href={c.link} target="_blank" rel="noopener noreferrer">{imgEl}</a> : imgEl}</div>;
-        case 'image_grid':
-          if (!c.images?.length) return null;
-          return (
-            <div key={section.id} className={`grid gap-3 mb-6`} style={{ gridTemplateColumns: `repeat(${c.columns || 3}, 1fr)` }}>
-              {c.images.map((img, i) => {
-                const el = <img key={i} src={img.url} alt={img.alt || ''} className="w-full aspect-square object-cover rounded-lg" />;
-                return img.link ? <a key={i} href={img.link} target="_blank" rel="noopener noreferrer">{el}</a> : el;
-              })}
-            </div>
-          );
-        case 'video': {
-          if (!c.url) return null;
-          const ytMatch = c.url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-          const ttMatch = c.url.match(/tiktok\.com\/@[^/]+\/video\/(\d+)/);
-          if (ytMatch) return <div key={section.id} className="mb-6 aspect-video rounded-lg overflow-hidden"><iframe src={`https://www.youtube.com/embed/${ytMatch[1]}`} className="w-full h-full" allowFullScreen title="Video" /></div>;
-          if (ttMatch) return <div key={section.id} className="mb-6 aspect-video rounded-lg overflow-hidden"><iframe src={`https://www.tiktok.com/embed/v2/${ttMatch[1]}`} className="w-full h-full" allowFullScreen title="Video" /></div>;
-          return <div key={section.id} className="mb-6"><a href={c.url} target="_blank" rel="noopener noreferrer" className="text-sm underline" style={{ color: themeColor }}>{c.url}</a></div>;
-        }
-        case 'url': {
-          if (!c.url) return null;
-          const text = c.text || c.url;
-          if (c.style === 'banner') return (
-            <a key={section.id} href={c.url} target={c.target || '_blank'} rel="noopener noreferrer" className="block mb-6 p-6 rounded-lg text-center text-white font-semibold text-lg hover:opacity-90 transition-opacity" style={{ backgroundColor: themeColor }}>
-              {text}
-            </a>
-          );
-          if (c.style === 'link') return <div key={section.id} className="mb-6"><a href={c.url} target={c.target || '_blank'} rel="noopener noreferrer" className="underline font-medium" style={{ color: themeColor }}>{text}</a></div>;
-          return (
-            <div key={section.id} className="mb-6 text-center">
-              <a href={c.url} target={c.target || '_blank'} rel="noopener noreferrer" className="inline-block px-8 py-3 rounded-lg text-white font-semibold hover:opacity-90 transition-opacity" style={{ backgroundColor: themeColor }}>
-                {text}
-              </a>
-            </div>
-          );
-        }
-        default: return null;
-      }
-    }
-    return null;
   };
 
   // Helper: Get embed URL from YouTube or TikTok links
