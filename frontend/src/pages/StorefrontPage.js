@@ -58,6 +58,16 @@ const StorefrontPage = () => {
 
   useEffect(() => { fetchShopData(); }, [slug]);
 
+  // Restore scroll position when returning to storefront
+  useEffect(() => {
+    if (loading) return;
+    const savedPos = sessionStorage.getItem(`scroll-${slug}`);
+    if (savedPos) {
+      setTimeout(() => window.scrollTo(0, parseInt(savedPos)), 150);
+      sessionStorage.removeItem(`scroll-${slug}`);
+    }
+  }, [slug, loading]);
+
   // Auto-slide banner
   useEffect(() => {
     const banners = shop?.banners || [];
@@ -247,11 +257,12 @@ const StorefrontPage = () => {
       <div className="mb-8" data-testid="post-carousel">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-xl sm:text-2xl font-bold text-[#0F172A]">{t.latestPosts}</h3>
-          <Link to={`/shop/${slug}/posts`}><Button variant="ghost" size="sm" className="text-sm rounded-[5px]" style={{ color: themeColor }}>{t.readMore} &rarr;</Button></Link>
+          <Link to={`/shop/${slug}/posts`} onClick={() => sessionStorage.setItem(`scroll-${slug}`, window.scrollY)}><Button variant="ghost" size="sm" className="text-sm rounded-[5px]" style={{ color: themeColor }}>{t.readMore} &rarr;</Button></Link>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 lg:gap-5" data-testid="post-grid">
           {posts.map(post => (
             <Link key={post.id} to={`/shop/${slug}/posts/${post.id}`}
+              onClick={() => sessionStorage.setItem(`scroll-${slug}`, window.scrollY)}
               className="group bg-white border border-[#E2E8F0] rounded-[5px] overflow-hidden hover:shadow-lg transition-all"
               data-testid={`post-card-${post.id}`}>
               <div className="aspect-square bg-[#F8FAFC] overflow-hidden">
