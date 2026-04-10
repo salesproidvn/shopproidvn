@@ -1310,7 +1310,7 @@ const StorefrontPage = () => {
 
       {/* Inline Product Edit Modal */}
       <Dialog open={!!editProduct} onOpenChange={(v) => { if (!v) setEditProduct(null); }}>
-        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto" hideClose>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto bg-white" hideClose>
           <DialogHeader>
             <DialogTitle className="text-base font-bold">Sửa sản phẩm</DialogTitle>
             <DialogDescription className="sr-only">Edit product</DialogDescription>
