@@ -26,6 +26,85 @@ import 'react-quill-new/dist/quill.snow.css';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
+const LINK_TYPES = [
+  { value: 'external', label: 'URL', icon: '🔗' },
+  { value: 'page', label: 'Trang', icon: '📄' },
+  { value: 'category', label: 'Danh mục', icon: '📁' },
+  { value: 'post', label: 'Bài viết', icon: '📝' },
+  { value: 'product', label: 'Sản phẩm', icon: '📦' },
+];
+
+const FooterLinkPicker = ({ value, linkType, onChange, shopSlug, categories, products, posts, customPages, testIdPrefix }) => {
+  const [search, setSearch] = useState('');
+  const [open, setOpen] = useState(false);
+  const type = linkType || 'external';
+
+  const getItems = () => {
+    const q = search.toLowerCase();
+    switch (type) {
+      case 'page': return (customPages || []).filter(p => p.title?.toLowerCase().includes(q)).map(p => ({ id: p.id, name: p.title, url: `/shop/${shopSlug}/page/${p.slug || p.id}` }));
+      case 'category': return (categories || []).filter(c => c.name?.toLowerCase().includes(q)).map(c => ({ id: c.id, name: c.name, url: `/shop/${shopSlug}/category/${c.id}` }));
+      case 'post': return (posts || []).filter(p => p.title?.toLowerCase().includes(q)).map(p => ({ id: p.id, name: p.title, url: `/shop/${shopSlug}/posts/${p.id}` }));
+      case 'product': return (products || []).filter(p => p.name?.toLowerCase().includes(q)).map(p => ({ id: p.id, name: p.name, url: `/shop/${shopSlug}?product=${p.id}` }));
+      default: return [];
+    }
+  };
+
+  if (type === 'external') {
+    return (
+      <div className="flex gap-1" data-testid={testIdPrefix}>
+        <div className="flex border border-[#E2E8F0] rounded-md overflow-hidden flex-1">
+          <select value={type} onChange={e => onChange('', e.target.value)} className="text-[10px] bg-[#F8FAFC] border-r border-[#E2E8F0] px-1.5 outline-none text-[#64748B] cursor-pointer" data-testid={`${testIdPrefix}-type`}>
+            {LINK_TYPES.map(lt => <option key={lt.value} value={lt.value}>{lt.icon} {lt.label}</option>)}
+          </select>
+          <input value={value} onChange={e => onChange(e.target.value, 'external')} placeholder="https://..." className="flex-1 text-xs h-7 px-2 outline-none min-w-0" data-testid={`${testIdPrefix}-input`} />
+        </div>
+      </div>
+    );
+  }
+
+  const items = getItems();
+  const selectedItem = items.find(i => i.url === value);
+
+  return (
+    <div className="relative" data-testid={testIdPrefix}>
+      <div className="flex border border-[#E2E8F0] rounded-md overflow-hidden">
+        <select value={type} onChange={e => { onChange('', e.target.value); setSearch(''); }} className="text-[10px] bg-[#F8FAFC] border-r border-[#E2E8F0] px-1.5 outline-none text-[#64748B] cursor-pointer" data-testid={`${testIdPrefix}-type`}>
+          {LINK_TYPES.map(lt => <option key={lt.value} value={lt.value}>{lt.icon} {lt.label}</option>)}
+        </select>
+        <div className="flex-1 relative">
+          <input
+            value={open ? search : (selectedItem?.name || value || '')}
+            onChange={e => { setSearch(e.target.value); if (!open) setOpen(true); }}
+            onFocus={() => setOpen(true)}
+            placeholder={`Tìm ${LINK_TYPES.find(l => l.value === type)?.label?.toLowerCase()}...`}
+            className="w-full text-xs h-7 px-2 outline-none"
+            data-testid={`${testIdPrefix}-search`}
+          />
+          {selectedItem && !open && <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] text-green-600">&#10003;</span>}
+        </div>
+      </div>
+      {open && (
+        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-[#E2E8F0] rounded-md shadow-lg max-h-40 overflow-y-auto" data-testid={`${testIdPrefix}-dropdown`}>
+          {items.length === 0 ? (
+            <div className="px-3 py-2 text-xs text-[#94A3B8]">Không tìm thấy kết quả</div>
+          ) : items.map(item => (
+            <button key={item.id} className={`w-full text-left px-3 py-1.5 text-xs hover:bg-[#F1F5F9] transition-colors flex items-center justify-between ${value === item.url ? 'bg-[#F1F5F9] font-medium' : ''}`}
+              onClick={() => { onChange(item.url, type); setOpen(false); setSearch(''); }}
+              data-testid={`${testIdPrefix}-option-${item.id}`}
+            >
+              <span className="truncate">{item.name}</span>
+              {value === item.url && <span className="text-green-600 text-[10px] ml-2 shrink-0">&#10003;</span>}
+            </button>
+          ))}
+        </div>
+      )}
+      {open && <div className="fixed inset-0 z-40" onClick={() => { setOpen(false); setSearch(''); }} />}
+    </div>
+  );
+};
+
+
 const ShopOwnerDashboard = () => {
   const { user, logout, loading: authLoading } = useAuth();
   const { t, lang, switchLanguage } = useLanguage();
@@ -1472,18 +1551,22 @@ const ShopOwnerDashboard = () => {
                                 className="text-sm h-8"
                                 data-testid={`footer-item-text-${idx}-${itemIdx}`}
                               />
-                              <Input
+                              <FooterLinkPicker
                                 value={item.url || ''}
-                                onChange={(e) => {
+                                linkType={item.link_type || 'external'}
+                                onChange={(url, linkType) => {
                                   const newCols = [...(shopForm.footer_columns || [])];
                                   const newItems = [...(newCols[idx].items || [])];
-                                  newItems[itemIdx] = { ...newItems[itemIdx], url: e.target.value };
+                                  newItems[itemIdx] = { ...newItems[itemIdx], url, link_type: linkType };
                                   newCols[idx] = { ...newCols[idx], items: newItems };
                                   setShopForm({ ...shopForm, footer_columns: newCols });
                                 }}
-                                placeholder={t.footerItemUrl}
-                                className="text-xs h-7 text-[#64748B]"
-                                data-testid={`footer-item-url-${idx}-${itemIdx}`}
+                                shopSlug={shop?.slug}
+                                categories={categories}
+                                products={products}
+                                posts={posts}
+                                customPages={customPages}
+                                testIdPrefix={`footer-item-url-${idx}-${itemIdx}`}
                               />
                             </div>
                             <Button variant="ghost" size="icon" className="h-8 w-8 text-red-400 hover:text-red-600 flex-shrink-0 mt-0" onClick={() => {
