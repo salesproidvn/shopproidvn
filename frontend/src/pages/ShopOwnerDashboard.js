@@ -2031,12 +2031,17 @@ const ShopOwnerDashboard = () => {
       </main>
 
       {/* Product Modal */}
-      <Dialog open={showProductModal} onOpenChange={setShowProductModal}>
-        <DialogContent className="sm:max-w-lg bg-white max-h-[90vh] overflow-y-auto" data-testid="product-modal">
+      <Dialog open={showProductModal} onOpenChange={(v) => { if (!v) return; setShowProductModal(v); }}>
+        <DialogContent className="sm:max-w-lg bg-white max-h-[90vh] overflow-y-auto [&>button[class*='opacity-70']]:hidden" data-testid="product-modal" onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle className="text-lg">{editingProduct ? t.editProduct : t.addProduct}</DialogTitle>
             <DialogDescription className="text-sm">{t.fillProductDetails}</DialogDescription>
           </DialogHeader>
+          <button type="button" onClick={() => setShowProductModal(false)}
+            className="absolute top-3 right-3 w-8 h-8 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-md transition-colors z-10"
+            data-testid="product-modal-close-btn">
+            <X className="w-4 h-4" />
+          </button>
           <form onSubmit={handleSaveProduct} className="space-y-4">
             <div>
               <label className="block text-xs font-medium mb-1">{t.productName} *</label>
