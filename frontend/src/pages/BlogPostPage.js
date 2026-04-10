@@ -111,7 +111,7 @@ const BlogPostPage = () => {
               ))}
             </div>
           )}
-          <div className="prose max-w-none text-[#334155] leading-relaxed mb-8" data-testid="post-detail-content" dangerouslySetInnerHTML={{ __html: selectedPost.description }} />
+          <div className="prose max-w-none text-[#334155] leading-relaxed mb-8 break-words [&_ol]:list-decimal [&_ol]:pl-6 [&_ul]:list-disc [&_ul]:pl-6 [&_img]:max-w-full [&_pre]:overflow-x-auto [&_table]:overflow-x-auto" data-testid="post-detail-content" dangerouslySetInnerHTML={{ __html: selectedPost.description }} />
           {attachedProds.length > 0 && (
             <div className="border-t pt-8" data-testid="post-attached-products">
               <h3 className="text-lg font-bold text-[#0F172A] mb-4">{t.relatedProducts}</h3>

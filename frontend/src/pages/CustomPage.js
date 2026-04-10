@@ -92,7 +92,7 @@ const CustomPage = () => {
           {(page?.sections || []).map((section, idx) => (
             <div key={idx} data-testid={`page-section-${idx}`}>
               {section.type === 'text' && (
-                <div className="prose prose-sm sm:prose max-w-none text-[#334155]" data-testid={`section-text-${idx}`}>
+                <div className="prose prose-sm sm:prose max-w-none text-[#334155] break-words [&_ol]:list-decimal [&_ol]:pl-6 [&_ul]:list-disc [&_ul]:pl-6 [&_img]:max-w-full [&_pre]:overflow-x-auto [&_table]:overflow-x-auto" data-testid={`section-text-${idx}`}>
                   <div dangerouslySetInnerHTML={{ __html: section.content || '' }} />
                 </div>
               )}

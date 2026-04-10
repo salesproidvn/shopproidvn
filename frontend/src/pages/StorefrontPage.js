@@ -149,7 +149,7 @@ const StorefrontPage = () => {
 
   const themeColor = shop?.theme_color || '#0055FF';
 
-  const layoutSections = shop?.layout_sections || [
+  const layoutSections = shop?.layout_sections?.length ? shop.layout_sections : [
     { id: 'banner', enabled: true },
     { id: 'categories', enabled: true },
     { id: 'blog', enabled: true },
