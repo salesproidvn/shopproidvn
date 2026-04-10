@@ -885,9 +885,13 @@ const ShopOwnerDashboard = () => {
     products: Package,
   };
 
+  const VALID_SECTION_IDS = ['banner', 'categories', 'blog', 'featured', 'products'];
   const getLayoutSections = () => {
     const sections = shopForm.layout_sections;
-    return (sections && sections.length > 0) ? sections : [
+    if (sections && sections.length > 0) {
+      return sections.filter(s => VALID_SECTION_IDS.includes(s.id));
+    }
+    return [
       { id: 'banner', label: 'Banner', enabled: true },
       { id: 'categories', label: 'Categories', enabled: true },
       { id: 'blog', label: 'Blog', enabled: true },
