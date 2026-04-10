@@ -51,6 +51,7 @@ const StorefrontPage = () => {
   const [showVideo, setShowVideo] = useState(null); // null = no video, number = index into allVideos array
   const scrollPosRef = useRef(0);
   const productFromUrl = useRef(false);
+  const productFromMegaMenu = useRef(false);
   const [showCategoryMenu, setShowCategoryMenu] = useState(false);
   const [expandedCategories, setExpandedCategories] = useState({});
   const [bannerIndex, setBannerIndex] = useState(0);
@@ -461,6 +462,10 @@ const StorefrontPage = () => {
                   if (productFromUrl.current) {
                     productFromUrl.current = false;
                     navigate(-1);
+                  } else if (productFromMegaMenu.current) {
+                    productFromMegaMenu.current = false;
+                    setSelectedProduct(null); setActiveImage(0); setShowVideo(null);
+                    setMobileMenuOpen(true);
                   } else {
                     const pos = scrollPosRef.current; setSelectedProduct(null); setActiveImage(0); setShowVideo(null); if (searchParams.get('product')) { searchParams.delete('product'); setSearchParams(searchParams, { replace: true }); } setTimeout(() => window.scrollTo(0, pos), 0);
                   }
@@ -783,7 +788,7 @@ const StorefrontPage = () => {
                                   <div
                                     key={p.id}
                                     className="flex-shrink-0 w-24 cursor-pointer"
-                                    onClick={() => { setMobileMenuOpen(false); setMobileExpandedCat(null); scrollPosRef.current = window.scrollY; setSelectedProduct(p); setActiveImage(0); setShowVideo(null); }}
+                                    onClick={() => { setMobileMenuOpen(false); setMobileExpandedCat(null); scrollPosRef.current = window.scrollY; productFromMegaMenu.current = true; setSelectedProduct(p); setActiveImage(0); setShowVideo(null); }}
                                     data-testid={`mobile-mega-prod-${p.id}`}
                                   >
                                     <div className="w-24 h-24 rounded-lg overflow-hidden bg-[#F8FAFC] mb-1">
@@ -903,7 +908,7 @@ const StorefrontPage = () => {
                                 <div
                                   key={p.id}
                                   className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-[#F8FAFC] cursor-pointer transition-colors"
-                                  onClick={() => { scrollPosRef.current = window.scrollY; setSelectedProduct(p); setActiveImage(0); setShowVideo(null); }}
+                                  onClick={() => { scrollPosRef.current = window.scrollY; productFromMegaMenu.current = true; setSelectedProduct(p); setActiveImage(0); setShowVideo(null); }}
                                 >
                                   <img src={p.image_url} alt={p.name} className="w-10 h-10 rounded-md object-cover shrink-0" />
                                   <div className="min-w-0">
