@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import axios from 'axios';
 import { Button } from '../components/ui/button';
 import { Upload, Check, Trash2, Loader2, Image as ImageIcon, X } from 'lucide-react';
@@ -13,7 +14,25 @@ export default function MediaLibrary({ open, onClose, onSelect, multiple = false
   const [selected, setSelected] = useState([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [portalReady, setPortalReady] = useState(false);
   const fileInputRef = useRef(null);
+  const containerRef = useRef(null);
+
+  // Portal: create container outside Radix's reach
+  useEffect(() => {
+    if (open) {
+      const container = document.createElement('div');
+      container.id = 'media-library-portal';
+      document.body.appendChild(container);
+      containerRef.current = container;
+      setPortalReady(true);
+      const interval = setInterval(() => {
+        if (container.hasAttribute('inert')) container.removeAttribute('inert');
+        if (container.hasAttribute('aria-hidden')) container.removeAttribute('aria-hidden');
+      }, 30);
+      return () => { clearInterval(interval); setPortalReady(false); container.remove(); containerRef.current = null; };
+    }
+  }, [open]);
 
   const fetchMedia = useCallback(async (p = 1) => {
     setLoading(true);
@@ -27,8 +46,8 @@ export default function MediaLibrary({ open, onClose, onSelect, multiple = false
   }, []);
 
   useEffect(() => {
-    if (open) { setSelected([]); fetchMedia(1); }
-  }, [open, fetchMedia]);
+    if (open && portalReady) { setSelected([]); fetchMedia(1); }
+  }, [open, portalReady, fetchMedia]);
 
   const handleUpload = async (e) => {
     const files = Array.from(e.target.files || []);
@@ -82,12 +101,17 @@ export default function MediaLibrary({ open, onClose, onSelect, multiple = false
     } catch { toast.error('Lỗi xóa ảnh'); }
   };
 
-  if (!open) return null;
+  if (!open || !portalReady || !containerRef.current) return null;
 
-  return (
-    <div className="fixed inset-0 z-[9999]" data-testid="media-library-overlay">
+  return createPortal(
+    <div className="fixed inset-0" style={{ zIndex: 99999 }} data-testid="media-library-overlay">
       <div className="absolute inset-0 bg-black/60" onClick={onClose} />
-      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[95vw] max-w-4xl max-h-[85vh] bg-white rounded-xl shadow-2xl flex flex-col overflow-hidden" data-testid="media-library-modal">
+      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[95vw] max-w-4xl max-h-[85vh] bg-white rounded-xl shadow-2xl flex flex-col overflow-hidden"
+        style={{ pointerEvents: 'auto' }}
+        onClick={(e) => e.stopPropagation()}
+        onPointerDown={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
+        data-testid="media-library-modal">
         {/* Header */}
         <div className="px-5 pt-4 pb-3 border-b flex items-center justify-between flex-shrink-0">
           <div>
@@ -173,6 +197,7 @@ export default function MediaLibrary({ open, onClose, onSelect, multiple = false
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    containerRef.current
   );
 }
