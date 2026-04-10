@@ -50,6 +50,7 @@ const StorefrontPage = () => {
   const [activeImage, setActiveImage] = useState(0);
   const [showVideo, setShowVideo] = useState(null); // null = no video, number = index into allVideos array
   const scrollPosRef = useRef(0);
+  const productFromUrl = useRef(false);
   const [showCategoryMenu, setShowCategoryMenu] = useState(false);
   const [expandedCategories, setExpandedCategories] = useState({});
   const [bannerIndex, setBannerIndex] = useState(0);
@@ -87,7 +88,7 @@ const StorefrontPage = () => {
     const productParam = searchParams.get('product');
     if (productParam && products.length > 0) {
       const found = products.find(p => p.id === productParam);
-      if (found) { setSelectedProduct(found); setActiveImage(0); setShowVideo(null); }
+      if (found) { productFromUrl.current = true; setSelectedProduct(found); setActiveImage(0); setShowVideo(null); }
     }
     const categoryParam = searchParams.get('category');
     if (categoryParam && categories.length > 0) {
@@ -456,7 +457,14 @@ const StorefrontPage = () => {
         <header className="sticky top-0 z-[60] bg-white/90 backdrop-blur-lg border-b border-[#E2E8F0]">
           <div className="max-w-5xl mx-auto px-4">
             <div className="flex items-center justify-between h-14">
-              <button onClick={() => { const pos = scrollPosRef.current; setSelectedProduct(null); setActiveImage(0); setShowVideo(null); if (searchParams.get('product')) { searchParams.delete('product'); setSearchParams(searchParams, { replace: true }); } setTimeout(() => window.scrollTo(0, pos), 0); }}
+              <button onClick={() => {
+                  if (productFromUrl.current) {
+                    productFromUrl.current = false;
+                    navigate(-1);
+                  } else {
+                    const pos = scrollPosRef.current; setSelectedProduct(null); setActiveImage(0); setShowVideo(null); if (searchParams.get('product')) { searchParams.delete('product'); setSearchParams(searchParams, { replace: true }); } setTimeout(() => window.scrollTo(0, pos), 0);
+                  }
+                }}
                 className="flex items-center gap-2 text-sm text-[#334155] hover:text-[#0F172A] transition-colors"
                 data-testid="product-close-btn">
                 <ArrowLeft className="w-4 h-4" /> {t.back || 'Quay lại'}
