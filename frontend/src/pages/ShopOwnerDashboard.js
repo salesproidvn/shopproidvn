@@ -20,12 +20,46 @@ import {
   Bell, BellOff, Smartphone, Download, Mail, Loader2, Check
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import NotificationBell from '../components/NotificationBell';
 import MediaLibrary from '../components/MediaLibrary';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+
+function SortableLayoutItem({ section, sectionLabels, sectionIcons, themeColor, onToggle }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: section.id });
+  const style = { transform: CSS.Transform.toString(transform), transition, zIndex: isDragging ? 50 : 'auto', opacity: isDragging ? 0.85 : 1 };
+  const IconComp = sectionIcons[section.id] || Package;
+  return (
+    <div ref={setNodeRef} style={style}
+      className={`flex items-center gap-3 p-3 rounded-[5px] border transition-all ${section.enabled ? 'bg-white border-[#E2E8F0]' : 'bg-[#F8FAFC] border-dashed border-[#E2E8F0] opacity-60'} ${isDragging ? 'shadow-lg ring-2 ring-blue-300' : ''}`}
+      data-testid={`layout-section-${section.id}`}>
+      <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing touch-none">
+        <GripVertical className="w-4 h-4 text-[#94A3B8] flex-shrink-0" />
+      </div>
+      <div className="w-8 h-8 rounded-[5px] flex items-center justify-center flex-shrink-0" style={{ backgroundColor: section.enabled ? themeColor + '15' : '#F1F5F9' }}>
+        <IconComp className="w-4 h-4" style={{ color: section.enabled ? themeColor : '#94A3B8' }} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="font-medium text-sm text-[#0F172A]">{sectionLabels[section.id] || section.label}</p>
+      </div>
+      <button onClick={onToggle}
+        className={`w-[68px] h-8 rounded-full transition-all relative overflow-hidden flex-shrink-0 ${section.enabled ? '' : 'bg-[#E2E8F0]'}`}
+        style={section.enabled ? { backgroundColor: themeColor } : {}}
+        data-testid={`toggle-section-${section.id}`}>
+        <span className={`absolute inset-0 flex items-center ${section.enabled ? 'justify-start pl-2.5' : 'justify-end pr-2.5'}`}>
+          <span className="text-[10px] font-bold text-white tracking-wide select-none">{section.enabled ? 'BẬT' : ''}</span>
+          <span className="text-[10px] font-bold text-[#94A3B8] tracking-wide select-none">{!section.enabled ? 'TẮT' : ''}</span>
+        </span>
+        <span className={`absolute top-[3px] w-[26px] h-[26px] bg-white rounded-full shadow-md transition-transform ${section.enabled ? 'translate-x-[38px]' : 'translate-x-[3px]'}`} />
+      </button>
+    </div>
+  );
+}
 
 const LINK_TYPES = [
   { value: 'external', label: 'URL', icon: '🔗' },
@@ -884,6 +918,23 @@ const ShopOwnerDashboard = () => {
     } catch { toast.error(t.failedToSave); }
   };
 
+  const dndSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+
+  const handleLayoutDragEnd = async (event) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const sections = getLayoutSections();
+    const oldIndex = sections.findIndex(s => s.id === active.id);
+    const newIndex = sections.findIndex(s => s.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+    const reordered = arrayMove(sections, oldIndex, newIndex);
+    setShopForm({ ...shopForm, layout_sections: reordered });
+    try {
+      await axios.put(`${API}/dashboard/shop`, { layout_sections: reordered });
+      toast.success(t.shopUpdated);
+    } catch { toast.error(t.failedToSave); }
+  };
+
   const menuItems = [
     { id: 'overview', label: t.overview, icon: LayoutDashboard },
     { id: 'products', label: t.products, icon: Package },
@@ -1716,48 +1767,17 @@ const ShopOwnerDashboard = () => {
           {activeTab === 'layout' && (
             <div className="space-y-6">
               <Card className="border-0 shadow-sm">
-                <CardHeader className="p-4">
-                  <CardTitle className="text-base flex items-center gap-2"><LayoutGrid className="w-4 h-4" /> {t.displayLayout}</CardTitle>
-                  <p className="text-sm text-[#64748B] mt-1">{t.layoutDescription}</p>
-                </CardHeader>
-                <CardContent className="p-4 pt-0">
-                  <div className="space-y-2" data-testid="layout-sections">
-                    {getLayoutSections().map((section, idx) => {
-                      const IconComp = sectionIcons[section.id] || Package;
-                      return (
-                        <div key={section.id} className={`flex items-center gap-3 p-3 rounded-[5px] border transition-all ${section.enabled ? 'bg-white border-[#E2E8F0]' : 'bg-[#F8FAFC] border-dashed border-[#E2E8F0] opacity-60'}`} data-testid={`layout-section-${section.id}`}>
-                          <GripVertical className="w-4 h-4 text-[#94A3B8] flex-shrink-0" />
-                          <div className="w-8 h-8 rounded-[5px] flex items-center justify-center flex-shrink-0" style={{ backgroundColor: section.enabled ? themeColor + '15' : '#F1F5F9' }}>
-                            <IconComp className="w-4 h-4" style={{ color: section.enabled ? themeColor : '#94A3B8' }} />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-sm text-[#0F172A]">{sectionLabels[section.id] || section.label}</p>
-                            <p className="text-[10px] text-[#94A3B8]">{t.position}: {idx + 1}</p>
-                          </div>
-                          <div className="flex items-center gap-2 flex-shrink-0">
-                            <div className="flex flex-col gap-0.5">
-                              <Button variant="ghost" size="icon" className="w-6 h-6" disabled={idx === 0} onClick={() => moveSection(idx, 'up')} data-testid={`move-up-${section.id}`}>
-                                <ChevronUp className="w-3 h-3" />
-                              </Button>
-                              <Button variant="ghost" size="icon" className="w-6 h-6" disabled={idx === getLayoutSections().length - 1} onClick={() => moveSection(idx, 'down')} data-testid={`move-down-${section.id}`}>
-                                <ChevronDown className="w-3 h-3" />
-                              </Button>
-                            </div>
-                            <button onClick={() => toggleSection(idx)}
-                              className={`w-[68px] h-8 rounded-full transition-all relative overflow-hidden ${section.enabled ? '' : 'bg-[#E2E8F0]'}`}
-                              style={section.enabled ? { backgroundColor: themeColor } : {}}
-                              data-testid={`toggle-section-${section.id}`}>
-                              <span className={`absolute inset-0 flex items-center ${section.enabled ? 'justify-start pl-2.5' : 'justify-end pr-2.5'}`}>
-                                <span className="text-[10px] font-bold text-white tracking-wide select-none">{section.enabled ? 'BẬT' : ''}</span>
-                                <span className="text-[10px] font-bold text-[#94A3B8] tracking-wide select-none">{!section.enabled ? 'TẮT' : ''}</span>
-                              </span>
-                              <span className={`absolute top-[3px] w-[26px] h-[26px] bg-white rounded-full shadow-md transition-transform ${section.enabled ? 'translate-x-[38px]' : 'translate-x-[3px]'}`} />
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+                <CardContent className="p-4">
+                  <DndContext sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={handleLayoutDragEnd}>
+                    <SortableContext items={getLayoutSections().map(s => s.id)} strategy={verticalListSortingStrategy}>
+                      <div className="space-y-2" data-testid="layout-sections">
+                        {getLayoutSections().map((section, idx) => (
+                          <SortableLayoutItem key={section.id} section={section} sectionLabels={sectionLabels} sectionIcons={sectionIcons} themeColor={themeColor}
+                            onToggle={() => toggleSection(idx)} />
+                        ))}
+                      </div>
+                    </SortableContext>
+                  </DndContext>
                 </CardContent>
               </Card>
 
