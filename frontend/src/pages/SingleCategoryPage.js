@@ -220,39 +220,44 @@ const SingleCategoryPage = () => {
               </div>
             </div>
           </header>
-          <div className="max-w-5xl mx-auto px-4 py-8">
-            <div className="grid md:grid-cols-2 gap-8">
-              <div className="flex flex-col">
-                <div className="aspect-square bg-[#F8FAFC] relative overflow-hidden">
+          <div className="max-w-5xl mx-auto px-3 sm:px-4 py-4 sm:py-8">
+            <div className="flex flex-col md:grid md:grid-cols-2 gap-4 sm:gap-8">
+              <div className="flex flex-col w-full">
+                <div className="aspect-square bg-[#F8FAFC] relative overflow-hidden rounded-lg">
                   {(() => {
                     const imgs = selectedProduct.images?.length > 0 ? selectedProduct.images : [selectedProduct.image_url];
-                    return <img src={imgs[activeImage]} alt={selectedProduct.name} className="w-full h-full object-cover" />;
+                    return (
+                      <>
+                        <div className="hidden">{imgs.map((img, idx) => idx !== activeImage && <img key={idx} src={img} alt="" />)}</div>
+                        <img src={imgs[activeImage]} alt={selectedProduct.name} className="w-full h-full object-contain" loading="eager" />
+                      </>
+                    );
                   })()}
                 </div>
                 {(() => {
                   const imgs = selectedProduct.images?.length > 0 ? selectedProduct.images : [selectedProduct.image_url];
                   if (imgs.length <= 1) return null;
                   return (
-                    <div className="flex gap-2 mt-3 overflow-x-auto">
+                    <div className="flex gap-1.5 sm:gap-2 mt-2 sm:mt-3 overflow-x-auto pb-1 scrollbar-hide">
                       {imgs.map((img, idx) => (
                         <button key={idx} onClick={() => setActiveImage(idx)}
-                          className={`w-16 h-16 rounded overflow-hidden flex-shrink-0 border-2 transition-all ${activeImage === idx ? 'ring-1' : 'border-transparent hover:border-[#E2E8F0]'}`}
+                          className={`w-14 h-14 sm:w-16 sm:h-16 rounded overflow-hidden flex-shrink-0 border-2 transition-all ${activeImage === idx ? 'ring-1' : 'border-transparent hover:border-[#E2E8F0]'}`}
                           style={activeImage === idx ? { borderColor: themeColor, '--tw-ring-color': themeColor } : {}}>
-                          <img src={img} alt="" className="w-full h-full object-cover" />
+                          <img src={img} alt="" className="w-full h-full object-cover" loading="eager" />
                         </button>
                       ))}
                     </div>
                   );
                 })()}
               </div>
-              <div className="flex flex-col">
-                <h1 className="text-2xl sm:text-3xl font-bold text-[#0F172A] mb-3">{selectedProduct.name}</h1>
-                <p className="text-3xl font-bold mb-2" style={{ color: themeColor }}>{formatVND(selectedProduct.price)}</p>
+              <div className="flex flex-col min-w-0 overflow-hidden w-full">
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-[#0F172A] mb-2 sm:mb-3 break-words">{selectedProduct.name}</h1>
+                <p className="text-2xl sm:text-3xl font-bold mb-2" style={{ color: themeColor }}>{formatVND(selectedProduct.price)}</p>
                 {selectedProduct.sku && <p className="text-xs text-[#94A3B8] mb-2">SKU: {selectedProduct.sku}</p>}
                 {category && <p className="text-sm text-[#94A3B8] mb-4">{category.name}</p>}
-                {selectedProduct.description && <div className="text-[#64748B] leading-relaxed mb-6 prose prose-sm max-w-none break-words overflow-hidden [&_img]:max-w-full [&_pre]:overflow-x-auto [&_ol]:list-decimal [&_ol]:pl-6 [&_ul]:list-disc [&_ul]:pl-6" dangerouslySetInnerHTML={{ __html: selectedProduct.description }} />}
-                <div className="flex gap-3 mt-auto">
-                  <Button className="flex-1 hover:opacity-90 py-6 text-base rounded-[5px]"
+                {selectedProduct.description && <div className="text-[#64748B] text-sm sm:text-base leading-relaxed mb-4 sm:mb-6 prose prose-sm max-w-none break-words overflow-hidden [&_img]:max-w-full [&_pre]:overflow-x-auto [&_ol]:list-decimal [&_ol]:pl-6 [&_ul]:list-disc [&_ul]:pl-6" dangerouslySetInnerHTML={{ __html: selectedProduct.description }} />}
+                <div className="flex gap-2 sm:gap-3 mt-auto">
+                  <Button className="flex-1 hover:opacity-90 py-4 sm:py-6 text-sm sm:text-base rounded-[5px]"
                     style={{ backgroundColor: themeColor }}
                     onClick={() => { handleAddToCart(selectedProduct); }}
                     data-testid="cat-product-add-cart">
