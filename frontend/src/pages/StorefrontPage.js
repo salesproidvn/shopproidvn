@@ -488,12 +488,12 @@ const StorefrontPage = () => {
                 );
               })()}
             </div>
-            <div className="flex flex-col">
-              <h1 className="text-2xl sm:text-3xl font-bold text-[#0F172A] mb-3" data-testid="product-name">{selectedProduct.name}</h1>
+            <div className="flex flex-col min-w-0 overflow-hidden">
+              <h1 className="text-2xl sm:text-3xl font-bold text-[#0F172A] mb-3 break-words" data-testid="product-name">{selectedProduct.name}</h1>
               <p className="text-3xl font-bold mb-2" style={{ color: themeColor }} data-testid="product-price">{formatVND(selectedProduct.price)}</p>
               {selectedProduct.sku && <p className="text-xs text-[#94A3B8] mb-2" data-testid="product-sku">SKU: {selectedProduct.sku}</p>}
               {selectedProduct.category && <p className="text-sm text-[#94A3B8] mb-4">{selectedProduct.category}</p>}
-              {selectedProduct.description && <div className="text-[#64748B] leading-relaxed mb-6 prose prose-sm max-w-none" data-testid="product-description" dangerouslySetInnerHTML={{ __html: selectedProduct.description }} />}
+              {selectedProduct.description && <div className="text-[#64748B] leading-relaxed mb-6 prose prose-sm max-w-none break-words overflow-hidden [&_*]:break-words [&_*]:overflow-hidden [&_img]:max-w-full [&_pre]:overflow-x-auto [&_table]:overflow-x-auto" data-testid="product-description" dangerouslySetInnerHTML={{ __html: selectedProduct.description }} />}
               <div className="flex gap-3 mt-auto">
                 <Button className="flex-1 hover:opacity-90 py-6 text-base rounded-[5px]"
                   style={{ backgroundColor: themeColor }}

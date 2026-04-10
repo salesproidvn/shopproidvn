@@ -1,7 +1,7 @@
 # PRD: Micro-SaaS E-commerce Platform (The Wi Shop / Ocean Pro Web)
 
 ## Problem Statement
-Multi-tenant e-commerce platform with Super Admin, Shop Owner, and public Storefront views. Originally built as a standalone mocked frontend, now migrated to a full-stack production app with FastAPI backend, MongoDB database, and Emergent Object Storage for images.
+Multi-tenant e-commerce platform with Super Admin, Shop Owner, and public Storefront views. Originally built as a standalone mocked frontend, now migrated to a full-stack production app with FastAPI backend, MongoDB database, and Cloudflare R2 for images.
 
 ## User Personas
 - **Super Admin** (daominhhai129@gmail.com): Manages all shops, users, maintenance
@@ -12,8 +12,9 @@ Multi-tenant e-commerce platform with Super Admin, Shop Owner, and public Storef
 - **Frontend**: React + Tailwind CSS + Shadcn UI, served on port 3000
 - **Backend**: FastAPI (Python), served on port 8001, proxied via /api prefix
 - **Database**: MongoDB Atlas (proidshopvn)
-- **Storage**: Emergent Object Storage for image uploads
+- **Storage**: Cloudflare R2 via boto3 for image uploads
 - **Auth**: JWT Bearer tokens via localStorage
+- **Notifications**: PyWebPush (VAPID) + Resend (emails)
 
 ## Core Features (Implemented)
 - [x] JWT Authentication (login, register, logout, /auth/me)
@@ -22,20 +23,23 @@ Multi-tenant e-commerce platform with Super Admin, Shop Owner, and public Storef
 - [x] Super Admin Dashboard (stats, shops, users, maintenance, settings)
 - [x] Shop Owner Dashboard (products, categories, orders, posts, pages, menu, mega-menu, banners, footer, layout, theme)
 - [x] Public Storefront (shop info, products, categories, posts, custom pages, contact form, order placement)
-- [x] Image Upload with auto-compression to ≤300KB via Pillow (resize + quality reduction)
-- [x] Cloudflare R2 Storage via boto3 (S3-compatible) for all image uploads
-- [x] Database Seeding (3 shops: The Elite Shop, Green Living, Cho Xanh 365)
-- [x] Login page without hardcoded credentials
-- [x] "Forgot Password" link on login page
-- [x] Super Admin can view any shop's dashboard via ?shop_id= query parameter
-- [x] Super Admin can change own password via Settings tab
-- [x] Shop limits management (max_products, max_posts)
-- [x] Server maintenance module (cleanup old orders, orphaned images)
-- [x] PWA Support (manifest.json, service worker, installable to home screen)
-- [x] Push Notifications for new orders (shop owner opt-in via Settings toggle)
-- [x] Email Notifications for new orders via Resend (shop owner opt-in, sends order details to shop contact email)
-- [x] PWA Install prompt + manual install instructions (Android/Chrome, iPhone/Safari)
-- [x] Mobile Mega Menu (full-screen overlay with expandable categories, subcategory chips, product previews, contact info)
+- [x] Image Upload with auto-compression to <=300KB via Pillow
+- [x] Cloudflare R2 Storage via boto3 (S3-compatible)
+- [x] Database Seeding (3 shops)
+- [x] PWA Support (manifest.json, service worker, installable)
+- [x] Push Notifications for new orders (pywebpush/VAPID)
+- [x] Email Notifications for new orders via Resend
+- [x] Mobile Mega Menu (full-screen overlay)
+- [x] Expanded theme color picker (24 options + custom hex)
+- [x] Product SKU in grids, inline category creation, category image upload
+- [x] Product description text overflow fix (break-words, overflow-hidden for HTML content with &nbsp;)
+
+## Upcoming Tasks
+- [ ] P1: Add sales analytics charts to dashboards
+
+## Future/Backlog Tasks
+- [ ] P1: Refactor ShopOwnerDashboard.js (2400+ lines) into smaller components
+- [ ] P1: Refactor StorefrontPage.js (1100+ lines) into smaller components
 
 ## API Endpoints
 ### Auth
@@ -49,34 +53,14 @@ Multi-tenant e-commerce platform with Super Admin, Shop Owner, and public Storef
 ### Super Admin
 - GET /api/admin/stats
 - GET /api/admin/shops
-- GET /api/admin/users
-- POST /api/admin/users (create shop owner)
-- POST /api/admin/users/{id}/block
-- DELETE /api/admin/users/{id}
-- POST /api/admin/users/{id}/reset-password
-- POST /api/admin/shops/{id}/status
-- POST /api/admin/shops/{id}/expiry
-- PUT /api/admin/shops/{id}/limits
-- GET /api/admin/maintenance/preview
-- POST /api/admin/maintenance/cleanup-orders
-- POST /api/admin/maintenance/cleanup-images
+- POST /api/admin/shops/{shop_id}/status
+- POST /api/admin/shops/{shop_id}/expiry
+- PUT /api/admin/shops/{shop_id}/limits
 
-### Shop Owner Dashboard
-- GET/PUT /api/dashboard/shop
-- GET /api/dashboard/stats
-- GET/POST /api/dashboard/products
-- PUT/DELETE /api/dashboard/products/{id}
-- GET/POST /api/dashboard/categories
-- PUT/DELETE /api/dashboard/categories/{id}
-- PUT /api/dashboard/categories/positions
-- GET /api/dashboard/orders
-- PUT /api/dashboard/orders/{id}/status
-- GET/POST /api/dashboard/posts
-- PUT/DELETE /api/dashboard/posts/{id}
-- GET/POST /api/dashboard/pages
-- PUT/DELETE /api/dashboard/pages/{id}
-- GET/PUT /api/dashboard/menu
-- GET/PUT /api/dashboard/mega-menu
+### Dashboard (Shop Owner)
+- GET /api/dashboard/shop
+- PUT /api/dashboard/shop
+- CRUD for products, categories, orders, posts, pages, menu, banners, footer, etc.
 
 ### Public Storefront
 - GET /api/shop/{slug}
@@ -87,13 +71,12 @@ Multi-tenant e-commerce platform with Super Admin, Shop Owner, and public Storef
 - POST /api/shop/{slug}/orders
 - POST /api/shop/{slug}/contact
 
-### Other
-- POST /api/upload/image
-- GET /api/files/{id}
-- GET /api/products
-- GET /api/categories
+### Upload
+- POST /api/upload (R2 image upload with compression)
 
-## Backlog
-- P1: Sales analytics charts for dashboards
-- P1: Refactor ShopOwnerDashboard.js (~2200 lines) into smaller components
-- P1: Refactor StorefrontPage.js (~1000 lines) into smaller components
+## Key Files
+- `/app/backend/server.py` - Core backend
+- `/app/frontend/src/pages/StorefrontPage.js` - Public storefront
+- `/app/frontend/src/pages/ShopOwnerDashboard.js` - Shop owner dashboard
+- `/app/frontend/src/pages/SuperAdminDashboard.js` - Super admin
+- `/app/frontend/src/pages/LoginPage.js` - Login page
