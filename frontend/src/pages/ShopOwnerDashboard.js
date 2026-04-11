@@ -61,18 +61,22 @@ function SortableLayoutItem({ section, sectionLabels, sectionIcons, themeColor, 
   );
 }
 
-function SortableCategoryItem({ cat, idx, themeColor }) {
+function SortableCategoryItem({ cat, idx, themeColor, parentName }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: cat.id });
   const style = { transform: CSS.Transform.toString(transform), transition, zIndex: isDragging ? 50 : 'auto', opacity: isDragging ? 0.85 : 1 };
+  const isSub = !!cat.parent_id;
   return (
     <div ref={setNodeRef} style={style}
-      className={`flex items-center gap-3 p-3 bg-[#F8FAFC] rounded-lg ${isDragging ? 'shadow-lg ring-2 ring-blue-300' : ''}`}
+      className={`flex items-center gap-3 p-3 rounded-lg ${isSub ? 'ml-6 bg-white border border-dashed border-[#E2E8F0]' : 'bg-[#F8FAFC]'} ${isDragging ? 'shadow-lg ring-2 ring-blue-300' : ''}`}
       data-testid={`cat-position-${cat.id}`}>
       <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing touch-none">
         <GripVertical className="w-4 h-4 text-[#94A3B8] flex-shrink-0" />
       </div>
       <span className="w-8 h-8 bg-white rounded-lg flex items-center justify-center font-bold text-sm border" style={{ color: themeColor }}>{idx + 1}</span>
-      <span className="flex-1 font-medium text-sm text-[#0F172A]">{cat.name}</span>
+      <div className="flex-1 min-w-0">
+        <span className="font-medium text-sm text-[#0F172A]">{cat.name}</span>
+        {isSub && <span className="ml-2 text-[10px] px-1.5 py-0.5 bg-[#F1F5F9] text-[#64748B] rounded font-medium">{parentName ? `↳ ${parentName}` : '↳ danh mục con'}</span>}
+      </div>
     </div>
   );
 }
@@ -1334,7 +1338,7 @@ const ShopOwnerDashboard = () => {
                       <SortableContext items={[...categories].sort((a, b) => (a.position || 0) - (b.position || 0)).map(c => c.id)} strategy={verticalListSortingStrategy}>
                         <div className="space-y-2" data-testid="category-position-list">
                           {[...categories].sort((a, b) => (a.position || 0) - (b.position || 0)).map((cat, idx) => (
-                            <SortableCategoryItem key={cat.id} cat={cat} idx={idx} themeColor={themeColor} />
+                            <SortableCategoryItem key={cat.id} cat={cat} idx={idx} themeColor={themeColor} parentName={cat.parent_id ? (categories.find(c => c.id === cat.parent_id)?.name || '') : ''} />
                           ))}
                         </div>
                       </SortableContext>
