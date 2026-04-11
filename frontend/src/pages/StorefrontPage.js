@@ -1108,20 +1108,20 @@ const StorefrontPage = () => {
       </footer>
 
       {/* Bottom Contact Bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 shadow-[0_-4px_20px_rgba(0,0,0,0.12)]" style={{ backgroundColor: themeColor }} data-testid="bottom-bar">
-        <div className="max-w-7xl mx-auto grid grid-cols-4 h-16">
+      <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 shadow-[0_4px_24px_rgba(0,0,0,0.18)] rounded-full px-2 sm:px-1" style={{ backgroundColor: themeColor }} data-testid="bottom-bar">
+        <div className="flex items-center h-12 sm:h-11 gap-1 sm:gap-0">
           {shop.contact_phone ? (
-            <a href={`tel:${shop.contact_phone}`} className="flex flex-col items-center justify-center gap-1 text-white/80 hover:text-white active:bg-white/10 transition-colors" data-testid="bottom-call">
-              <Phone className="w-5 h-5" />
-              <span className="text-xs font-bold">{t.call}</span>
+            <a href={`tel:${shop.contact_phone}`} className="flex flex-col sm:flex-row items-center justify-center gap-0.5 text-white/80 hover:text-white active:bg-white/10 transition-colors px-5 sm:px-4 rounded-full h-full" data-testid="bottom-call">
+              <Phone className="w-5 h-5 sm:w-4 sm:h-4" />
+              <span className="text-[10px] font-bold sm:hidden">{t.call}</span>
             </a>
-          ) : <div />}
+          ) : null}
           {shop.contact_phone ? (
-            <a href={`https://zalo.me/${shop.contact_phone.replace(/\s/g, '')}`} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center justify-center gap-1 text-white/80 hover:text-white active:bg-white/10 transition-colors" data-testid="bottom-message">
-              <MessageCircle className="w-5 h-5" />
-              <span className="text-xs font-bold">{t.message}</span>
+            <a href={`https://zalo.me/${shop.contact_phone.replace(/\s/g, '')}`} target="_blank" rel="noopener noreferrer" className="flex flex-col sm:flex-row items-center justify-center gap-0.5 text-white/80 hover:text-white active:bg-white/10 transition-colors px-5 sm:px-4 rounded-full h-full" data-testid="bottom-message">
+              <MessageCircle className="w-5 h-5 sm:w-4 sm:h-4" />
+              <span className="text-[10px] font-bold sm:hidden">{t.message}</span>
             </a>
-          ) : <div />}
+          ) : null}
           <button onClick={() => {
             const stripHtml = (html) => html ? html.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/\n/g, ' ').trim() : '';
             const escapeLine = (s) => s ? s.replace(/\n/g, '\\n').replace(/,/g, '\\,').replace(/;/g, '\\;') : '';
@@ -1159,13 +1159,13 @@ const StorefrontPage = () => {
             const a = document.createElement('a');
             a.href = blobUrl; a.download = `${shop.name || 'contact'}.vcf`;
             a.click(); URL.revokeObjectURL(blobUrl);
-          }} className="flex flex-col items-center justify-center gap-1 text-white/80 hover:text-white active:bg-white/10 transition-colors" data-testid="bottom-save-contact">
-            <Download className="w-5 h-5" />
-            <span className="text-xs font-bold">{t.saveContact || 'Lưu liên hệ'}</span>
+          }} className="flex flex-col sm:flex-row items-center justify-center gap-0.5 text-white/80 hover:text-white active:bg-white/10 transition-colors px-5 sm:px-4 rounded-full h-full" data-testid="bottom-save-contact">
+            <Download className="w-5 h-5 sm:w-4 sm:h-4" />
+            <span className="text-[10px] font-bold sm:hidden">{t.saveContact || 'Lưu liên hệ'}</span>
           </button>
-          <button onClick={() => setShowCategoryMenu(!showCategoryMenu)} className="flex flex-col items-center justify-center gap-1 text-white/80 hover:text-white active:bg-white/10 transition-colors relative" data-testid="bottom-categories">
-            <Grid3X3 className="w-5 h-5" />
-            <span className="text-xs font-bold">{t.productCategories}</span>
+          <button onClick={() => setShowCategoryMenu(!showCategoryMenu)} className="flex flex-col sm:flex-row items-center justify-center gap-0.5 text-white/80 hover:text-white active:bg-white/10 transition-colors px-5 sm:px-4 rounded-full h-full relative" data-testid="bottom-categories">
+            <Grid3X3 className="w-5 h-5 sm:w-4 sm:h-4" />
+            <span className="text-[10px] font-bold sm:hidden">Danh mục</span>
           </button>
         </div>
       </div>
@@ -1174,7 +1174,7 @@ const StorefrontPage = () => {
       {showCategoryMenu && (
         <>
           <div className="fixed inset-0 z-[41]" onClick={() => setShowCategoryMenu(false)} />
-          <div className="fixed bottom-[68px] left-0 right-0 z-[42] bg-white border-t border-[#E2E8F0] shadow-xl p-4 max-h-64 overflow-y-auto" data-testid="category-menu-popup">
+          <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[42] bg-white border border-[#E2E8F0] rounded-xl shadow-xl p-4 max-h-64 overflow-y-auto w-[90vw] max-w-md" data-testid="category-menu-popup">
             <div className="max-w-7xl mx-auto grid grid-cols-2 sm:grid-cols-3 gap-2">
               {categories.map(cat => (
                 <Link key={cat.id} to={`/shop/${slug}/category/${cat.parent_id || cat.id}`} className="text-left p-3 bg-[#F8FAFC] hover:bg-[#EFF6FF] rounded-lg transition-colors text-sm font-medium text-[#0F172A]" data-testid={`cat-menu-${cat.id}`}>
