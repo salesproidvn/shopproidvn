@@ -61,6 +61,22 @@ function SortableLayoutItem({ section, sectionLabels, sectionIcons, themeColor, 
   );
 }
 
+function SortableCategoryItem({ cat, idx, themeColor }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: cat.id });
+  const style = { transform: CSS.Transform.toString(transform), transition, zIndex: isDragging ? 50 : 'auto', opacity: isDragging ? 0.85 : 1 };
+  return (
+    <div ref={setNodeRef} style={style}
+      className={`flex items-center gap-3 p-3 bg-[#F8FAFC] rounded-lg ${isDragging ? 'shadow-lg ring-2 ring-blue-300' : ''}`}
+      data-testid={`cat-position-${cat.id}`}>
+      <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing touch-none">
+        <GripVertical className="w-4 h-4 text-[#94A3B8] flex-shrink-0" />
+      </div>
+      <span className="w-8 h-8 bg-white rounded-lg flex items-center justify-center font-bold text-sm border" style={{ color: themeColor }}>{idx + 1}</span>
+      <span className="flex-1 font-medium text-sm text-[#0F172A]">{cat.name}</span>
+    </div>
+  );
+}
+
 const LINK_TYPES = [
   { value: 'external', label: 'URL', icon: '🔗' },
   { value: 'page', label: 'Trang', icon: '📄' },
@@ -736,6 +752,23 @@ const ShopOwnerDashboard = () => {
     }
   };
 
+  const handleCategoryDragEnd = async (event) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const sorted = [...categories].sort((a, b) => (a.position || 0) - (b.position || 0));
+    const oldIndex = sorted.findIndex(c => c.id === active.id);
+    const newIndex = sorted.findIndex(c => c.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+    const reordered = arrayMove(sorted, oldIndex, newIndex).map((c, i) => ({ ...c, position: i }));
+    try {
+      await axios.put(`${API}/dashboard/categories/positions`, {
+        positions: reordered.map(c => ({ id: c.id, position: c.position }))
+      });
+      toast.success(t.positionSaved);
+      fetchDataKeepScroll();
+    } catch { toast.error(t.failedToUpdate); }
+  };
+
   // Post methods
   const countWords = (html) => {
     const text = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
@@ -1297,24 +1330,15 @@ const ShopOwnerDashboard = () => {
                     <CardTitle className="text-base">{t.manageCategoryPositions}</CardTitle>
                   </CardHeader>
                   <CardContent className="p-4 pt-0">
-                    <div className="space-y-2" data-testid="category-position-list">
-                      {[...categories].sort((a, b) => (a.position || 0) - (b.position || 0)).map((cat, idx) => (
-                        <div key={cat.id} className="flex items-center gap-3 p-3 bg-[#F8FAFC] rounded-lg" data-testid={`cat-position-${cat.id}`}>
-                          <span className="w-8 h-8 bg-white rounded-lg flex items-center justify-center font-bold text-sm text-[#0055FF] border">{idx + 1}</span>
-                          <span className="flex-1 font-medium text-sm text-[#0F172A]">{cat.name}</span>
-                          <div className="flex gap-1">
-                            <Button variant="outline" size="icon" className="h-8 w-8" disabled={idx === 0}
-                              onClick={() => handleMoveCategoryPosition(cat.id, 'up')} data-testid={`cat-move-up-${cat.id}`}>
-                              <ChevronUp className="w-4 h-4" />
-                            </Button>
-                            <Button variant="outline" size="icon" className="h-8 w-8" disabled={idx === categories.length - 1}
-                              onClick={() => handleMoveCategoryPosition(cat.id, 'down')} data-testid={`cat-move-down-${cat.id}`}>
-                              <ChevronDown className="w-4 h-4" />
-                            </Button>
-                          </div>
+                    <DndContext sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={handleCategoryDragEnd}>
+                      <SortableContext items={[...categories].sort((a, b) => (a.position || 0) - (b.position || 0)).map(c => c.id)} strategy={verticalListSortingStrategy}>
+                        <div className="space-y-2" data-testid="category-position-list">
+                          {[...categories].sort((a, b) => (a.position || 0) - (b.position || 0)).map((cat, idx) => (
+                            <SortableCategoryItem key={cat.id} cat={cat} idx={idx} themeColor={themeColor} />
+                          ))}
                         </div>
-                      ))}
-                    </div>
+                      </SortableContext>
+                    </DndContext>
                   </CardContent>
                 </Card>
               )}
