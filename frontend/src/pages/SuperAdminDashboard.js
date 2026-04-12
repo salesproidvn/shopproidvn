@@ -8,9 +8,10 @@ import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Input } from '../components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '../components/ui/dropdown-menu';
 import { 
   LayoutDashboard, Store, Users, ShoppingCart, 
-  LogOut, Menu, X, TrendingUp, CalendarClock, Eye, Phone, Mail, Globe, Wrench, Trash2, Image, AlertTriangle, CheckCircle2, Settings, Lock, Copy
+  LogOut, Menu, X, TrendingUp, CalendarClock, Eye, Phone, Mail, Globe, Wrench, Trash2, Image, AlertTriangle, CheckCircle2, Settings, Lock, Copy, MoreHorizontal
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -480,37 +481,46 @@ const SuperAdminDashboard = () => {
                             </td>
                             <td className="py-3 px-4">
                               {u.role !== 'super_admin' && (
-                                <div className="flex gap-2 flex-wrap">
-                                  <Button variant="outline" size="sm" onClick={async () => {
-                                    const info = `Tên: ${u.name}\nEmail: ${u.email}\nMật khẩu: iLoveProID@`;
-                                    try {
-                                      await navigator.clipboard.writeText(info);
-                                      toast.success('Đã copy thông tin đăng nhập');
-                                    } catch {
-                                      const ta = document.createElement('textarea');
-                                      ta.value = info; ta.style.position = 'fixed'; ta.style.opacity = '0';
-                                      document.body.appendChild(ta); ta.select(); document.execCommand('copy');
-                                      document.body.removeChild(ta);
-                                      toast.success('Đã copy thông tin đăng nhập');
-                                    }
-                                  }} data-testid={`copy-login-${u.id}`} title="Copy login info">
-                                    <Copy className="w-3.5 h-3.5" />
-                                  </Button>
-                                  {u.shop_slug && (
-                                    <Button variant="outline" size="sm" onClick={() => window.open(`/shop/${u.shop_slug}`, '_blank')} data-testid={`view-shop-${u.id}`}>
-                                      <Eye className="w-3.5 h-3.5 mr-1" /> Xem cửa hàng
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="outline" size="sm" data-testid={`user-actions-${u.id}`}>
+                                      <MoreHorizontal className="w-4 h-4" />
                                     </Button>
-                                  )}
-                                  <Button variant="outline" size="sm" onClick={() => handleBlockUser(u.id)} data-testid={`block-user-${u.id}`}>
-                                    {u.status === 'blocked' ? t.unblock : t.block}
-                                  </Button>
-                                  <Button variant="secondary" size="sm" onClick={() => handleResetPassword(u.id)} data-testid={`reset-pwd-${u.id}`}>
-                                    {t.resetPwd}
-                                  </Button>
-                                  <Button variant="destructive" size="sm" onClick={() => handleDeleteUser(u.id)} data-testid={`delete-user-${u.id}`}>
-                                    {t.delete}
-                                  </Button>
-                                </div>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" className="bg-white w-48">
+                                    <DropdownMenuItem onClick={async () => {
+                                      const info = `Tên: ${u.name}\nEmail: ${u.email}\nMật khẩu: iLoveProID@`;
+                                      try {
+                                        await navigator.clipboard.writeText(info);
+                                        toast.success('Đã copy thông tin đăng nhập');
+                                      } catch {
+                                        const ta = document.createElement('textarea');
+                                        ta.value = info; ta.style.position = 'fixed'; ta.style.opacity = '0';
+                                        document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+                                        document.body.removeChild(ta);
+                                        toast.success('Đã copy thông tin đăng nhập');
+                                      }
+                                    }} data-testid={`copy-login-${u.id}`} className="cursor-pointer">
+                                      <Copy className="w-4 h-4 mr-2" /> Copy đăng nhập
+                                    </DropdownMenuItem>
+                                    {u.shop_slug && (
+                                      <DropdownMenuItem onClick={() => window.open(`/shop/${u.shop_slug}`, '_blank')} data-testid={`view-shop-${u.id}`} className="cursor-pointer">
+                                        <Eye className="w-4 h-4 mr-2" /> Xem cửa hàng
+                                      </DropdownMenuItem>
+                                    )}
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem onClick={() => handleBlockUser(u.id)} data-testid={`block-user-${u.id}`} className="cursor-pointer">
+                                      <Lock className="w-4 h-4 mr-2" /> {u.status === 'blocked' ? t.unblock : t.block}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleResetPassword(u.id)} data-testid={`reset-pwd-${u.id}`} className="cursor-pointer">
+                                      <Settings className="w-4 h-4 mr-2" /> {t.resetPwd}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem onClick={() => handleDeleteUser(u.id)} data-testid={`delete-user-${u.id}`} className="cursor-pointer text-red-600 focus:text-red-600">
+                                      <Trash2 className="w-4 h-4 mr-2" /> {t.delete}
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
                               )}
                             </td>
                           </tr>
