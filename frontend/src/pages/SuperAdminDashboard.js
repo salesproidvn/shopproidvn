@@ -10,7 +10,7 @@ import { Input } from '../components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog';
 import { 
   LayoutDashboard, Store, Users, ShoppingCart, 
-  LogOut, Menu, X, TrendingUp, CalendarClock, Eye, Phone, Mail, Globe, Wrench, Trash2, Image, AlertTriangle, CheckCircle2, Settings, Lock
+  LogOut, Menu, X, TrendingUp, CalendarClock, Eye, Phone, Mail, Globe, Wrench, Trash2, Image, AlertTriangle, CheckCircle2, Settings, Lock, Copy
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -473,6 +473,13 @@ const SuperAdminDashboard = () => {
                             <td className="py-3 px-4">
                               {u.role !== 'super_admin' && (
                                 <div className="flex gap-2 flex-wrap">
+                                  <Button variant="outline" size="sm" onClick={() => {
+                                    const info = `Tên: ${u.name}\nEmail: ${u.email}\nMật khẩu: iLoveProID@`;
+                                    navigator.clipboard.writeText(info);
+                                    toast.success('Đã copy thông tin đăng nhập');
+                                  }} data-testid={`copy-login-${u.id}`} title="Copy login info">
+                                    <Copy className="w-3.5 h-3.5" />
+                                  </Button>
                                   <Button variant="outline" size="sm" onClick={() => handleBlockUser(u.id)} data-testid={`block-user-${u.id}`}>
                                     {u.status === 'blocked' ? t.unblock : t.block}
                                   </Button>
