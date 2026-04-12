@@ -23,6 +23,7 @@ const SuperAdminDashboard = () => {
   const [stats, setStats] = useState(null);
   const [shops, setShops] = useState([]);
   const [users, setUsers] = useState([]);
+  const [userSearch, setUserSearch] = useState('');
   const [activeTab, setActiveTab] = useState('overview');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -439,7 +440,10 @@ const SuperAdminDashboard = () => {
               </div>
               <Card className="border-0 shadow-sm">
                 <CardHeader>
-                  <CardTitle>{t.allUsers}</CardTitle>
+                  <div className="flex items-center justify-between gap-4">
+                    <CardTitle>{t.allUsers}</CardTitle>
+                    <Input value={userSearch} onChange={(e) => setUserSearch(e.target.value)} placeholder="Tìm theo tên, email, cửa hàng..." className="max-w-xs text-sm" data-testid="user-search-input" />
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <div className="overflow-x-auto">
@@ -455,7 +459,11 @@ const SuperAdminDashboard = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {users.map((u) => (
+                        {users.filter(u => {
+                          if (!userSearch.trim()) return true;
+                          const q = userSearch.toLowerCase();
+                          return (u.name || '').toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q) || (u.shop_name || '').toLowerCase().includes(q);
+                        }).map((u) => (
                           <tr key={u.id} className="border-b hover:bg-[#F8FAFC]">
                             <td className="py-3 px-4 font-medium text-[#0F172A]">{u.name}</td>
                             <td className="py-3 px-4 text-[#64748B]">{u.email}</td>
