@@ -423,6 +423,20 @@ const SuperAdminDashboard = () => {
                             className="text-xs border rounded px-1 py-0.5 w-16 text-center"
                             data-testid={`max-posts-${shop.id}`} />
                         </div>
+                        <div className="flex items-center gap-2">
+                          <span>Trang tối đa:</span>
+                          <input type="number" min="0" value={shop.max_pages ?? 20}
+                            onChange={(e) => handleSetLimits(shop.id, 'max_pages', e.target.value)}
+                            className="text-xs border rounded px-1 py-0.5 w-16 text-center"
+                            data-testid={`max-pages-${shop.id}`} />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span>Danh mục tối đa:</span>
+                          <input type="number" min="0" value={shop.max_categories ?? 50}
+                            onChange={(e) => handleSetLimits(shop.id, 'max_categories', e.target.value)}
+                            className="text-xs border rounded px-1 py-0.5 w-16 text-center"
+                            data-testid={`max-categories-${shop.id}`} />
+                        </div>
                       </div>
                     </div>
                   ))}

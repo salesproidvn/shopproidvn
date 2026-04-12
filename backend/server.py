@@ -284,6 +284,8 @@ class ShopUpdate(BaseModel):
     post_carousel_position: Optional[str] = None
     max_products: Optional[int] = None
     max_posts: Optional[int] = None
+    max_pages: Optional[int] = None
+    max_categories: Optional[int] = None
 
 class CategoryCreate(BaseModel):
     name: str
@@ -358,6 +360,8 @@ class ContactForm(BaseModel):
 class ShopLimitsUpdate(BaseModel):
     max_products: Optional[int] = None
     max_posts: Optional[int] = None
+    max_pages: Optional[int] = None
+    max_categories: Optional[int] = None
 
 # ==================== AUTH ENDPOINTS ====================
 
@@ -481,6 +485,7 @@ async def get_all_shops(request: Request):
             "contact_phone": s.get("contact_phone", ""), "contact_email": s.get("contact_email", ""),
             "address": s.get("address", ""),
             "max_products": s.get("max_products", 100), "max_posts": s.get("max_posts", 50),
+            "max_pages": s.get("max_pages", 20), "max_categories": s.get("max_categories", 50),
             "created_at": serialize_datetime(s.get("created_at")),
             "owner": owner, "order_count": oc, "product_count": pc, "category_count": cc,
             "item_count": pc
@@ -545,7 +550,7 @@ async def create_shop_owner(data: ShopOwnerCreate, request: Request):
     slug = generate_shop_slug(data.shop_name)
     if await db.shops.find_one({"slug": slug}):
         slug = f"{slug}-{secrets.token_hex(3)}"
-    shop_doc = {"name": data.shop_name, "slug": slug, "description": "", "logo_url": "", "contact_phone": data.phone or "", "contact_email": email, "address": "", "social_facebook": "", "social_instagram": "", "theme_color": "#0055FF", "status": "active", "expiry_date": "", "banners": [], "banner_enabled": True, "blog_enabled": True, "layout_sections": [], "footer_columns": [], "menu_items": [], "mega_menu_categories": [], "custom_pages": [], "post_carousel_position": "top", "max_products": 100, "max_posts": 50, "created_at": datetime.now(timezone.utc)}
+    shop_doc = {"name": data.shop_name, "slug": slug, "description": "", "logo_url": "", "contact_phone": data.phone or "", "contact_email": email, "address": "", "social_facebook": "", "social_instagram": "", "theme_color": "#0055FF", "status": "active", "expiry_date": "", "banners": [], "banner_enabled": True, "blog_enabled": True, "layout_sections": [], "footer_columns": [], "menu_items": [], "mega_menu_categories": [], "custom_pages": [], "post_carousel_position": "top", "max_products": 100, "max_posts": 50, "max_pages": 20, "max_categories": 50, "created_at": datetime.now(timezone.utc)}
     shop_result = await db.shops.insert_one(shop_doc)
     shop_id = str(shop_result.inserted_id)
     user_doc = {"email": email, "password_hash": hash_password(data.password), "name": data.name, "role": "shop_owner", "shop_id": shop_id, "phone": data.phone or "", "status": "active", "created_at": datetime.now(timezone.utc)}
@@ -845,6 +850,11 @@ async def get_shop_categories(request: Request):
 async def create_category(data: CategoryCreate, request: Request):
     user = await require_shop_owner(request)
     shop_id = await resolve_shop_id(request, user)
+    shop = await db.shops.find_one({"_id": ObjectId(shop_id)}, {"max_categories": 1})
+    max_cats = (shop or {}).get("max_categories", 50)
+    count = await db.categories.count_documents({"shop_id": shop_id})
+    if count >= max_cats:
+        raise HTTPException(status_code=400, detail=f"Đã đạt giới hạn {max_cats} danh mục")
     max_pos = 0
     last = await db.categories.find({"shop_id": shop_id}).sort("position", -1).limit(1).to_list(1)
     if last:
@@ -896,6 +906,11 @@ async def get_shop_products(request: Request):
 async def create_product(data: ProductCreate, request: Request):
     user = await require_shop_owner(request)
     shop_id = await resolve_shop_id(request, user)
+    shop = await db.shops.find_one({"_id": ObjectId(shop_id)}, {"max_products": 1})
+    max_prods = (shop or {}).get("max_products", 100)
+    count = await db.products.count_documents({"shop_id": shop_id})
+    if count >= max_prods:
+        raise HTTPException(status_code=400, detail=f"Đã đạt giới hạn {max_prods} sản phẩm")
     cat_name = ""
     if data.category_id and data.category_id != "none":
         cat = await db.categories.find_one({"id": data.category_id, "shop_id": shop_id})
@@ -990,6 +1005,11 @@ async def get_shop_posts(request: Request):
 async def create_post(data: PostCreate, request: Request):
     user = await require_shop_owner(request)
     shop_id = await resolve_shop_id(request, user)
+    shop = await db.shops.find_one({"_id": ObjectId(shop_id)}, {"max_posts": 1})
+    max_p = (shop or {}).get("max_posts", 50)
+    count = await db.posts.count_documents({"shop_id": shop_id})
+    if count >= max_p:
+        raise HTTPException(status_code=400, detail=f"Đã đạt giới hạn {max_p} bài viết")
     post_id = f"post-{secrets.token_hex(6)}"
     doc = {
         "id": post_id, "shop_id": shop_id, "title": data.title,
@@ -1042,6 +1062,11 @@ async def get_shop_pages(request: Request):
 async def create_page(data: PageCreate, request: Request):
     user = await require_shop_owner(request)
     shop_id = await resolve_shop_id(request, user)
+    shop = await db.shops.find_one({"_id": ObjectId(shop_id)}, {"max_pages": 1})
+    max_pg = (shop or {}).get("max_pages", 20)
+    count = await db.pages.count_documents({"shop_id": shop_id})
+    if count >= max_pg:
+        raise HTTPException(status_code=400, detail=f"Đã đạt giới hạn {max_pg} trang")
     page_id = f"page-{secrets.token_hex(6)}"
     slug = data.slug or generate_shop_slug(data.title)
     now = datetime.now(timezone.utc)
