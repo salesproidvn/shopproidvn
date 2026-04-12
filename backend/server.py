@@ -521,12 +521,15 @@ async def get_all_users(request: Request):
     result = []
     for u in users:
         shop_name = None
+        shop_slug = None
         if u.get("shop_id"):
-            shop = await db.shops.find_one({"_id": ObjectId(u["shop_id"])}, {"name": 1})
-            shop_name = shop["name"] if shop else None
+            shop = await db.shops.find_one({"_id": ObjectId(u["shop_id"])}, {"name": 1, "slug": 1})
+            if shop:
+                shop_name = shop.get("name")
+                shop_slug = shop.get("slug")
         result.append({
             "id": str(u["_id"]), "email": u["email"], "name": u["name"], "role": u["role"],
-            "status": u.get("status", "active"), "shop_name": shop_name, "shop_id": u.get("shop_id"),
+            "status": u.get("status", "active"), "shop_name": shop_name, "shop_slug": shop_slug, "shop_id": u.get("shop_id"),
             "created_at": serialize_datetime(u.get("created_at"))
         })
     return result

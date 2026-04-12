@@ -496,6 +496,11 @@ const SuperAdminDashboard = () => {
                                   }} data-testid={`copy-login-${u.id}`} title="Copy login info">
                                     <Copy className="w-3.5 h-3.5" />
                                   </Button>
+                                  {u.shop_slug && (
+                                    <Button variant="outline" size="sm" onClick={() => window.open(`/shop/${u.shop_slug}`, '_blank')} data-testid={`view-shop-${u.id}`}>
+                                      <Eye className="w-3.5 h-3.5 mr-1" /> Xem cửa hàng
+                                    </Button>
+                                  )}
                                   <Button variant="outline" size="sm" onClick={() => handleBlockUser(u.id)} data-testid={`block-user-${u.id}`}>
                                     {u.status === 'blocked' ? t.unblock : t.block}
                                   </Button>
