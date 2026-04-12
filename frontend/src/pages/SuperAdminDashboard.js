@@ -25,6 +25,7 @@ const SuperAdminDashboard = () => {
   const [shops, setShops] = useState([]);
   const [users, setUsers] = useState([]);
   const [userSearch, setUserSearch] = useState('');
+  const [shopSearch, setShopSearch] = useState('');
   const [activeTab, setActiveTab] = useState('overview');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -303,28 +304,35 @@ const SuperAdminDashboard = () => {
               <CardHeader>
                 <div className="flex items-center justify-between flex-wrap gap-3">
                   <CardTitle>{t.allShops}</CardTitle>
-                  <div className="flex items-center gap-2" data-testid="shop-sort-controls">
-                    <span className="text-xs text-[#64748B] font-medium">{t.sortBy || 'Sắp xếp'}:</span>
-                    <select
-                      value={shopSortBy}
-                      onChange={(e) => setShopSortBy(e.target.value)}
-                      className="text-xs border border-[#E2E8F0] rounded-lg px-3 py-1.5 bg-white text-[#0F172A] font-medium focus:outline-none focus:ring-2 focus:ring-[#0055FF]/20 cursor-pointer"
-                      data-testid="shop-sort-select"
-                    >
-                      <option value="product_count">{t.products} ↓</option>
-                      <option value="category_count">{t.categories} ↓</option>
-                      <option value="order_count">{t.orders} ↓</option>
-                      <option value="post_count">{t.posts} ↓</option>
-                      <option value="page_count">{t.pages} ↓</option>
-                      <option value="menu_item_count">{t.menuItems} ↓</option>
-                      <option value="mega_menu_count">Mega Menu ↓</option>
-                    </select>
+                  <div className="flex items-center gap-2">
+                    <Input value={shopSearch} onChange={(e) => setShopSearch(e.target.value)} placeholder="Tìm tên, email, SĐT..." className="max-w-[200px] text-sm h-8" data-testid="shop-search-input" />
+                    <div className="flex items-center gap-2" data-testid="shop-sort-controls">
+                      <span className="text-xs text-[#64748B] font-medium">{t.sortBy || 'Sắp xếp'}:</span>
+                      <select
+                        value={shopSortBy}
+                        onChange={(e) => setShopSortBy(e.target.value)}
+                        className="text-xs border border-[#E2E8F0] rounded-lg px-3 py-1.5 bg-white text-[#0F172A] font-medium focus:outline-none focus:ring-2 focus:ring-[#0055FF]/20 cursor-pointer"
+                        data-testid="shop-sort-select"
+                      >
+                        <option value="product_count">{t.products} ↓</option>
+                        <option value="category_count">{t.categories} ↓</option>
+                        <option value="order_count">{t.orders} ↓</option>
+                        <option value="post_count">{t.posts} ↓</option>
+                        <option value="page_count">{t.pages} ↓</option>
+                        <option value="menu_item_count">{t.menuItems} ↓</option>
+                        <option value="mega_menu_count">Mega Menu ↓</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {[...shops].sort((a, b) => (b[shopSortBy] || 0) - (a[shopSortBy] || 0)).map((shop, rank) => (
+                  {[...shops].filter(shop => {
+                    if (!shopSearch.trim()) return true;
+                    const q = shopSearch.toLowerCase();
+                    return (shop.name || '').toLowerCase().includes(q) || (shop.owner?.email || '').toLowerCase().includes(q) || (shop.contact_phone || '').toLowerCase().includes(q);
+                  }).sort((a, b) => (b[shopSortBy] || 0) - (a[shopSortBy] || 0)).map((shop, rank) => (
                     <div key={shop.id} className="border border-[#E2E8F0] rounded-xl p-4 hover:shadow-md transition-shadow" data-testid={`shop-card-${shop.id}`}>
                       {/* Row 1: Shop name, status, actions */}
                       <div className="flex items-center justify-between mb-3">
@@ -424,7 +432,7 @@ const SuperAdminDashboard = () => {
                             data-testid={`max-posts-${shop.id}`} />
                         </div>
                         <div className="flex items-center gap-2">
-                          <span>Trang tối đa:</span>
+                          <span>{t.maxPages}:</span>
                           <input type="number" min="0" value={shop.max_pages ?? 20}
                             onChange={(e) => handleSetLimits(shop.id, 'max_pages', e.target.value)}
                             className="text-xs border rounded px-1 py-0.5 w-16 text-center"

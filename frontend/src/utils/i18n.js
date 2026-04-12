@@ -357,6 +357,8 @@ export const vi = {
   shopLimits: 'Giới hạn cửa hàng',
   maxProducts: 'Số sản phẩm tối đa',
   maxPosts: 'Số bài viết tối đa',
+  maxPages: 'Số trang tối đa',
+  maxCategories: 'Số danh mục tối đa',
   limitsUpdated: 'Giới hạn đã cập nhật',
   limitReached: 'Đã đạt giới hạn',
   productsUsed: 'sản phẩm đã dùng',
