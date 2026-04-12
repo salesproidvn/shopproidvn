@@ -473,10 +473,18 @@ const SuperAdminDashboard = () => {
                             <td className="py-3 px-4">
                               {u.role !== 'super_admin' && (
                                 <div className="flex gap-2 flex-wrap">
-                                  <Button variant="outline" size="sm" onClick={() => {
+                                  <Button variant="outline" size="sm" onClick={async () => {
                                     const info = `Tên: ${u.name}\nEmail: ${u.email}\nMật khẩu: iLoveProID@`;
-                                    navigator.clipboard.writeText(info);
-                                    toast.success('Đã copy thông tin đăng nhập');
+                                    try {
+                                      await navigator.clipboard.writeText(info);
+                                      toast.success('Đã copy thông tin đăng nhập');
+                                    } catch {
+                                      const ta = document.createElement('textarea');
+                                      ta.value = info; ta.style.position = 'fixed'; ta.style.opacity = '0';
+                                      document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+                                      document.body.removeChild(ta);
+                                      toast.success('Đã copy thông tin đăng nhập');
+                                    }
                                   }} data-testid={`copy-login-${u.id}`} title="Copy login info">
                                     <Copy className="w-3.5 h-3.5" />
                                   </Button>
