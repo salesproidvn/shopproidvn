@@ -340,10 +340,10 @@ const LoginPage = () => {
                   )}
 
                   {mode === 'login' && (
-                    <button type="button" onClick={() => { setEmail('demo1@proid.vn'); setPassword('iLoveProID@'); }}
+                    <button type="button" onClick={() => { setPassword('iLoveProID@'); }}
                       className="w-full h-9 rounded-xl border border-dashed border-[#CBD5E1] text-xs font-medium text-[#64748B] hover:border-[#0055FF] hover:text-[#0055FF] hover:bg-[#F0F7FF] transition-all"
                       data-testid="demo-autofill-btn">
-                      Demo Autofill
+                      Autofill Password
                     </button>
                   )}
 

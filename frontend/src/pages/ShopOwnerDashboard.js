@@ -2311,7 +2311,10 @@ const ShopOwnerDashboard = () => {
                       </div>
                       <div>
                         <label className="block text-xs font-medium mb-1">{t.shopUrl}</label>
-                        <Input value={`/${shop.slug}`} disabled className="bg-[#F8FAFC] text-sm" />
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-[#64748B]">/shop/</span>
+                          <Input value={shopForm.slug || shop?.slug || ''} onChange={(e) => setShopForm({ ...shopForm, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-') })} className="text-sm flex-1" data-testid="shop-slug-input" />
+                        </div>
                       </div>
                     </div>
                     <div>

@@ -267,6 +267,7 @@ class ShopCreate(BaseModel):
 
 class ShopUpdate(BaseModel):
     name: Optional[str] = None
+    slug: Optional[str] = None
     description: Optional[str] = None
     logo_url: Optional[str] = None
     contact_phone: Optional[str] = None
@@ -834,6 +835,17 @@ async def update_shop(request: Request):
     body = await request.json()
     if not body:
         raise HTTPException(status_code=400, detail="No data to update")
+    if "slug" in body and body["slug"]:
+        new_slug = body["slug"].lower().strip().replace(" ", "-")
+        import re
+        new_slug = re.sub(r'[^a-z0-9-]', '', new_slug).strip('-')
+        if new_slug:
+            existing = await db.shops.find_one({"slug": new_slug, "_id": {"$ne": ObjectId(shop_id)}})
+            if existing:
+                raise HTTPException(status_code=400, detail="Permalink đã tồn tại")
+            body["slug"] = new_slug
+        else:
+            del body["slug"]
     await db.shops.update_one({"_id": ObjectId(shop_id)}, {"$set": body})
     return {"message": "Shop updated"}
 

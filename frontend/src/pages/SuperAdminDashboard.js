@@ -39,6 +39,11 @@ const SuperAdminDashboard = () => {
   
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newOwner, setNewOwner] = useState({ email: '', password: '', name: '', shop_name: '', phone: '', send_email: false });
+  const [showBulkModal, setShowBulkModal] = useState(false);
+  const [bulkText, setBulkText] = useState('');
+  const [bulkSendEmail, setBulkSendEmail] = useState(false);
+  const [bulkCreating, setBulkCreating] = useState(false);
+  const [bulkResults, setBulkResults] = useState([]);
   // Change password state
   const [changePasswordData, setChangePasswordData] = useState({ current_password: '', new_password: '', confirm_password: '' });
   const [changingPassword, setChangingPassword] = useState(false);
@@ -112,6 +117,28 @@ const SuperAdminDashboard = () => {
     } catch (err) {
       toast.error(err.response?.data?.detail || t.failedToCreate);
     }
+  };
+
+  const handleBulkCreate = async () => {
+    const lines = bulkText.split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('#'));
+    if (!lines.length) return toast.error('Không có dữ liệu');
+    setBulkCreating(true);
+    const results = [];
+    for (const line of lines) {
+      const parts = line.split(',').map(p => p.trim());
+      if (parts.length < 3) { results.push({ line, status: 'error', msg: 'Thiếu dữ liệu (cần: tên, email, tên cửa hàng)' }); continue; }
+      const [name, email, shop_name, phone] = parts;
+      try {
+        await axios.post(`${API}/admin/users`, { name, email, password: 'iLoveProID@', shop_name, phone: phone || '', send_email: bulkSendEmail });
+        results.push({ line, status: 'ok', msg: `${email} - OK` });
+      } catch (err) {
+        results.push({ line, status: 'error', msg: `${email} - ${err.response?.data?.detail || 'Lỗi'}` });
+      }
+    }
+    setBulkResults(results);
+    setBulkCreating(false);
+    fetchData();
+    toast.success(`Đã xử lý ${results.length} dòng`);
   };
 
   const handleShopStatus = async (shopId, status) => {
@@ -456,7 +483,10 @@ const SuperAdminDashboard = () => {
           {/* Users Tab */}
           {activeTab === 'users' && (
             <div className="space-y-6">
-              <div className="flex justify-end">
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => { setShowBulkModal(true); setBulkResults([]); setBulkText(''); }} data-testid="bulk-create-btn">
+                  Tạo hàng loạt
+                </Button>
                 <Button onClick={() => setShowCreateModal(true)} className="bg-[#0055FF] hover:bg-[#0040CC]" data-testid="create-owner-btn">
                   + {t.createShopOwner}
                 </Button>
@@ -868,6 +898,46 @@ const SuperAdminDashboard = () => {
               </Button>
             </div>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Create Modal */}
+      <Dialog open={showBulkModal} onOpenChange={setShowBulkModal}>
+        <DialogContent className="sm:max-w-lg bg-white max-h-[90vh] overflow-y-auto" data-testid="bulk-create-modal">
+          <DialogHeader>
+            <DialogTitle>Tạo chủ cửa hàng hàng loạt</DialogTitle>
+            <DialogDescription>Mỗi dòng 1 user. Mật khẩu mặc định: iLoveProID@</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 mt-2">
+            <div>
+              <label className="block text-xs font-medium mb-1">Định dạng: <code className="text-[#0055FF]">Tên, Email, Tên cửa hàng, SĐT (tùy chọn)</code></label>
+              <textarea value={bulkText} onChange={(e) => setBulkText(e.target.value)}
+                className="w-full h-40 border rounded-lg p-3 text-sm font-mono resize-y focus:outline-none focus:ring-2 focus:ring-[#0055FF]/20"
+                placeholder={"Nguyễn Văn A, a@email.com, Shop A, 0912345678\nTrần Thị B, b@email.com, Shop B\n# Dòng bắt đầu bằng # sẽ bị bỏ qua"}
+                data-testid="bulk-textarea" />
+            </div>
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input type="checkbox" checked={bulkSendEmail} onChange={(e) => setBulkSendEmail(e.target.checked)} className="w-4 h-4 rounded border-[#CBD5E1] accent-[#0055FF]" />
+              <Send className="w-4 h-4 text-[#64748B]" />
+              <span className="text-sm text-[#334155]">Gửi email thông tin đăng nhập</span>
+            </label>
+            {bulkResults.length > 0 && (
+              <div className="border rounded-lg p-3 max-h-40 overflow-y-auto text-xs space-y-1" data-testid="bulk-results">
+                {bulkResults.map((r, i) => (
+                  <div key={i} className={`flex items-start gap-2 ${r.status === 'ok' ? 'text-green-600' : 'text-red-600'}`}>
+                    <span>{r.status === 'ok' ? '✓' : '✗'}</span>
+                    <span>{r.msg}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="flex gap-3 pt-2">
+              <Button type="button" variant="outline" className="flex-1" onClick={() => setShowBulkModal(false)}>{t.cancel}</Button>
+              <Button type="button" className="flex-1 bg-[#0055FF] hover:bg-[#0040CC]" onClick={handleBulkCreate} disabled={bulkCreating} data-testid="bulk-submit-btn">
+                {bulkCreating ? 'Đang tạo...' : `Tạo (${bulkText.split('\n').filter(l => l.trim() && !l.trim().startsWith('#')).length} users)`}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
