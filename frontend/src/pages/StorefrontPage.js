@@ -71,6 +71,12 @@ const StorefrontPage = () => {
 
   useEffect(() => { fetchShopData(); }, [slug]);
 
+  useEffect(() => {
+    if (shop?.name) {
+      document.title = shop.name;
+    }
+    return () => { document.title = 'Ocean Pro Web'; };
+  }, [shop?.name]);
   // Save scroll position continuously & restore when returning
   useEffect(() => {
     if (loading) return;
