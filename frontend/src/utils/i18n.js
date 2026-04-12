@@ -826,6 +826,8 @@ export const en = {
   shopLimits: 'Shop Limits',
   maxProducts: 'Max Products',
   maxPosts: 'Max Posts',
+  maxPages: 'Max Pages',
+  maxCategories: 'Max Categories',
   limitsUpdated: 'Limits updated',
   limitReached: 'Limit reached',
   productsUsed: 'products used',

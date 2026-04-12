@@ -439,7 +439,7 @@ const SuperAdminDashboard = () => {
                             data-testid={`max-pages-${shop.id}`} />
                         </div>
                         <div className="flex items-center gap-2">
-                          <span>Danh mục tối đa:</span>
+                          <span>{t.maxCategories}:</span>
                           <input type="number" min="0" value={shop.max_categories ?? 50}
                             onChange={(e) => handleSetLimits(shop.id, 'max_categories', e.target.value)}
                             className="text-xs border rounded px-1 py-0.5 w-16 text-center"
