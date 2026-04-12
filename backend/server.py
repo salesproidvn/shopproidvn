@@ -321,6 +321,8 @@ class ShopOwnerCreate(BaseModel):
     password: str
     name: str
     shop_name: str
+    phone: Optional[str] = ""
+    send_email: Optional[bool] = False
 
 class ExpiryUpdate(BaseModel):
     expiry_date: Optional[str] = None
@@ -543,11 +545,32 @@ async def create_shop_owner(data: ShopOwnerCreate, request: Request):
     slug = generate_shop_slug(data.shop_name)
     if await db.shops.find_one({"slug": slug}):
         slug = f"{slug}-{secrets.token_hex(3)}"
-    shop_doc = {"name": data.shop_name, "slug": slug, "description": "", "logo_url": "", "contact_phone": "", "contact_email": email, "address": "", "social_facebook": "", "social_instagram": "", "theme_color": "#0055FF", "status": "active", "expiry_date": "", "banners": [], "banner_enabled": True, "blog_enabled": True, "layout_sections": [], "footer_columns": [], "menu_items": [], "mega_menu_categories": [], "custom_pages": [], "post_carousel_position": "top", "max_products": 100, "max_posts": 50, "created_at": datetime.now(timezone.utc)}
+    shop_doc = {"name": data.shop_name, "slug": slug, "description": "", "logo_url": "", "contact_phone": data.phone or "", "contact_email": email, "address": "", "social_facebook": "", "social_instagram": "", "theme_color": "#0055FF", "status": "active", "expiry_date": "", "banners": [], "banner_enabled": True, "blog_enabled": True, "layout_sections": [], "footer_columns": [], "menu_items": [], "mega_menu_categories": [], "custom_pages": [], "post_carousel_position": "top", "max_products": 100, "max_posts": 50, "created_at": datetime.now(timezone.utc)}
     shop_result = await db.shops.insert_one(shop_doc)
     shop_id = str(shop_result.inserted_id)
-    user_doc = {"email": email, "password_hash": hash_password(data.password), "name": data.name, "role": "shop_owner", "shop_id": shop_id, "status": "active", "created_at": datetime.now(timezone.utc)}
+    user_doc = {"email": email, "password_hash": hash_password(data.password), "name": data.name, "role": "shop_owner", "shop_id": shop_id, "phone": data.phone or "", "status": "active", "created_at": datetime.now(timezone.utc)}
     user_result = await db.users.insert_one(user_doc)
+    if data.send_email and RESEND_API_KEY:
+        try:
+            html = f"""<div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;background:#fff;">
+              <div style="background:linear-gradient(135deg,#0055FF,#00C2FF);padding:24px 32px;border-radius:8px 8px 0 0;">
+                <h1 style="margin:0;color:#fff;font-size:20px;">Chao mung den {data.shop_name}!</h1>
+              </div>
+              <div style="padding:24px 32px;border:1px solid #E2E8F0;border-top:none;border-radius:0 0 8px 8px;">
+                <p style="color:#334155;font-size:14px;">Xin chao <strong>{data.name}</strong>,</p>
+                <p style="color:#334155;font-size:14px;">Tai khoan cua hang cua ban da duoc tao. Duoi day la thong tin dang nhap:</p>
+                <div style="background:#F8FAFC;border-radius:8px;padding:16px;margin:16px 0;">
+                  <p style="margin:0 0 8px;color:#0F172A;font-size:14px;"><strong>Email:</strong> {email}</p>
+                  <p style="margin:0 0 8px;color:#0F172A;font-size:14px;"><strong>Mat khau:</strong> {data.password}</p>
+                  <p style="margin:0;color:#0F172A;font-size:14px;"><strong>Cua hang:</strong> {data.shop_name}</p>
+                </div>
+                <p style="color:#64748B;font-size:12px;">Vui long doi mat khau sau khi dang nhap lan dau.</p>
+              </div></div>"""
+            params = {"from": SENDER_EMAIL, "to": [email], "subject": f"Thong tin dang nhap - {data.shop_name}", "html": html}
+            await asyncio.to_thread(resend.Emails.send, params)
+            logger.info(f"Login info email sent to {email}")
+        except Exception as e:
+            logger.error(f"Failed to send login email to {email}: {e}")
     return {"id": str(user_result.inserted_id), "email": email, "name": data.name, "shop_id": shop_id, "shop_name": data.shop_name}
 
 @api_router.post("/admin/users/{user_id}/block")
@@ -588,6 +611,41 @@ async def admin_reset_password(user_id: str, request: Request):
     default_pw = "iLoveProID@"
     await db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"password_hash": hash_password(default_pw)}})
     return {"message": f"Password reset to: {default_pw}"}
+
+@api_router.post("/admin/users/{user_id}/send-login-email")
+async def send_login_email(user_id: str, request: Request):
+    await require_super_admin(request)
+    if not RESEND_API_KEY:
+        raise HTTPException(status_code=400, detail="Email service not configured")
+    user = await db.users.find_one({"_id": ObjectId(user_id)})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    shop_name = ""
+    if user.get("shop_id"):
+        shop = await db.shops.find_one({"_id": ObjectId(user["shop_id"])}, {"name": 1})
+        shop_name = shop.get("name", "") if shop else ""
+    default_pw = "iLoveProID@"
+    await db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"password_hash": hash_password(default_pw)}})
+    html = f"""<div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;background:#fff;">
+      <div style="background:linear-gradient(135deg,#0055FF,#00C2FF);padding:24px 32px;border-radius:8px 8px 0 0;">
+        <h1 style="margin:0;color:#fff;font-size:20px;">Thong tin dang nhap</h1>
+        <p style="margin:4px 0 0;color:rgba(255,255,255,0.85);font-size:14px;">{shop_name}</p>
+      </div>
+      <div style="padding:24px 32px;border:1px solid #E2E8F0;border-top:none;border-radius:0 0 8px 8px;">
+        <p style="color:#334155;font-size:14px;">Xin chao <strong>{user.get('name','')}</strong>,</p>
+        <p style="color:#334155;font-size:14px;">Mat khau cua ban da duoc dat lai. Duoi day la thong tin dang nhap moi:</p>
+        <div style="background:#F8FAFC;border-radius:8px;padding:16px;margin:16px 0;">
+          <p style="margin:0 0 8px;color:#0F172A;font-size:14px;"><strong>Email:</strong> {user['email']}</p>
+          <p style="margin:0;color:#0F172A;font-size:14px;"><strong>Mat khau:</strong> {default_pw}</p>
+        </div>
+        <p style="color:#64748B;font-size:12px;">Vui long doi mat khau sau khi dang nhap.</p>
+      </div></div>"""
+    try:
+        params = {"from": SENDER_EMAIL, "to": [user["email"]], "subject": f"Thong tin dang nhap - {shop_name or 'Ocean Pro Web'}", "html": html}
+        await asyncio.to_thread(resend.Emails.send, params)
+        return {"message": f"Email sent to {user['email']}"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to send email: {str(e)}")
 
 # ==================== ADMIN MAINTENANCE ====================
 

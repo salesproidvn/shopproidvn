@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '../components/ui/dropdown-menu';
 import { 
   LayoutDashboard, Store, Users, ShoppingCart, 
-  LogOut, Menu, X, TrendingUp, CalendarClock, Eye, Phone, Mail, Globe, Wrench, Trash2, Image, AlertTriangle, CheckCircle2, Settings, Lock, Copy, MoreHorizontal
+  LogOut, Menu, X, TrendingUp, CalendarClock, Eye, Phone, Mail, Globe, Wrench, Trash2, Image, AlertTriangle, CheckCircle2, Settings, Lock, Copy, MoreHorizontal, Send
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -37,7 +37,7 @@ const SuperAdminDashboard = () => {
   const [maintenanceResults, setMaintenanceResults] = useState([]);
   
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [newOwner, setNewOwner] = useState({ email: '', password: '', name: '', shop_name: '' });
+  const [newOwner, setNewOwner] = useState({ email: '', password: '', name: '', shop_name: '', phone: '', send_email: false });
   // Change password state
   const [changePasswordData, setChangePasswordData] = useState({ current_password: '', new_password: '', confirm_password: '' });
   const [changingPassword, setChangingPassword] = useState(false);
@@ -106,7 +106,7 @@ const SuperAdminDashboard = () => {
       await axios.post(`${API}/admin/users`, newOwner);
       toast.success(t.shopOwnerCreated);
       setShowCreateModal(false);
-      setNewOwner({ email: '', password: '', name: '', shop_name: '' });
+      setNewOwner({ email: '', password: '', name: '', shop_name: '', phone: '', send_email: false });
       fetchData();
     } catch (err) {
       toast.error(err.response?.data?.detail || t.failedToCreate);
@@ -508,6 +508,16 @@ const SuperAdminDashboard = () => {
                                         <Eye className="w-4 h-4 mr-2" /> Xem cửa hàng
                                       </DropdownMenuItem>
                                     )}
+                                    <DropdownMenuItem onClick={async () => {
+                                      try {
+                                        await axios.post(`${API}/admin/users/${u.id}/send-login-email`);
+                                        toast.success(`Đã gửi email đến ${u.email}`);
+                                      } catch (err) {
+                                        toast.error(err.response?.data?.detail || 'Gửi email thất bại');
+                                      }
+                                    }} data-testid={`send-email-${u.id}`} className="cursor-pointer">
+                                      <Send className="w-4 h-4 mr-2" /> Gửi email đăng nhập
+                                    </DropdownMenuItem>
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem onClick={() => handleBlockUser(u.id)} data-testid={`block-user-${u.id}`} className="cursor-pointer">
                                       <Lock className="w-4 h-4 mr-2" /> {u.status === 'blocked' ? t.unblock : t.block}
@@ -818,6 +828,15 @@ const SuperAdminDashboard = () => {
               <label className="block text-sm font-medium mb-1">{t.shopName}</label>
               <Input value={newOwner.shop_name} onChange={(e) => setNewOwner({ ...newOwner, shop_name: e.target.value })} required data-testid="input-shop-name" />
             </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Số điện thoại</label>
+              <Input type="tel" value={newOwner.phone} onChange={(e) => setNewOwner({ ...newOwner, phone: e.target.value })} placeholder="0912 345 678" data-testid="input-phone" />
+            </div>
+            <label className="flex items-center gap-2 cursor-pointer select-none" data-testid="send-email-toggle">
+              <input type="checkbox" checked={newOwner.send_email} onChange={(e) => setNewOwner({ ...newOwner, send_email: e.target.checked })} className="w-4 h-4 rounded border-[#CBD5E1] accent-[#0055FF]" />
+              <Send className="w-4 h-4 text-[#64748B]" />
+              <span className="text-sm text-[#334155]">Gửi email thông tin đăng nhập</span>
+            </label>
             <div className="flex gap-4 pt-4">
               <Button type="button" variant="outline" className="flex-1" onClick={() => setShowCreateModal(false)}>
                 {t.cancel}
