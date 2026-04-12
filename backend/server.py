@@ -201,6 +201,12 @@ async def get_current_user(request: Request) -> dict:
 
 async def require_super_admin(request: Request) -> dict:
     user = await get_current_user(request)
+    if user.get("role") not in ("super_admin", "sub_admin"):
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return user
+
+async def require_super_admin_only(request: Request) -> dict:
+    user = await get_current_user(request)
     if user.get("role") != "super_admin":
         raise HTTPException(status_code=403, detail="Super admin access required")
     return user
@@ -544,7 +550,7 @@ async def get_all_users(request: Request):
 
 @api_router.post("/admin/users")
 async def create_shop_owner(data: ShopOwnerCreate, request: Request):
-    await require_super_admin(request)
+    await require_super_admin_only(request)
     email = data.email.lower()
     if await db.users.find_one({"email": email}):
         raise HTTPException(status_code=400, detail="Email already registered")
@@ -593,7 +599,7 @@ async def block_user(user_id: str, request: Request):
 
 @api_router.delete("/admin/users/{user_id}")
 async def delete_user(user_id: str, request: Request):
-    await require_super_admin(request)
+    await require_super_admin_only(request)
     user = await db.users.find_one({"_id": ObjectId(user_id)})
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -657,7 +663,7 @@ async def send_login_email(user_id: str, request: Request):
 
 @api_router.get("/admin/maintenance/preview")
 async def maintenance_preview(request: Request):
-    await require_super_admin(request)
+    await require_super_admin_only(request)
     one_year_ago = datetime.now(timezone.utc) - timedelta(days=365)
     old_orders = await db.orders.count_documents({"created_at": {"$lt": one_year_ago}})
     orphaned_files = await db.files.count_documents({"is_deleted": True})
@@ -1552,6 +1558,15 @@ async def startup_event():
     if old_admin and admin_email != "admin@thewishop.com":
         await db.users.delete_one({"_id": old_admin["_id"]})
         logger.info("Removed old admin@thewishop.com account")
+
+    # Seed sub_admin
+    sub_admin_email = "sales@proid.vn"
+    existing_sub = await db.users.find_one({"email": sub_admin_email})
+    if not existing_sub:
+        await db.users.insert_one({"email": sub_admin_email, "password_hash": hash_password("iLoveProID@"), "name": "Sales Admin", "role": "sub_admin", "status": "active", "created_at": datetime.now(timezone.utc)})
+        logger.info(f"Seeded sub_admin: {sub_admin_email}")
+    elif existing_sub.get("role") != "sub_admin":
+        await db.users.update_one({"email": sub_admin_email}, {"$set": {"role": "sub_admin"}})
 
     # Seed all 3 shops from seed_data.py
     from seed_data import (

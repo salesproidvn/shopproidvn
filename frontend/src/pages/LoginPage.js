@@ -43,7 +43,7 @@ const LoginPage = () => {
 
   // If already logged in, redirect
   if (user) {
-    if (user.role === 'super_admin') { navigate('/admin'); return null; }
+    if (user.role === 'super_admin' || user.role === 'sub_admin') { navigate('/admin'); return null; }
     navigate('/dashboard');
     return null;
   }

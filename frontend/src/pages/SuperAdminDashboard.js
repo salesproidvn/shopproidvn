@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '../components/ui/dropdown-menu';
 import { 
   LayoutDashboard, Store, Users, ShoppingCart, 
-  LogOut, Menu, X, TrendingUp, CalendarClock, Eye, Phone, Mail, Globe, Wrench, Trash2, Image, AlertTriangle, CheckCircle2, Settings, Lock, Copy, MoreHorizontal, Send
+  LogOut, Menu, X, TrendingUp, CalendarClock, Eye, Phone, Mail, Globe, Wrench, Trash2, Image, AlertTriangle, CheckCircle2, Settings, Lock, Copy, MoreHorizontal, Send, Download
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -50,12 +50,15 @@ const SuperAdminDashboard = () => {
 
   useEffect(() => {
     if (authLoading) return;
-    if (!user || user.role !== 'super_admin') {
+    if (!user || (user.role !== 'super_admin' && user.role !== 'sub_admin')) {
       navigate('/');
       return;
     }
     fetchData();
   }, [user, authLoading, navigate]);
+
+  const isSuperAdmin = user?.role === 'super_admin';
+
 
   const fetchData = async () => {
     try {
@@ -204,7 +207,7 @@ const SuperAdminDashboard = () => {
     { id: 'overview', label: t.overview, icon: LayoutDashboard },
     { id: 'shops', label: t.shopManagement, icon: Store },
     { id: 'users', label: t.userManagement, icon: Users },
-    { id: 'maintenance', label: t.maintenance || 'Bảo trì', icon: Wrench },
+    ...(isSuperAdmin ? [{ id: 'maintenance', label: t.maintenance || 'Bảo trì', icon: Wrench }] : []),
     { id: 'settings', label: t.settings || 'Cài đặt', icon: Settings },
   ];
 
@@ -484,12 +487,12 @@ const SuperAdminDashboard = () => {
           {activeTab === 'users' && (
             <div className="space-y-6">
               <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => { setShowBulkModal(true); setBulkResults([]); setBulkText(''); }} data-testid="bulk-create-btn">
+                {isSuperAdmin && <Button variant="outline" onClick={() => { setShowBulkModal(true); setBulkResults([]); setBulkText(''); }} data-testid="bulk-create-btn">
                   Tạo hàng loạt
-                </Button>
-                <Button onClick={() => setShowCreateModal(true)} className="bg-[#0055FF] hover:bg-[#0040CC]" data-testid="create-owner-btn">
+                </Button>}
+                {isSuperAdmin && <Button onClick={() => setShowCreateModal(true)} className="bg-[#0055FF] hover:bg-[#0040CC]" data-testid="create-owner-btn">
                   + {t.createShopOwner}
-                </Button>
+                </Button>}
               </div>
               <Card className="border-0 shadow-sm">
                 <CardHeader>
@@ -532,7 +535,7 @@ const SuperAdminDashboard = () => {
                               </span>
                             </td>
                             <td className="py-3 px-4">
-                              {u.role !== 'super_admin' && (
+                              {u.role !== 'super_admin' && u.role !== 'sub_admin' && (
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
                                     <Button variant="outline" size="sm" data-testid={`user-actions-${u.id}`}>
@@ -577,10 +580,10 @@ const SuperAdminDashboard = () => {
                                     <DropdownMenuItem onClick={() => handleResetPassword(u.id)} data-testid={`reset-pwd-${u.id}`} className="cursor-pointer">
                                       <Settings className="w-4 h-4 mr-2" /> {t.resetPwd}
                                     </DropdownMenuItem>
-                                    <DropdownMenuSeparator />
+                                    {isSuperAdmin && <><DropdownMenuSeparator />
                                     <DropdownMenuItem onClick={() => handleDeleteUser(u.id)} data-testid={`delete-user-${u.id}`} className="cursor-pointer text-red-600 focus:text-red-600">
                                       <Trash2 className="w-4 h-4 mr-2" /> {t.delete}
-                                    </DropdownMenuItem>
+                                    </DropdownMenuItem></>}
                                   </DropdownMenuContent>
                                 </DropdownMenu>
                               )}
@@ -922,13 +925,30 @@ const SuperAdminDashboard = () => {
               <span className="text-sm text-[#334155]">Gửi email thông tin đăng nhập</span>
             </label>
             {bulkResults.length > 0 && (
-              <div className="border rounded-lg p-3 max-h-40 overflow-y-auto text-xs space-y-1" data-testid="bulk-results">
-                {bulkResults.map((r, i) => (
-                  <div key={i} className={`flex items-start gap-2 ${r.status === 'ok' ? 'text-green-600' : 'text-red-600'}`}>
-                    <span>{r.status === 'ok' ? '✓' : '✗'}</span>
-                    <span>{r.msg}</span>
-                  </div>
-                ))}
+              <div className="space-y-2">
+                <div className="border rounded-lg p-3 max-h-40 overflow-y-auto text-xs space-y-1" data-testid="bulk-results">
+                  {bulkResults.map((r, i) => (
+                    <div key={i} className={`flex items-start gap-2 ${r.status === 'ok' ? 'text-green-600' : 'text-red-600'}`}>
+                      <span>{r.status === 'ok' ? '✓' : '✗'}</span>
+                      <span>{r.msg}</span>
+                    </div>
+                  ))}
+                </div>
+                <Button type="button" variant="outline" className="w-full text-sm" onClick={() => {
+                  const successLines = bulkResults.filter(r => r.status === 'ok');
+                  const header = 'Tên,Email,Mật khẩu,Tên cửa hàng,SĐT';
+                  const rows = successLines.map(r => {
+                    const parts = r.line.split(',').map(p => p.trim());
+                    return `${parts[0]},${parts[1]},iLoveProID@,${parts[2]},${parts[3] || ''}`;
+                  });
+                  const csv = [header, ...rows].join('\n');
+                  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a'); a.href = url; a.download = 'users_created.csv'; a.click();
+                  URL.revokeObjectURL(url);
+                }} data-testid="bulk-download-btn">
+                  <Download className="w-4 h-4 mr-2" /> Tải danh sách ({bulkResults.filter(r => r.status === 'ok').length} users)
+                </Button>
               </div>
             )}
             <div className="flex gap-3 pt-2">
