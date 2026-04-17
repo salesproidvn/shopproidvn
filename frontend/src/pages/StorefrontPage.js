@@ -195,7 +195,10 @@ const StorefrontPage = () => {
 
   useEffect(() => {
     let result = [...products];
-    if (selectedCategory && selectedCategory !== 'all') {
+    if (selectedCategory === 'uncategorized') {
+      const allCatIds = categories.map(c => c.id);
+      result = result.filter(p => !p.category_id || !allCatIds.includes(p.category_id));
+    } else if (selectedCategory && selectedCategory !== 'all') {
       // Find if selected is a subcategory
       const selectedCat = categories.find(c => c.id === selectedCategory);
       const isSubCategory = selectedCat && selectedCat.parent_id;
@@ -492,6 +495,35 @@ const StorefrontPage = () => {
                 </div>
               );
             })}
+            {/* Uncategorized products */}
+            {(() => {
+              const allCatIds = categories.map(c => c.id);
+              const uncategorized = filteredProducts.filter(p => !p.category_id || !allCatIds.includes(p.category_id)).sort((a, b) => (a.position || 0) - (b.position || 0));
+              if (uncategorized.length === 0) return null;
+              const isExpanded = expandedCategories['uncategorized'];
+              const visible = isExpanded ? uncategorized : uncategorized.slice(0, PRODUCTS_PER_CATEGORY);
+              return (
+                <div id="cat-section-uncategorized" data-testid="category-section-uncategorized">
+                  <div className="flex items-center gap-3 mb-2">
+                    <button onClick={() => setSelectedCategory('uncategorized')} className="hover:underline">
+                      <h3 className="text-xl sm:text-2xl font-bold text-[#0F172A]">{t.uncategorized || 'Chưa phân loại'}</h3>
+                    </button>
+                    <div className="flex-1 h-px bg-[#E2E8F0]" />
+                    <span className="text-sm text-[#94A3B8]">{uncategorized.length}</span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 lg:gap-5">
+                    {visible.map((product) => (<ProductCard key={product.id} product={product} />))}
+                  </div>
+                  {uncategorized.length > PRODUCTS_PER_CATEGORY && (
+                    <div className="text-center mt-4">
+                      <Button variant="outline" onClick={() => toggleCategoryExpand('uncategorized')} className="text-sm px-6 rounded-[5px]" style={{ borderColor: themeColor, color: themeColor }} data-testid="load-more-uncategorized">
+                        {isExpanded ? t.close : `${t.loadMore} (${uncategorized.length - PRODUCTS_PER_CATEGORY})`}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 lg:gap-5" data-testid="product-grid">
@@ -1104,6 +1136,7 @@ const StorefrontPage = () => {
                     ))}
                   </React.Fragment>
                 ))}
+                <SelectItem value="uncategorized">{t.uncategorized || 'Chưa phân loại'}</SelectItem>
               </SelectContent>
             </Select>
           </div>
