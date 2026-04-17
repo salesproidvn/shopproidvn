@@ -209,7 +209,7 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         elif path.endswith("/orders") and request.method == "POST":
             if not rate_limiter.is_allowed(f"order:{ip}", max_requests=security_config["rate_orders"], window_seconds=60):
                 return JSONResponse(status_code=429, content={"detail": "Quá nhiều đơn hàng. Vui lòng thử lại sau."})
-        elif path.startswith("/api/"):
+        elif path.startswith("/api/") and not (path.startswith("/api/shop/") and request.method == "GET") and not (path.startswith("/api/files/") and request.method == "GET") and not (path.startswith("/api/card/") and request.method == "GET"):
             if not rate_limiter.is_allowed(f"global:{ip}", max_requests=security_config["rate_global"], window_seconds=60):
                 return JSONResponse(status_code=429, content={"detail": "Quá nhiều yêu cầu. Vui lòng thử lại sau."})
 
@@ -2626,7 +2626,7 @@ if cors_origins_env == "*":
             elif path.endswith("/orders") and request.method == "POST":
                 if not rate_limiter.is_allowed(f"order:{ip}", max_requests=security_config["rate_orders"], window_seconds=60):
                     return JSONResponse(status_code=429, content={"detail": "Quá nhiều đơn hàng. Vui lòng thử lại sau."})
-            elif path.startswith("/api/"):
+            elif path.startswith("/api/") and not (path.startswith("/api/shop/") and request.method == "GET") and not (path.startswith("/api/files/") and request.method == "GET") and not (path.startswith("/api/card/") and request.method == "GET"):
                 if not rate_limiter.is_allowed(f"global:{ip}", max_requests=security_config["rate_global"], window_seconds=60):
                     return JSONResponse(status_code=429, content={"detail": "Quá nhiều yêu cầu. Vui lòng thử lại sau."})
 
