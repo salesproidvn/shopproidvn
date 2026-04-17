@@ -129,18 +129,22 @@ const BusinessCardPage = () => {
     <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center" data-testid="business-card-page">
       {/* Card Header */}
       <div className="w-full" style={{ background: `linear-gradient(135deg, ${themeColor}, ${themeColor}dd)` }}>
-        <div className="max-w-md mx-auto px-6 pt-10 pb-16 text-center text-white">
-          {(card.avatar_url || card.logo_url) && (
-            <img src={card.avatar_url || card.logo_url} alt="" className="w-24 h-24 rounded-full mx-auto mb-4 object-cover shadow-lg" data-testid="card-avatar" />
-          )}
-          <h1 className="text-2xl font-bold mb-1" data-testid="card-name">{card.display_name}</h1>
-          {card.title && <p className="text-white/80 text-sm mb-1" data-testid="card-title">{card.title}</p>}
-          {card.shop_name && <p className="text-white/60 text-xs">{card.shop_name}</p>}
+        <div className="max-w-md mx-auto px-6 pt-10 pb-20 text-center text-white">
         </div>
       </div>
 
+      {/* Profile Avatar - overlapping header */}
+      <div className="max-w-md mx-auto w-full flex flex-col items-center -mt-16 relative z-10">
+        {(card.avatar_url || card.logo_url) && (
+          <img src={card.avatar_url || card.logo_url} alt="" className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg bg-white" data-testid="card-avatar" />
+        )}
+        <h1 className="text-2xl font-bold mb-1 mt-3 text-[#0F172A]" data-testid="card-name">{card.display_name}</h1>
+        {card.title && <p className="text-[#64748B] text-sm mb-0.5" data-testid="card-title">{card.title}</p>}
+        {card.shop_name && <p className="text-[#94A3B8] text-xs">{card.shop_name}</p>}
+      </div>
+
       {/* Two Prominent Buttons: Save Contact + QR Code */}
-      <div className="max-w-md mx-auto w-full px-6 -mt-7 relative z-20">
+      <div className="max-w-md mx-auto w-full px-6 mt-4 relative z-20">
         <div className="flex gap-3">
           <button
             onClick={handleSaveVCF}
