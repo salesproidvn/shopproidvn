@@ -73,6 +73,19 @@ logger = logging.getLogger(__name__)
 
 MAX_CONTENT_WORDS = 1000  # Max words for blog posts and product descriptions
 
+# Mutable security config - loaded from DB at startup, editable by Super Admin
+security_config = {
+    "rate_global": 120,
+    "rate_auth": 10,
+    "rate_orders": 15,
+    "rate_contact": 5,
+    "rate_register": 3,
+    "brute_force_max": 50,
+    "brute_force_window": 900,
+    "max_body_mb": 10,
+    "content_word_limit": 1000,
+}
+
 class RateLimiter:
     """In-memory rate limiter with per-IP tracking and auto-cleanup."""
     def __init__(self):
@@ -119,7 +132,11 @@ class LoginTracker:
     def record_failure(self, key: str):
         self.attempts[key].append(time.time())
 
-    def is_locked(self, key: str, max_attempts: int = 50, window_seconds: int = 900) -> bool:
+    def is_locked(self, key: str, max_attempts: int = None, window_seconds: int = None) -> bool:
+        if max_attempts is None:
+            max_attempts = security_config["brute_force_max"]
+        if window_seconds is None:
+            window_seconds = security_config["brute_force_window"]
         now = time.time()
         cutoff = now - window_seconds
         self.attempts[key] = [t for t in self.attempts[key] if t > cutoff]
@@ -154,8 +171,10 @@ def count_words(text: str) -> int:
     clean = bleach.clean(text, tags=[], strip=True)
     return len(clean.split())
 
-def validate_word_limit(text: str, field_name: str, max_words: int = MAX_CONTENT_WORDS):
+def validate_word_limit(text: str, field_name: str, max_words: int = None):
     """Validate text doesn't exceed word limit."""
+    if max_words is None:
+        max_words = security_config["content_word_limit"]
     wc = count_words(text)
     if wc > max_words:
         raise HTTPException(
@@ -174,41 +193,25 @@ def get_client_ip(request: Request) -> str:
 
 class SecurityMiddleware(BaseHTTPMiddleware):
     """Combined security middleware: headers + rate limiting + request size limit."""
-    MAX_BODY_SIZE = 10 * 1024 * 1024  # 10MB
 
     async def dispatch(self, request, call_next):
         ip = get_client_ip(request)
         path = request.url.path
 
-        # Request size limit check
         content_length = request.headers.get("content-length")
-        if content_length and int(content_length) > self.MAX_BODY_SIZE:
-            return JSONResponse(
-                status_code=413,
-                content={"detail": "Dung lượng yêu cầu quá lớn (tối đa 10MB)"}
-            )
+        max_bytes = security_config["max_body_mb"] * 1024 * 1024
+        if content_length and int(content_length) > max_bytes:
+            return JSONResponse(status_code=413, content={"detail": f"Dung lượng yêu cầu quá lớn (tối đa {security_config['max_body_mb']}MB)"})
 
-        # Rate limiting
         if path in ("/api/auth/login", "/api/auth/register", "/api/auth/forgot-password"):
-            if not rate_limiter.is_allowed(f"auth:{ip}", max_requests=10, window_seconds=60):
-                logger.warning(f"Rate limit exceeded for auth from {ip}")
-                return JSONResponse(
-                    status_code=429,
-                    content={"detail": "Quá nhiều yêu cầu. Vui lòng thử lại sau."}
-                )
+            if not rate_limiter.is_allowed(f"auth:{ip}", max_requests=security_config["rate_auth"], window_seconds=60):
+                return JSONResponse(status_code=429, content={"detail": "Quá nhiều yêu cầu. Vui lòng thử lại sau."})
         elif path.endswith("/orders") and request.method == "POST":
-            if not rate_limiter.is_allowed(f"order:{ip}", max_requests=15, window_seconds=60):
-                return JSONResponse(
-                    status_code=429,
-                    content={"detail": "Quá nhiều đơn hàng. Vui lòng thử lại sau."}
-                )
+            if not rate_limiter.is_allowed(f"order:{ip}", max_requests=security_config["rate_orders"], window_seconds=60):
+                return JSONResponse(status_code=429, content={"detail": "Quá nhiều đơn hàng. Vui lòng thử lại sau."})
         elif path.startswith("/api/"):
-            if not rate_limiter.is_allowed(f"global:{ip}", max_requests=120, window_seconds=60):
-                logger.warning(f"Global rate limit exceeded from {ip}")
-                return JSONResponse(
-                    status_code=429,
-                    content={"detail": "Quá nhiều yêu cầu. Vui lòng thử lại sau."}
-                )
+            if not rate_limiter.is_allowed(f"global:{ip}", max_requests=security_config["rate_global"], window_seconds=60):
+                return JSONResponse(status_code=429, content={"detail": "Quá nhiều yêu cầu. Vui lòng thử lại sau."})
 
         response = await call_next(request)
 
@@ -592,7 +595,7 @@ class BusinessCardUpdate(BaseModel):
 async def register(user_data: UserRegister, request: Request, response: Response):
     # Security: Rate limit registration
     ip = get_client_ip(request)
-    if not rate_limiter.is_allowed(f"register:{ip}", max_requests=3, window_seconds=300):
+    if not rate_limiter.is_allowed(f"register:{ip}", max_requests=security_config["rate_register"], window_seconds=300):
         raise HTTPException(status_code=429, detail="Quá nhiều đăng ký. Vui lòng thử lại sau.")
     # Security: Sanitize name
     user_data.name = bleach.clean(user_data.name, tags=[], strip=True)
@@ -2349,7 +2352,7 @@ async def create_order(slug: str, data: OrderCreate, request: Request):
 async def submit_contact(slug: str, data: ContactForm, request: Request):
     # Security: Rate limit contact form
     ip = get_client_ip(request)
-    if not rate_limiter.is_allowed(f"contact:{ip}", max_requests=5, window_seconds=300):
+    if not rate_limiter.is_allowed(f"contact:{ip}", max_requests=security_config["rate_contact"], window_seconds=300):
         raise HTTPException(status_code=429, detail="Quá nhiều tin nhắn. Vui lòng thử lại sau.")
     # Security: Sanitize inputs
     data.name = bleach.clean(data.name, tags=[], strip=True)
@@ -2412,58 +2415,57 @@ async def security_dashboard(request: Request):
     """Security dashboard data for Super Admin."""
     await require_super_admin(request)
     now = time.time()
-
-    # Rate limiter stats
     active_ips = len(rate_limiter.requests)
     blocked_ips = {ip: int(unblock - now) for ip, unblock in rate_limiter.blocked_ips.items() if unblock > now}
-    total_blocked = len(blocked_ips)
-
-    # Login tracker stats
     locked_accounts = {}
     for key, attempts in login_tracker.attempts.items():
-        cutoff = now - 900  # 15 min window
+        cutoff = now - security_config["brute_force_window"]
         recent = [t for t in attempts if t > cutoff]
-        if len(recent) >= 50:
+        if len(recent) >= security_config["brute_force_max"]:
             locked_accounts[key] = len(recent)
-
-    # Rate limit breakdown
-    auth_requests = sum(1 for k in rate_limiter.requests if k.startswith("auth:"))
-    order_requests = sum(1 for k in rate_limiter.requests if k.startswith("order:"))
-    global_requests = sum(1 for k in rate_limiter.requests if k.startswith("global:"))
-    contact_requests = sum(1 for k in rate_limiter.requests if k.startswith("contact:"))
-    register_requests = sum(1 for k in rate_limiter.requests if k.startswith("register:"))
 
     return {
         "rate_limiter": {
             "active_tracked_ips": active_ips,
             "blocked_ips": blocked_ips,
-            "total_blocked": total_blocked,
+            "total_blocked": len(blocked_ips),
             "breakdown": {
-                "auth": auth_requests,
-                "orders": order_requests,
-                "global": global_requests,
-                "contact": contact_requests,
-                "register": register_requests,
+                "auth": sum(1 for k in rate_limiter.requests if k.startswith("auth:")),
+                "orders": sum(1 for k in rate_limiter.requests if k.startswith("order:")),
+                "global": sum(1 for k in rate_limiter.requests if k.startswith("global:")),
+                "contact": sum(1 for k in rate_limiter.requests if k.startswith("contact:")),
+                "register": sum(1 for k in rate_limiter.requests if k.startswith("register:")),
             }
         },
         "brute_force": {
             "locked_accounts": locked_accounts,
             "total_locked": len(locked_accounts),
         },
-        "security_config": {
-            "rate_limits": {
-                "global": "120 req/min",
-                "auth": "10 req/min",
-                "orders": "15 req/min",
-                "contact": "5 req/5min",
-                "register": "3 req/5min",
-            },
-            "brute_force_threshold": "50 attempts / 15min lockout",
-            "content_word_limit": MAX_CONTENT_WORDS,
-            "max_request_size": "10MB",
-            "security_headers": ["X-Content-Type-Options", "X-Frame-Options", "X-XSS-Protection", "Referrer-Policy", "Permissions-Policy"],
-        }
+        "security_config": security_config,
     }
+
+@api_router.put("/admin/security/config")
+async def update_security_config(request: Request):
+    """Update security config - Super Admin only."""
+    await require_super_admin(request)
+    body = await request.json()
+    allowed = ["rate_global", "rate_auth", "rate_orders", "rate_contact", "rate_register",
+               "brute_force_max", "brute_force_window", "max_body_mb", "content_word_limit"]
+    updates = {}
+    for key in allowed:
+        if key in body:
+            val = int(body[key])
+            if val < 1:
+                raise HTTPException(status_code=400, detail=f"{key} phải >= 1")
+            updates[key] = val
+    if not updates:
+        raise HTTPException(status_code=400, detail="Không có thay đổi")
+    security_config.update(updates)
+    global MAX_CONTENT_WORDS
+    if "content_word_limit" in updates:
+        MAX_CONTENT_WORDS = updates["content_word_limit"]
+    await db.settings.update_one({"key": "security_config"}, {"$set": {"value": security_config}}, upsert=True)
+    return {"message": "Cấu hình bảo mật đã được cập nhật", "config": security_config}
 
 # ==================== OG META TAGS FOR SOCIAL SHARING ====================
 
@@ -2600,20 +2602,19 @@ if cors_origins_env == "*":
 
             # Request size limit
             content_length = request.headers.get("content-length")
-            if content_length and int(content_length) > self.MAX_BODY_SIZE:
-                return JSONResponse(status_code=413, content={"detail": "Dung lượng yêu cầu quá lớn (tối đa 10MB)"})
+            max_bytes = security_config["max_body_mb"] * 1024 * 1024
+            if content_length and int(content_length) > max_bytes:
+                return JSONResponse(status_code=413, content={"detail": f"Dung lượng yêu cầu quá lớn (tối đa {security_config['max_body_mb']}MB)"})
 
             # Rate limiting
             if path in ("/api/auth/login", "/api/auth/register", "/api/auth/forgot-password"):
-                if not rate_limiter.is_allowed(f"auth:{ip}", max_requests=10, window_seconds=60):
-                    logger.warning(f"Rate limit exceeded for auth from {ip}")
+                if not rate_limiter.is_allowed(f"auth:{ip}", max_requests=security_config["rate_auth"], window_seconds=60):
                     return JSONResponse(status_code=429, content={"detail": "Quá nhiều yêu cầu. Vui lòng thử lại sau."})
             elif path.endswith("/orders") and request.method == "POST":
-                if not rate_limiter.is_allowed(f"order:{ip}", max_requests=15, window_seconds=60):
+                if not rate_limiter.is_allowed(f"order:{ip}", max_requests=security_config["rate_orders"], window_seconds=60):
                     return JSONResponse(status_code=429, content={"detail": "Quá nhiều đơn hàng. Vui lòng thử lại sau."})
             elif path.startswith("/api/"):
-                if not rate_limiter.is_allowed(f"global:{ip}", max_requests=120, window_seconds=60):
-                    logger.warning(f"Global rate limit exceeded from {ip}")
+                if not rate_limiter.is_allowed(f"global:{ip}", max_requests=security_config["rate_global"], window_seconds=60):
                     return JSONResponse(status_code=429, content={"detail": "Quá nhiều yêu cầu. Vui lòng thử lại sau."})
 
             response = await call_next(request)
@@ -2667,6 +2668,14 @@ async def startup_event():
     await db.agent_sales.create_index([("shop_id", 1), ("agent_id", 1)])
     await db.agent_sales.create_index([("agent_id", 1), ("created_at", -1)])
     await db.business_cards.create_index([("owner_id", 1), ("owner_type", 1)], unique=True)
+
+    # Load security config from DB
+    saved_config = await db.settings.find_one({"key": "security_config"})
+    if saved_config and saved_config.get("value"):
+        security_config.update(saved_config["value"])
+        global MAX_CONTENT_WORDS
+        MAX_CONTENT_WORDS = security_config.get("content_word_limit", 1000)
+        logger.info(f"Loaded security config from DB")
 
     admin_email = os.environ.get("ADMIN_EMAIL", "daominhhai129@gmail.com")
     admin_password = os.environ.get("ADMIN_PASSWORD", "admin123")

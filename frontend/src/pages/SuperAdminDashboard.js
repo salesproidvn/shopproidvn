@@ -869,7 +869,9 @@ const SuperAdminDashboard = () => {
                           <div key={key} className="bg-[#F8FAFC] rounded-xl p-4 text-center">
                             <div className="text-2xl font-bold text-[#0F172A]">{value}</div>
                             <div className="text-xs text-[#64748B] mt-1 capitalize">{key}</div>
-                            <div className="text-[10px] text-[#94A3B8]">{securityData.security_config.rate_limits[key] || ''}</div>
+                            <div className="text-[10px] text-[#94A3B8]">{
+                              {auth: `${securityData.security_config.rate_auth}/min`, orders: `${securityData.security_config.rate_orders}/min`, global: `${securityData.security_config.rate_global}/min`, contact: `${securityData.security_config.rate_contact}/5min`, register: `${securityData.security_config.rate_register}/5min`}[key] || ''
+                            }</div>
                           </div>
                         ))}
                       </div>
@@ -920,41 +922,75 @@ const SuperAdminDashboard = () => {
                     </Card>
                   )}
 
-                  {/* Security Configuration */}
+                  {/* Security Configuration - Editable */}
                   <Card className="border-0 shadow-sm" data-testid="security-config">
                     <CardHeader className="p-5 pb-3">
-                      <CardTitle className="text-lg flex items-center gap-2">
-                        <ShieldCheck className="w-5 h-5 text-emerald-500" />
-                        Cấu hình bảo mật
-                      </CardTitle>
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-lg flex items-center gap-2">
+                          <ShieldCheck className="w-5 h-5 text-emerald-500" />
+                          Cấu hình bảo mật
+                        </CardTitle>
+                        <Button size="sm" className="bg-[#0055FF] hover:bg-[#0040CC] text-xs" onClick={async () => {
+                          try {
+                            await axios.put(`${API}/admin/security/config`, securityData.security_config);
+                            toast.success('Đã lưu cấu hình bảo mật');
+                            fetchSecurityData();
+                          } catch (err) { toast.error(err.response?.data?.detail || 'Lỗi'); }
+                        }} data-testid="save-security-config">
+                          Lưu thay đổi
+                        </Button>
+                      </div>
                     </CardHeader>
                     <CardContent className="p-5 pt-0">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                         <div className="space-y-3">
                           <h4 className="text-sm font-semibold text-[#334155]">Rate Limits</h4>
-                          {Object.entries(securityData.security_config.rate_limits).map(([key, value]) => (
+                          {[
+                            { key: 'rate_global', label: 'Global', unit: 'req/min' },
+                            { key: 'rate_auth', label: 'Auth', unit: 'req/min' },
+                            { key: 'rate_orders', label: 'Orders', unit: 'req/min' },
+                            { key: 'rate_contact', label: 'Contact', unit: 'req/5min' },
+                            { key: 'rate_register', label: 'Register', unit: 'req/5min' },
+                          ].map(({ key, label, unit }) => (
                             <div key={key} className="flex items-center justify-between text-sm">
-                              <span className="text-[#64748B] capitalize">{key}</span>
-                              <span className="font-mono text-xs bg-[#F1F5F9] px-2 py-1 rounded">{value}</span>
+                              <span className="text-[#64748B]">{label}</span>
+                              <div className="flex items-center gap-1.5">
+                                <input type="number" min="1" value={securityData.security_config[key] ?? ''}
+                                  onChange={(e) => setSecurityData({...securityData, security_config: {...securityData.security_config, [key]: parseInt(e.target.value) || 0}})}
+                                  className="font-mono text-xs border rounded px-2 py-1 w-16 text-center" />
+                                <span className="text-[10px] text-[#94A3B8]">{unit}</span>
+                              </div>
                             </div>
                           ))}
                         </div>
                         <div className="space-y-3">
                           <h4 className="text-sm font-semibold text-[#334155]">Bảo vệ</h4>
                           <div className="flex items-center justify-between text-sm">
-                            <span className="text-[#64748B]">Brute Force</span>
-                            <span className="font-mono text-xs bg-[#F1F5F9] px-2 py-1 rounded">{securityData.security_config.brute_force_threshold}</span>
+                            <span className="text-[#64748B]">Brute Force (lần thử)</span>
+                            <input type="number" min="1" value={securityData.security_config.brute_force_max ?? ''}
+                              onChange={(e) => setSecurityData({...securityData, security_config: {...securityData.security_config, brute_force_max: parseInt(e.target.value) || 0}})}
+                              className="font-mono text-xs border rounded px-2 py-1 w-16 text-center" />
                           </div>
                           <div className="flex items-center justify-between text-sm">
-                            <span className="text-[#64748B]">Payload tối đa</span>
-                            <span className="font-mono text-xs bg-[#F1F5F9] px-2 py-1 rounded">{securityData.security_config.max_request_size}</span>
+                            <span className="text-[#64748B]">Lockout (giây)</span>
+                            <input type="number" min="60" value={securityData.security_config.brute_force_window ?? ''}
+                              onChange={(e) => setSecurityData({...securityData, security_config: {...securityData.security_config, brute_force_window: parseInt(e.target.value) || 0}})}
+                              className="font-mono text-xs border rounded px-2 py-1 w-16 text-center" />
+                          </div>
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-[#64748B]">Payload tối đa (MB)</span>
+                            <input type="number" min="1" value={securityData.security_config.max_body_mb ?? ''}
+                              onChange={(e) => setSecurityData({...securityData, security_config: {...securityData.security_config, max_body_mb: parseInt(e.target.value) || 0}})}
+                              className="font-mono text-xs border rounded px-2 py-1 w-16 text-center" />
                           </div>
                           <div className="flex items-center justify-between text-sm">
                             <span className="text-[#64748B]">Giới hạn từ</span>
-                            <span className="font-mono text-xs bg-[#F1F5F9] px-2 py-1 rounded">{securityData.security_config.content_word_limit} từ</span>
+                            <input type="number" min="100" value={securityData.security_config.content_word_limit ?? ''}
+                              onChange={(e) => setSecurityData({...securityData, security_config: {...securityData.security_config, content_word_limit: parseInt(e.target.value) || 0}})}
+                              className="font-mono text-xs border rounded px-2 py-1 w-16 text-center" />
                           </div>
                           <h4 className="text-sm font-semibold text-[#334155] pt-2">Security Headers</h4>
-                          {securityData.security_config.security_headers.map((header) => (
+                          {["X-Content-Type-Options", "X-Frame-Options", "X-XSS-Protection", "Referrer-Policy", "Permissions-Policy"].map((header) => (
                             <div key={header} className="flex items-center gap-2 text-sm">
                               <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
                               <span className="font-mono text-xs text-[#64748B]">{header}</span>
