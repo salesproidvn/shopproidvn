@@ -1561,7 +1561,14 @@ const ShopOwnerDashboard = () => {
                     {orders.map((order) => (
                       <div key={order.id} className="p-3 border rounded-lg bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <div className="flex-1 min-w-0 cursor-pointer" onClick={() => openOrderDetail(order)} data-testid={`order-row-${order.id}`}>
-                          <p className="font-medium text-[#0F172A] text-sm hover:text-[#0055FF] transition-colors">{order.id}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium text-[#0F172A] text-sm hover:text-[#0055FF] transition-colors">{order.id}</p>
+                            {order.agent_name && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600 font-medium" data-testid={`order-agent-${order.id}`}>
+                                Đại lý: {order.agent_name}
+                              </span>
+                            )}
+                          </div>
                           <p className="text-xs text-[#64748B]">{order.customer_name} - {order.customer_phone}</p>
                           <p className="text-xs text-[#64748B]">{order.items?.length || 0} {t.items}</p>
                         </div>
@@ -2340,7 +2347,10 @@ const ShopOwnerDashboard = () => {
                       <label className="text-xs font-medium text-[#334155] mb-1 block">Ảnh đại diện URL</label>
                       <div className="flex gap-2">
                         <Input value={businessCard.avatar_url || ''} onChange={(e) => setBusinessCard({...businessCard, avatar_url: e.target.value})} className="text-sm flex-1" data-testid="card-avatar-url" />
-                        <Button variant="outline" size="sm" onClick={() => openMediaLibrary((url) => setBusinessCard({...businessCard, avatar_url: Array.isArray(url) ? url[0] : url}))}>
+                        <Button variant="outline" size="sm" onClick={() => openMediaLibrary((url) => {
+                          const imgUrl = Array.isArray(url) ? url[0] : url;
+                          setBusinessCard(prev => ({...prev, avatar_url: imgUrl}));
+                        })}>
                           <Upload className="w-3 h-3" />
                         </Button>
                       </div>

@@ -1082,8 +1082,16 @@ async def get_shop_orders(request: Request):
     user = await require_shop_owner(request)
     shop_id = await resolve_shop_id(request, user)
     orders = await db.orders.find({"shop_id": shop_id}, {"_id": 0}).sort("created_at", -1).to_list(500)
+    # Collect agent IDs and fetch agent names
+    agent_ids = set(o.get("agent_id") for o in orders if o.get("agent_id"))
+    agent_map = {}
+    if agent_ids:
+        agents = await db.agents.find({"id": {"$in": list(agent_ids)}}, {"_id": 0, "id": 1, "name": 1, "tracking_code": 1}).to_list(200)
+        agent_map = {a["id"]: a for a in agents}
     for o in orders:
         o["created_at"] = serialize_datetime(o.get("created_at"))
+        if o.get("agent_id") and o["agent_id"] in agent_map:
+            o["agent_name"] = agent_map[o["agent_id"]]["name"]
     return orders
 
 @api_router.put("/dashboard/orders/{order_id}/status")
@@ -1093,9 +1101,32 @@ async def update_order_status(order_id: str, data: OrderStatusUpdate, request: R
     valid = ["pending", "confirmed", "processing", "shipped", "completed", "cancelled"]
     if data.status not in valid:
         raise HTTPException(status_code=400, detail="Invalid status")
-    result = await db.orders.update_one({"id": order_id, "shop_id": shop_id}, {"$set": {"status": data.status, "updated_at": datetime.now(timezone.utc)}})
-    if result.matched_count == 0:
+    
+    # Get the order first to check for agent referral
+    order = await db.orders.find_one({"id": order_id, "shop_id": shop_id})
+    if not order:
         raise HTTPException(status_code=404, detail="Order not found")
+    
+    old_status = order.get("status", "pending")
+    await db.orders.update_one({"id": order_id, "shop_id": shop_id}, {"$set": {"status": data.status, "updated_at": datetime.now(timezone.utc)}})
+    
+    # Record agent sale when order is confirmed/completed (and not already recorded)
+    if data.status in ["confirmed", "completed"] and old_status == "pending" and order.get("agent_id"):
+        existing_sale = await db.agent_sales.find_one({"order_id": order_id})
+        if not existing_sale:
+            await db.agent_sales.insert_one({
+                "id": f"as-{uuid_lib.uuid4().hex[:12]}",
+                "shop_id": shop_id,
+                "agent_id": order["agent_id"],
+                "order_id": order_id,
+                "amount": order.get("total_amount", 0),
+                "created_at": datetime.now(timezone.utc),
+            })
+    
+    # If order is cancelled, remove agent sale record
+    if data.status == "cancelled" and order.get("agent_id"):
+        await db.agent_sales.delete_one({"order_id": order_id})
+    
     return {"message": f"Order status updated to {data.status}"}
 
 # ==================== DASHBOARD - POSTS ====================
@@ -1990,16 +2021,7 @@ async def create_order(slug: str, data: OrderCreate):
             doc["agent_id"] = agent_id_for_order
             doc["agent_tracking_code"] = data.agent_tracking_code
     await db.orders.insert_one(doc)
-    # Record agent sale
-    if agent_id_for_order:
-        await db.agent_sales.insert_one({
-            "id": f"as-{uuid_lib.uuid4().hex[:12]}",
-            "shop_id": shop_id,
-            "agent_id": agent_id_for_order,
-            "order_id": order_id,
-            "amount": total,
-            "created_at": datetime.now(timezone.utc),
-        })
+    # Agent sales will be recorded when shop owner approves the order (not immediately)
 
     # Send push notification to shop owner if enabled
     if shop.get("notifications_enabled"):
