@@ -140,10 +140,7 @@ const LoginPage = () => {
         </div>
 
         <div className="relative z-10 flex flex-col justify-between p-12 xl:p-16 w-full">
-          {/* Logo */}
-          <div className="flex items-center gap-3">
-            <img src="/proid-logo.png" alt="Pro ID" className="h-11 w-auto" />
-          </div>
+          {/* Logo - removed */}
 
           {/* Hero Content */}
           <div className="flex-1 flex flex-col justify-center max-w-lg">
@@ -184,11 +181,8 @@ const LoginPage = () => {
       {/* Right - Login Form */}
       <div className="w-full lg:w-[45%] flex flex-col">
         {/* Mobile header */}
-        <div className="lg:hidden flex items-center justify-between p-5 border-b border-[#E2E8F0]">
-          <div className="flex items-center gap-2.5">
-            <img src="/proid-logo.png" alt="Pro ID" className="h-9 w-auto" />
-            <span className="font-bold text-base text-[#0F172A]">PRO ID SHOP</span>
-          </div>
+        <div className="lg:hidden flex items-center justify-center p-5 border-b border-[#E2E8F0]">
+          <img src="/proid-logo.png" alt="Pro ID" className="h-9 w-auto" />
         </div>
 
         <div className="flex-1 flex items-center justify-center p-6 sm:p-10">
