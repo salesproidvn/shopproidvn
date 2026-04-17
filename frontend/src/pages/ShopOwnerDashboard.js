@@ -3422,7 +3422,7 @@ const ShopOwnerDashboard = () => {
             <div>
               <div className="flex items-center justify-between mb-1">
                 <label className="block text-xs font-medium">{t.postDescription} *</label>
-                <span className={`text-[10px] ${countWords(postForm.description) > 1000 ? 'text-red-500 font-bold' : 'text-[#94A3B8]'}`}>
+                <span className={`text-[10px] ${countWords(postForm.description) > 1000 ? 'text-red-500 font-bold' : 'text-[#94A3B8]'}`} data-testid="post-word-count">
                   {countWords(postForm.description)}/1000 {t.wordCount}
                 </span>
               </div>
