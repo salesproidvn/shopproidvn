@@ -790,7 +790,7 @@ async def update_shop_limits(shop_id: str, request: Request):
     await require_super_admin(request)
     body = await request.json()
     update = {}
-    for field in ["max_products", "max_posts", "max_pages", "max_categories", "max_agents"]:
+    for field in ["max_products", "max_posts", "max_pages", "max_categories", "max_agents", "max_images"]:
         if field in body:
             update[field] = int(body[field])
     if update:
@@ -811,6 +811,7 @@ async def get_all_users(request: Request):
                 pc = await db.products.count_documents({"shop_id": sid})
                 oc = await db.orders.count_documents({"shop_id": sid})
                 cc = await db.categories.count_documents({"shop_id": sid})
+                ic = await db.files.count_documents({"shop_id": sid, "is_deleted": False})
                 shop_data = {
                     "id": sid, "name": shop.get("name"), "slug": shop.get("slug"),
                     "status": shop.get("status", "active"),
@@ -818,12 +819,13 @@ async def get_all_users(request: Request):
                     "contact_phone": shop.get("contact_phone", ""),
                     "contact_email": shop.get("contact_email", ""),
                     "expiry_date": shop.get("expiry_date", ""),
-                    "product_count": pc, "order_count": oc, "category_count": cc,
+                    "product_count": pc, "order_count": oc, "category_count": cc, "image_count": ic,
                     "max_products": shop.get("max_products", 100),
                     "max_posts": shop.get("max_posts", 50),
                     "max_pages": shop.get("max_pages", 20),
                     "max_categories": shop.get("max_categories", 50),
                     "max_agents": shop.get("max_agents", 100),
+                    "max_images": shop.get("max_images", 500),
                     "agents_enabled": shop.get("agents_enabled", False),
                 }
         result.append({
@@ -1028,8 +1030,17 @@ async def upload_image(file: UploadFile = File(...), request: Request = None):
         user = await get_current_user(request)
         if user.get("role") == "shop_owner":
             shop_id = user.get("shop_id")
+            # Check image upload limit
+            if shop_id:
+                shop_doc = await db.shops.find_one({"_id": ObjectId(shop_id)}, {"max_images": 1})
+                max_images = (shop_doc or {}).get("max_images", 500)
+                current_count = await db.files.count_documents({"shop_id": shop_id, "is_deleted": False})
+                if current_count >= max_images:
+                    raise HTTPException(status_code=400, detail=f"Đã đạt giới hạn {max_images} ảnh. Vui lòng xóa ảnh cũ hoặc liên hệ quản trị viên.")
         elif user.get("role") == "super_admin":
             shop_id = "admin"
+    except HTTPException:
+        raise
     except:
         pass
 

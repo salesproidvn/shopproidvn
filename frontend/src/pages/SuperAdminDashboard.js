@@ -552,6 +552,13 @@ const SuperAdminDashboard = () => {
                                 className="text-xs border rounded px-1 py-0.5 w-14 text-center" />
                             </div>
                             <div className="flex items-center gap-1.5">
+                              <span>Ảnh:</span>
+                              <input type="number" min="0" value={u.shop.max_images ?? 500}
+                                onChange={(e) => handleSetLimits(u.shop.id, 'max_images', e.target.value)}
+                                className="text-xs border rounded px-1 py-0.5 w-14 text-center" />
+                              <span className="text-[10px] text-[#94A3B8]">({u.shop.image_count ?? 0})</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
                               <span>Đại lý:</span>
                               <button
                                 onClick={async () => {
