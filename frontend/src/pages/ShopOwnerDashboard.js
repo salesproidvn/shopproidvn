@@ -845,6 +845,8 @@ const ShopOwnerDashboard = () => {
       await axios.put(`${API}/dashboard/orders/${orderId}/status`, { status });
       toast.success(t.orderStatusUpdated);
       fetchOrdersOnly();
+      // Refresh agent sales if agents enabled
+      if (shop?.agents_enabled) fetchAgentSales();
     } catch (err) {
       toast.error(t.failedToUpdate);
     }
@@ -1603,44 +1605,87 @@ const ShopOwnerDashboard = () => {
 
           {/* Orders Tab */}
           {activeTab === 'orders' && (
-            <Card className="border-0 shadow-sm">
-              <CardContent className="p-4">
-                {orders.length === 0 ? (
-                  <div className="text-center py-12">
-                    <ShoppingCart className="w-12 h-12 text-[#E2E8F0] mx-auto mb-4" />
-                    <p className="text-[#64748B] text-sm">{t.noOrdersYet}</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {orders.map((order) => (
-                      <div key={order.id} className="p-3 border rounded-lg bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                        <div className="flex-1 min-w-0 cursor-pointer" onClick={() => openOrderDetail(order)} data-testid={`order-row-${order.id}`}>
-                          <div className="flex items-center gap-2">
-                            <p className="font-medium text-[#0F172A] text-sm hover:text-[#0055FF] transition-colors">{order.id}</p>
-                            {order.agent_name && (
-                              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600 font-medium" data-testid={`order-agent-${order.id}`}>
-                                Đại lý: {order.agent_name}
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-xs text-[#64748B]">{order.customer_name} - {order.customer_phone}</p>
-                          <p className="text-xs text-[#64748B]">{order.items?.length || 0} {t.items}</p>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <p className="font-bold text-sm" style={{ color: themeColor }}>{formatVND(order.total_amount)}</p>
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[order.status]}`}>
-                            {statusLabels[order.status] || order.status}
-                          </span>
-                          <Button variant="outline" size="sm" className="h-8" onClick={() => openOrderDetail(order)} data-testid={`view-order-${order.id}`}>
-                            <Eye className="w-4 h-4" />
-                          </Button>
-                        </div>
+            <div className="space-y-4">
+              {/* Agent Sales Summary - only show if there are agent orders */}
+              {orders.some(o => o.agent_name) && (
+                <Card className="border-0 shadow-sm border-l-4" style={{ borderLeftColor: themeColor }}>
+                  <CardContent className="p-4">
+                    <h3 className="text-sm font-bold text-[#0F172A] mb-3">{t.agentSalesOverview || 'Tổng quan doanh số'}</h3>
+                    <div className="grid grid-cols-3 gap-3 text-center">
+                      <div className="bg-[#F8FAFC] rounded-lg p-2.5">
+                        <p className="text-[10px] text-[#94A3B8]">{t.totalSales || 'Tổng doanh số'}</p>
+                        <p className="text-base font-bold" style={{ color: themeColor }}>
+                          {formatVND(orders.filter(o => o.status === 'confirmed' || o.status === 'completed').reduce((s, o) => s + (o.total_amount || 0), 0))}
+                        </p>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                      <div className="bg-[#F8FAFC] rounded-lg p-2.5">
+                        <p className="text-[10px] text-[#94A3B8]">Doanh số đại lý</p>
+                        <p className="text-base font-bold text-blue-600">
+                          {formatVND(orders.filter(o => o.agent_name && (o.status === 'confirmed' || o.status === 'completed')).reduce((s, o) => s + (o.total_amount || 0), 0))}
+                        </p>
+                      </div>
+                      <div className="bg-[#F8FAFC] rounded-lg p-2.5">
+                        <p className="text-[10px] text-[#94A3B8]">{t.pending || 'Chờ duyệt'}</p>
+                        <p className="text-base font-bold text-amber-500">
+                          {orders.filter(o => o.status === 'pending').length}
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              <Card className="border-0 shadow-sm">
+                <CardContent className="p-4">
+                  {orders.length === 0 ? (
+                    <div className="text-center py-12">
+                      <ShoppingCart className="w-12 h-12 text-[#E2E8F0] mx-auto mb-4" />
+                      <p className="text-[#64748B] text-sm">{t.noOrdersYet}</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {orders.map((order) => (
+                        <div key={order.id} className={`p-3 border rounded-lg bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${order.agent_name ? 'border-l-4 border-l-blue-400' : ''}`}>
+                          <div className="flex-1 min-w-0 cursor-pointer" onClick={() => openOrderDetail(order)} data-testid={`order-row-${order.id}`}>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <p className="font-medium text-[#0F172A] text-sm hover:text-[#0055FF] transition-colors">{order.id}</p>
+                              {order.agent_name && (
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 font-bold border border-blue-200" data-testid={`order-agent-${order.id}`}>
+                                  Đại lý: {order.agent_name}
+                                </span>
+                              )}
+                              {order.voucher && (
+                                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-50 text-green-600 font-medium">
+                                  {order.voucher.code}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-[#64748B] mt-0.5">{order.customer_name} - {order.customer_phone}</p>
+                            <p className="text-[10px] text-[#94A3B8]">{order.items?.length || 0} {t.items} - {new Date(order.created_at).toLocaleDateString('vi-VN')} {new Date(order.created_at).toLocaleTimeString('vi-VN', {hour:'2-digit',minute:'2-digit'})}</p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <p className="font-bold text-sm" style={{ color: themeColor }}>{formatVND(order.total_amount)}</p>
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[order.status]}`}>
+                              {statusLabels[order.status] || order.status}
+                            </span>
+                            {order.status === 'pending' && (
+                              <Button size="sm" className="h-7 text-xs text-white" style={{ backgroundColor: '#22C55E' }}
+                                onClick={(e) => { e.stopPropagation(); handleOrderStatus(order.id, 'confirmed'); }}
+                                data-testid={`approve-order-${order.id}`}>
+                                <Check className="w-3 h-3 mr-1" /> Duyệt
+                              </Button>
+                            )}
+                            <Button variant="outline" size="sm" className="h-7" onClick={() => openOrderDetail(order)} data-testid={`view-order-${order.id}`}>
+                              <Eye className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           )}
 
           {/* Posts Tab */}
@@ -3134,6 +3179,28 @@ const ShopOwnerDashboard = () => {
           </DialogHeader>
           {selectedOrder && (
             <div className="space-y-4">
+              {/* Agent Info Banner */}
+              {selectedOrder.agent_name && (
+                <div className="flex items-center gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <Users className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-sm font-bold text-blue-700">Đơn hàng từ đại lý: {selectedOrder.agent_name}</p>
+                    <p className="text-[10px] text-blue-500">
+                      {selectedOrder.status === 'pending' ? 'Cần duyệt để ghi nhận doanh số cho đại lý' : 
+                       selectedOrder.status === 'confirmed' || selectedOrder.status === 'completed' ? 'Đã ghi nhận doanh số cho đại lý' : 
+                       selectedOrder.status === 'cancelled' ? 'Đã hủy - không ghi nhận doanh số' : 'Đang xử lý'}
+                    </p>
+                  </div>
+                  {selectedOrder.status === 'pending' && (
+                    <Button size="sm" className="text-white text-xs" style={{ backgroundColor: '#22C55E' }}
+                      onClick={() => { handleOrderStatus(selectedOrder.id, 'confirmed'); setSelectedOrder({ ...selectedOrder, status: 'confirmed' }); }}
+                      data-testid="modal-approve-order">
+                      <Check className="w-3 h-3 mr-1" /> Duyệt đơn
+                    </Button>
+                  )}
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-3 p-3 bg-[#F8FAFC] rounded-lg text-sm">
                 <div>
                   <p className="text-xs text-[#64748B]">{t.customerName}</p>
@@ -3166,9 +3233,23 @@ const ShopOwnerDashboard = () => {
                   ))}
                 </div>
               </div>
-              <div className="flex justify-between items-center p-3 bg-[#F8FAFC] rounded-lg">
-                <span className="font-medium text-sm">{t.total}</span>
-                <span className="text-xl font-bold" style={{ color: themeColor }}>{formatVND(selectedOrder.total_amount)}</span>
+              <div className="p-3 bg-[#F8FAFC] rounded-lg space-y-1.5">
+                {selectedOrder.subtotal && selectedOrder.discount_amount > 0 && (
+                  <>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-[#64748B]">Tạm tính</span>
+                      <span>{formatVND(selectedOrder.subtotal)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-green-600">Giảm giá {selectedOrder.voucher?.code && `(${selectedOrder.voucher.code})`}</span>
+                      <span className="text-green-600">-{formatVND(selectedOrder.discount_amount)}</span>
+                    </div>
+                  </>
+                )}
+                <div className="flex justify-between items-center">
+                  <span className="font-medium text-sm">{t.total}</span>
+                  <span className="text-xl font-bold" style={{ color: themeColor }}>{formatVND(selectedOrder.total_amount)}</span>
+                </div>
               </div>
               {selectedOrder.note && (
                 <div className="p-3 border rounded-lg text-sm">
