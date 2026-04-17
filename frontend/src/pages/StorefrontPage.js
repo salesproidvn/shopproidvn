@@ -1235,8 +1235,8 @@ const StorefrontPage = () => {
               <span className="text-[10px] font-bold whitespace-nowrap sm:text-xs">{t.message}</span>
             </a>
           ) : <div />}
-          {shop.address ? (
-            <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(shop.address)}`} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center justify-center gap-0.5 text-white/80 hover:text-white active:bg-white/10 transition-colors sm:px-4 sm:rounded-full sm:h-full sm:flex-row sm:gap-1.5" data-testid="bottom-map">
+          {(shop.google_map_url || shop.address) ? (
+            <a href={shop.google_map_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(shop.address)}`} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center justify-center gap-0.5 text-white/80 hover:text-white active:bg-white/10 transition-colors sm:px-4 sm:rounded-full sm:h-full sm:flex-row sm:gap-1.5" data-testid="bottom-map">
               <Map className="w-5 h-5 sm:w-4 sm:h-4" />
               <span className="text-[10px] font-bold whitespace-nowrap sm:text-xs">{t.map || 'Bản đồ'}</span>
             </a>

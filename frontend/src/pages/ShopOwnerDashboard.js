@@ -2983,6 +2983,11 @@ const ShopOwnerDashboard = () => {
                       <label className="block text-xs font-medium mb-1">{t.shopAddress}</label>
                       <Input value={shopForm.address || ''} onChange={(e) => setShopForm({ ...shopForm, address: e.target.value })} className="text-sm" />
                     </div>
+                    <div>
+                      <label className="block text-xs font-medium mb-1">Google Maps URL</label>
+                      <Input value={shopForm.google_map_url || ''} onChange={(e) => setShopForm({ ...shopForm, google_map_url: e.target.value })} className="text-sm" placeholder="https://maps.app.goo.gl/..." data-testid="google-map-url-input" />
+                      <p className="text-[10px] text-[#94A3B8] mt-1">Dán link Google Maps để hiện nút Bản đồ chính xác trên storefront</p>
+                    </div>
                     <Button type="submit" style={{ backgroundColor: themeColor }} className="hover:opacity-90 text-sm" data-testid="save-shop-btn">
                       {t.saveChanges}
                     </Button>
