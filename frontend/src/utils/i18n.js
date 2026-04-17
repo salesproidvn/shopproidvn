@@ -553,6 +553,8 @@ export const vi = {
   myDashboard: 'Bảng điều khiển',
   copyLink: 'Copy link',
   businessCard: 'Danh thiếp',
+  saveContact: 'Lưu danh bạ',
+  scanQR: 'Quét mã QR',
 };
 
 export const en = {
@@ -1094,6 +1096,8 @@ export const en = {
   myDashboard: 'Dashboard',
   copyLink: 'Copy Link',
   businessCard: 'Business Card',
+  saveContact: 'Save Contact',
+  scanQR: 'Scan QR Code',
 };
 
 export const translations = { vi, en };
