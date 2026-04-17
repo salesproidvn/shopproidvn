@@ -129,12 +129,12 @@ const LoginPage = () => {
   return (
     <div className="min-h-screen flex" data-testid="login-page">
       {/* Left - Branding */}
-      <div className="hidden lg:flex lg:w-[55%] relative overflow-hidden bg-[#0A1628]">
+      <div className="hidden lg:flex lg:w-[55%] relative overflow-hidden bg-[#1A0A0A]">
         {/* Background effects */}
         <div className="absolute inset-0">
-          <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-[#0055FF]/20 via-transparent to-[#00C2FF]/10" />
-          <div className="absolute top-[15%] left-[10%] w-[400px] h-[400px] rounded-full bg-[#0055FF]/8 blur-[120px]" />
-          <div className="absolute bottom-[10%] right-[5%] w-[350px] h-[350px] rounded-full bg-[#00C2FF]/8 blur-[100px]" />
+          <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-[#CC0000]/20 via-transparent to-[#FF4444]/10" />
+          <div className="absolute top-[15%] left-[10%] w-[400px] h-[400px] rounded-full bg-[#CC0000]/8 blur-[120px]" />
+          <div className="absolute bottom-[10%] right-[5%] w-[350px] h-[350px] rounded-full bg-[#FF4444]/8 blur-[100px]" />
           {/* Grid pattern */}
           <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)', backgroundSize: '60px 60px' }} />
         </div>
@@ -142,11 +142,9 @@ const LoginPage = () => {
         <div className="relative z-10 flex flex-col justify-between p-12 xl:p-16 w-full">
           {/* Logo */}
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#0055FF] to-[#00C2FF] flex items-center justify-center shadow-lg shadow-[#0055FF]/30">
-              <Store className="w-6 h-6 text-white" />
-            </div>
+            <img src="/proid-logo.png" alt="Pro ID" className="h-11 w-auto" />
             <div>
-              <span className="text-xl font-bold text-white tracking-tight">OCEAN PRO WEB</span>
+              <span className="text-xl font-bold text-white tracking-tight">PRO ID SHOP</span>
             </div>
           </div>
 
@@ -155,9 +153,9 @@ const LoginPage = () => {
             <h1 className="text-3xl xl:text-4xl font-extrabold text-white leading-tight mb-5">
               Nền tảng thương mại
               <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#0055FF] to-[#00C2FF]">điện tử thông minh</span>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FF2020] to-[#FF6B6B]">điện tử thông minh</span>
             </h1>
-            <p className="text-[#8B9DC3] text-sm leading-relaxed mb-10">
+            <p className="text-[#C49A9A] text-sm leading-relaxed mb-10">
               Giải pháp tạo website bán hàng chuyên nghiệp, tự chủ nội dung 100%, tối ưu cho mọi doanh nghiệp Việt Nam.
             </p>
 
@@ -165,10 +163,10 @@ const LoginPage = () => {
             <div className="grid grid-cols-2 gap-x-6 gap-y-4">
               {highlights.map((h, i) => (
                 <div key={i} className="flex items-center gap-3 group">
-                  <div className="w-9 h-9 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center group-hover:bg-[#0055FF]/20 group-hover:border-[#0055FF]/30 transition-all">
-                    <h.icon className="w-4 h-4 text-[#00C2FF]" />
+                  <div className="w-9 h-9 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center group-hover:bg-[#CC0000]/20 group-hover:border-[#CC0000]/30 transition-all">
+                    <h.icon className="w-4 h-4 text-[#FF6B6B]" />
                   </div>
-                  <span className="text-xs text-[#8B9DC3] leading-snug">{h.text}</span>
+                  <span className="text-xs text-[#C49A9A] leading-snug">{h.text}</span>
                 </div>
               ))}
             </div>
@@ -179,7 +177,7 @@ const LoginPage = () => {
             {[{ val: '500+', label: 'Khách hàng' }, { val: '50+', label: 'Dự án' }, { val: '24/7', label: 'Hỗ trợ' }].map((s, i) => (
               <div key={i}>
                 <p className="text-xl font-extrabold text-white">{s.val}</p>
-                <p className="text-[10px] text-[#64748B] uppercase tracking-wider mt-0.5">{s.label}</p>
+                <p className="text-[10px] text-[#8B6464] uppercase tracking-wider mt-0.5">{s.label}</p>
               </div>
             ))}
           </div>
@@ -191,10 +189,8 @@ const LoginPage = () => {
         {/* Mobile header */}
         <div className="lg:hidden flex items-center justify-between p-5 border-b border-[#E2E8F0]">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#0055FF] to-[#00C2FF] flex items-center justify-center">
-              <Store className="w-5 h-5 text-white" />
-            </div>
-            <span className="font-bold text-base text-[#0F172A]">OCEAN PRO WEB</span>
+            <img src="/proid-logo.png" alt="Pro ID" className="h-9 w-auto" />
+            <span className="font-bold text-base text-[#0F172A]">PRO ID SHOP</span>
           </div>
         </div>
 
@@ -222,12 +218,12 @@ const LoginPage = () => {
                   {error && <div className="text-red-600 text-xs bg-red-50 p-3 rounded-xl border border-red-100" data-testid="forgot-error">{error}</div>}
                   {successMessage && <div className="text-green-700 text-xs bg-green-50 p-3 rounded-xl border border-green-100 flex items-center gap-2" data-testid="forgot-success"><CheckCircle className="w-4 h-4" />{successMessage}</div>}
 
-                  <Button type="submit" className="w-full h-11 bg-gradient-to-r from-[#0055FF] to-[#00C2FF] hover:opacity-90 rounded-xl text-sm font-semibold shadow-lg shadow-[#0055FF]/20" disabled={loading} data-testid="forgot-submit-button">
+                  <Button type="submit" className="w-full h-11 bg-gradient-to-r from-[#CC0000] to-[#FF4444] hover:opacity-90 rounded-xl text-sm font-semibold shadow-lg shadow-[#CC0000]/20" disabled={loading} data-testid="forgot-submit-button">
                     {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Mail className="w-4 h-4 mr-2" /> Gửi yêu cầu đặt lại</>}
                   </Button>
 
                   <p className="text-center text-sm text-[#64748B]">
-                    <button type="button" onClick={() => { setMode('login'); setError(''); setSuccessMessage(''); }} className="text-[#0055FF] font-semibold hover:underline" data-testid="back-to-login">
+                    <button type="button" onClick={() => { setMode('login'); setError(''); setSuccessMessage(''); }} className="text-[#CC0000] font-semibold hover:underline" data-testid="back-to-login">
                       Quay lại đăng nhập
                     </button>
                   </p>
@@ -262,7 +258,7 @@ const LoginPage = () => {
                   {error && <div className="text-red-600 text-xs bg-red-50 p-3 rounded-xl border border-red-100" data-testid="reset-error">{error}</div>}
                   {successMessage && <div className="text-green-700 text-xs bg-green-50 p-3 rounded-xl border border-green-100 flex items-center gap-2" data-testid="reset-success"><CheckCircle className="w-4 h-4" />{successMessage}</div>}
 
-                  <Button type="submit" className="w-full h-11 bg-gradient-to-r from-[#0055FF] to-[#00C2FF] hover:opacity-90 rounded-xl text-sm font-semibold shadow-lg shadow-[#0055FF]/20" disabled={loading} data-testid="reset-submit-button">
+                  <Button type="submit" className="w-full h-11 bg-gradient-to-r from-[#CC0000] to-[#FF4444] hover:opacity-90 rounded-xl text-sm font-semibold shadow-lg shadow-[#CC0000]/20" disabled={loading} data-testid="reset-submit-button">
                     {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Shield className="w-4 h-4 mr-2" /> Đặt lại mật khẩu</>}
                   </Button>
                 </form>
@@ -321,7 +317,7 @@ const LoginPage = () => {
                     <div className="flex justify-between items-center">
                       <Label htmlFor="password" className="text-xs font-medium text-[#334155]">{t.password}</Label>
                       {mode === 'login' && (
-                        <button type="button" onClick={() => { setMode('forgot'); setError(''); setSuccessMessage(''); }} className="text-[11px] text-[#0055FF] font-medium hover:underline" data-testid="forgot-password-link">
+                        <button type="button" onClick={() => { setMode('forgot'); setError(''); setSuccessMessage(''); }} className="text-[11px] text-[#CC0000] font-medium hover:underline" data-testid="forgot-password-link">
                           Quên mật khẩu?
                         </button>
                       )}
@@ -341,13 +337,13 @@ const LoginPage = () => {
 
                   {mode === 'login' && (
                     <button type="button" onClick={() => { setPassword('iLoveProID@'); }}
-                      className="w-full h-9 rounded-xl border border-dashed border-[#CBD5E1] text-xs font-medium text-[#64748B] hover:border-[#0055FF] hover:text-[#0055FF] hover:bg-[#F0F7FF] transition-all"
+                      className="w-full h-9 rounded-xl border border-dashed border-[#CBD5E1] text-xs font-medium text-[#64748B] hover:border-[#CC0000] hover:text-[#CC0000] hover:bg-[#FFF5F5] transition-all"
                       data-testid="demo-autofill-btn">
                       Autofill Password
                     </button>
                   )}
 
-                  <Button type="submit" className="w-full h-11 bg-gradient-to-r from-[#0055FF] to-[#00C2FF] hover:opacity-90 rounded-xl text-sm font-semibold shadow-lg shadow-[#0055FF]/20" disabled={loading} data-testid="auth-submit-button">
+                  <Button type="submit" className="w-full h-11 bg-gradient-to-r from-[#CC0000] to-[#FF4444] hover:opacity-90 rounded-xl text-sm font-semibold shadow-lg shadow-[#CC0000]/20" disabled={loading} data-testid="auth-submit-button">
                     {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (
                       <>{mode === 'login' ? t.login : t.register} <ArrowRight className="w-4 h-4 ml-2" /></>
                     )}
@@ -355,9 +351,9 @@ const LoginPage = () => {
 
                   <p className="text-center text-sm text-[#64748B]">
                     {mode === 'login' ? (
-                      <>{t.noAccount}{' '}<button type="button" onClick={() => { setMode('register'); setError(''); }} className="text-[#0055FF] font-semibold hover:underline" data-testid="switch-to-register">{t.registerNow}</button></>
+                      <>{t.noAccount}{' '}<button type="button" onClick={() => { setMode('register'); setError(''); }} className="text-[#CC0000] font-semibold hover:underline" data-testid="switch-to-register">{t.registerNow}</button></>
                     ) : (
-                      <>{t.hasAccount}{' '}<button type="button" onClick={() => { setMode('login'); setError(''); }} className="text-[#0055FF] font-semibold hover:underline" data-testid="switch-to-login">{t.login}</button></>
+                      <>{t.hasAccount}{' '}<button type="button" onClick={() => { setMode('login'); setError(''); }} className="text-[#CC0000] font-semibold hover:underline" data-testid="switch-to-login">{t.login}</button></>
                     )}
                   </p>
                 </form>
@@ -368,7 +364,7 @@ const LoginPage = () => {
 
         {/* Bottom */}
         <div className="p-5 text-center border-t border-[#E2E8F0]">
-          <p className="text-[11px] text-[#94A3B8]">&copy; 2026 Ocean Pro Web. All rights reserved.</p>
+          <p className="text-[11px] text-[#94A3B8]">&copy; 2026 Pro ID Shop. All rights reserved.</p>
         </div>
       </div>
     </div>

@@ -121,7 +121,7 @@ const StorefrontPage = () => {
     if (shop?.name) {
       document.title = shop.name;
     }
-    return () => { document.title = 'Ocean Pro Web'; };
+    return () => { document.title = 'Pro ID Shop'; };
   }, [shop?.name]);
   // Save scroll position continuously & restore when returning
   useEffect(() => {
