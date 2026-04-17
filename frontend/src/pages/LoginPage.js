@@ -263,7 +263,7 @@ const LoginPage = () => {
             {(mode === 'login' || mode === 'register') && (
               <>
                 <div className="mb-8">
-                  <img src="/proid-logo.png" alt="Pro ID" className="h-12 w-auto mb-5" data-testid="login-logo" />
+                  <img src="/proid-logo.png" alt="Pro ID" className="h-12 w-auto mb-5 hidden lg:block" data-testid="login-logo" />
                   <h2 className="text-2xl font-extrabold text-[#0F172A] tracking-tight" data-testid="login-title">
                     {mode === 'login' ? t.login : t.register}
                   </h2>
