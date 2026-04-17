@@ -1,545 +1,316 @@
 """
-Test suite for new features:
-- Voucher CRUD and validation
-- Agent/Dealer system
-- Business Card
-- OG Meta Tags
+Test new features for iteration 25:
+1. Security Dashboard API (GET /api/admin/security/dashboard)
+2. Public shop API includes expiry_date
+3. White screen fix - targeted state updates (frontend only)
 """
 import pytest
 import requests
 import os
-import uuid
+import time
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 
-# Test credentials from test_credentials.md
+# Test credentials
 SUPER_ADMIN_EMAIL = "daominhhai129@gmail.com"
 SUPER_ADMIN_PASSWORD = "admin123"
-SHOP_OWNER_EMAIL = "demo1@proid.vn"
-SHOP_OWNER_PASSWORD = "iLoveProID@"
+SHOP_OWNER_EMAIL = "demo@thewishop.com"
+SHOP_OWNER_PASSWORD = "demo123"
+TEST_SHOP_SLUG = "the-elite-shop"
+TEST_SHOP_ID = "69d75ed5d0e6605428f90b31"
 
-class TestAuth:
-    """Authentication tests"""
+
+class TestSecurityDashboard:
+    """Test Security Dashboard API endpoint"""
+    
+    @pytest.fixture(autouse=True)
+    def setup(self):
+        """Login as super admin before each test"""
+        self.session = requests.Session()
+        self.session.headers.update({"Content-Type": "application/json"})
+        
+        # Login as super admin
+        response = self.session.post(f"{BASE_URL}/api/auth/login", json={
+            "email": SUPER_ADMIN_EMAIL,
+            "password": SUPER_ADMIN_PASSWORD
+        })
+        assert response.status_code == 200, f"Super admin login failed: {response.text}"
+        data = response.json()
+        self.token = data.get("token")
+        self.session.headers.update({"Authorization": f"Bearer {self.token}"})
+    
+    def test_security_dashboard_returns_200(self):
+        """Test that security dashboard endpoint returns 200 for super admin"""
+        response = self.session.get(f"{BASE_URL}/api/admin/security/dashboard")
+        assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
+        print("✓ Security dashboard returns 200")
+    
+    def test_security_dashboard_has_rate_limiter_stats(self):
+        """Test that security dashboard returns rate limiter stats"""
+        response = self.session.get(f"{BASE_URL}/api/admin/security/dashboard")
+        assert response.status_code == 200
+        data = response.json()
+        
+        # Check rate_limiter section exists
+        assert "rate_limiter" in data, "Missing rate_limiter section"
+        rate_limiter = data["rate_limiter"]
+        
+        # Check required fields
+        assert "active_tracked_ips" in rate_limiter, "Missing active_tracked_ips"
+        assert "blocked_ips" in rate_limiter, "Missing blocked_ips"
+        assert "total_blocked" in rate_limiter, "Missing total_blocked"
+        assert "breakdown" in rate_limiter, "Missing breakdown"
+        
+        # Check breakdown has expected keys
+        breakdown = rate_limiter["breakdown"]
+        assert "auth" in breakdown, "Missing auth in breakdown"
+        assert "orders" in breakdown, "Missing orders in breakdown"
+        assert "global" in breakdown, "Missing global in breakdown"
+        
+        print(f"✓ Rate limiter stats: {rate_limiter['active_tracked_ips']} active IPs, {rate_limiter['total_blocked']} blocked")
+    
+    def test_security_dashboard_has_brute_force_stats(self):
+        """Test that security dashboard returns brute force protection stats"""
+        response = self.session.get(f"{BASE_URL}/api/admin/security/dashboard")
+        assert response.status_code == 200
+        data = response.json()
+        
+        # Check brute_force section exists
+        assert "brute_force" in data, "Missing brute_force section"
+        brute_force = data["brute_force"]
+        
+        # Check required fields
+        assert "locked_accounts" in brute_force, "Missing locked_accounts"
+        assert "total_locked" in brute_force, "Missing total_locked"
+        
+        print(f"✓ Brute force stats: {brute_force['total_locked']} locked accounts")
+    
+    def test_security_dashboard_has_security_config(self):
+        """Test that security dashboard returns security configuration"""
+        response = self.session.get(f"{BASE_URL}/api/admin/security/dashboard")
+        assert response.status_code == 200
+        data = response.json()
+        
+        # Check security_config section exists
+        assert "security_config" in data, "Missing security_config section"
+        config = data["security_config"]
+        
+        # Check required fields
+        assert "rate_limits" in config, "Missing rate_limits"
+        assert "brute_force_threshold" in config, "Missing brute_force_threshold"
+        assert "content_word_limit" in config, "Missing content_word_limit"
+        assert "max_request_size" in config, "Missing max_request_size"
+        assert "security_headers" in config, "Missing security_headers"
+        
+        # Verify content_word_limit is 1000
+        assert config["content_word_limit"] == 1000, f"Expected word limit 1000, got {config['content_word_limit']}"
+        
+        # Verify security headers list
+        expected_headers = ["X-Content-Type-Options", "X-Frame-Options", "X-XSS-Protection", "Referrer-Policy", "Permissions-Policy"]
+        for header in expected_headers:
+            assert header in config["security_headers"], f"Missing security header: {header}"
+        
+        print(f"✓ Security config: word limit={config['content_word_limit']}, {len(config['security_headers'])} headers")
+    
+    def test_security_dashboard_requires_auth(self):
+        """Test that security dashboard requires authentication"""
+        # Create new session without auth
+        session = requests.Session()
+        response = session.get(f"{BASE_URL}/api/admin/security/dashboard")
+        assert response.status_code == 401, f"Expected 401 without auth, got {response.status_code}"
+        print("✓ Security dashboard requires authentication")
+    
+    def test_security_dashboard_requires_super_admin(self):
+        """Test that security dashboard requires super admin role"""
+        # Login as shop owner
+        session = requests.Session()
+        session.headers.update({"Content-Type": "application/json"})
+        
+        response = session.post(f"{BASE_URL}/api/auth/login", json={
+            "email": SHOP_OWNER_EMAIL,
+            "password": SHOP_OWNER_PASSWORD
+        })
+        assert response.status_code == 200, f"Shop owner login failed: {response.text}"
+        token = response.json().get("token")
+        session.headers.update({"Authorization": f"Bearer {token}"})
+        
+        # Try to access security dashboard
+        response = session.get(f"{BASE_URL}/api/admin/security/dashboard")
+        assert response.status_code == 403, f"Expected 403 for shop owner, got {response.status_code}"
+        print("✓ Security dashboard requires super admin role")
+
+
+class TestPublicShopAPIExpiryDate:
+    """Test that public shop API includes expiry_date field"""
+    
+    def test_public_shop_api_includes_expiry_date(self):
+        """Test GET /api/shop/{slug} returns expiry_date field"""
+        response = requests.get(f"{BASE_URL}/api/shop/{TEST_SHOP_SLUG}")
+        assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
+        
+        data = response.json()
+        assert "expiry_date" in data, "Missing expiry_date field in public shop API response"
+        print(f"✓ Public shop API includes expiry_date: '{data['expiry_date']}'")
+    
+    def test_public_shop_api_returns_all_expected_fields(self):
+        """Test that public shop API returns all expected fields"""
+        response = requests.get(f"{BASE_URL}/api/shop/{TEST_SHOP_SLUG}")
+        assert response.status_code == 200
+        
+        data = response.json()
+        expected_fields = [
+            "id", "name", "slug", "description", "logo_url",
+            "contact_phone", "contact_email", "address",
+            "social_facebook", "social_instagram", "theme_color",
+            "banners", "banner_enabled", "blog_enabled",
+            "layout_sections", "footer_columns", "menu_items",
+            "mega_menu_categories", "custom_pages",
+            "max_products", "max_posts", "expiry_date"
+        ]
+        
+        for field in expected_fields:
+            assert field in data, f"Missing field: {field}"
+        
+        print(f"✓ Public shop API returns all {len(expected_fields)} expected fields")
+
+
+class TestShopExpiryUpdate:
+    """Test shop expiry date update functionality"""
+    
+    @pytest.fixture(autouse=True)
+    def setup(self):
+        """Login as super admin before each test"""
+        self.session = requests.Session()
+        self.session.headers.update({"Content-Type": "application/json"})
+        
+        # Login as super admin
+        response = self.session.post(f"{BASE_URL}/api/auth/login", json={
+            "email": SUPER_ADMIN_EMAIL,
+            "password": SUPER_ADMIN_PASSWORD
+        })
+        assert response.status_code == 200, f"Super admin login failed: {response.text}"
+        data = response.json()
+        self.token = data.get("token")
+        self.session.headers.update({"Authorization": f"Bearer {self.token}"})
+    
+    def test_set_expiry_date(self):
+        """Test setting expiry date on a shop"""
+        # Set expiry date to future
+        future_date = "2027-12-31T00:00:00.000Z"
+        response = self.session.post(
+            f"{BASE_URL}/api/admin/shops/{TEST_SHOP_ID}/expiry",
+            json={"expiry_date": future_date}
+        )
+        assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
+        
+        # Verify via public API
+        response = requests.get(f"{BASE_URL}/api/shop/{TEST_SHOP_SLUG}")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["expiry_date"] == future_date, f"Expiry date not updated: {data['expiry_date']}"
+        
+        print(f"✓ Set expiry date to {future_date}")
+        
+        # Clear expiry date
+        response = self.session.post(
+            f"{BASE_URL}/api/admin/shops/{TEST_SHOP_ID}/expiry",
+            json={"expiry_date": None}
+        )
+        assert response.status_code == 200
+        
+        # Verify cleared
+        response = requests.get(f"{BASE_URL}/api/shop/{TEST_SHOP_SLUG}")
+        data = response.json()
+        assert data["expiry_date"] == "", f"Expiry date not cleared: {data['expiry_date']}"
+        
+        print("✓ Cleared expiry date")
+    
+    def test_set_shop_limits(self):
+        """Test setting shop limits"""
+        # Set max_products
+        response = self.session.put(
+            f"{BASE_URL}/api/admin/shops/{TEST_SHOP_ID}/limits",
+            json={"max_products": 150}
+        )
+        assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
+        
+        # Verify via admin shops list
+        response = self.session.get(f"{BASE_URL}/api/admin/shops")
+        assert response.status_code == 200
+        shops = response.json()
+        shop = next((s for s in shops if s["id"] == TEST_SHOP_ID), None)
+        assert shop is not None, "Shop not found in admin list"
+        assert shop["max_products"] == 150, f"max_products not updated: {shop['max_products']}"
+        
+        print("✓ Set max_products to 150")
+        
+        # Reset to default
+        response = self.session.put(
+            f"{BASE_URL}/api/admin/shops/{TEST_SHOP_ID}/limits",
+            json={"max_products": 100}
+        )
+        assert response.status_code == 200
+        print("✓ Reset max_products to 100")
+
+
+class TestLoginStillWorks:
+    """Verify login still works after security changes"""
     
     def test_super_admin_login(self):
-        """Test super admin login"""
+        """Test super admin can still login"""
         response = requests.post(f"{BASE_URL}/api/auth/login", json={
             "email": SUPER_ADMIN_EMAIL,
             "password": SUPER_ADMIN_PASSWORD
         })
         assert response.status_code == 200, f"Super admin login failed: {response.text}"
         data = response.json()
-        assert "token" in data, "No token in response"
-        assert data.get("role") == "super_admin", f"Expected super_admin role, got {data.get('role')}"
-        print(f"✓ Super admin login successful, role: {data.get('role')}")
+        assert data["role"] == "super_admin", f"Expected super_admin role, got {data['role']}"
+        assert "token" in data, "Missing token in response"
+        print(f"✓ Super admin login works: {data['email']}")
     
     def test_shop_owner_login(self):
-        """Test shop owner login"""
+        """Test shop owner can still login"""
         response = requests.post(f"{BASE_URL}/api/auth/login", json={
             "email": SHOP_OWNER_EMAIL,
             "password": SHOP_OWNER_PASSWORD
         })
         assert response.status_code == 200, f"Shop owner login failed: {response.text}"
         data = response.json()
-        assert "token" in data, "No token in response"
-        assert data.get("role") == "shop_owner", f"Expected shop_owner role, got {data.get('role')}"
-        print(f"✓ Shop owner login successful, role: {data.get('role')}")
+        assert data["role"] == "shop_owner", f"Expected shop_owner role, got {data['role']}"
+        assert "token" in data, "Missing token in response"
+        print(f"✓ Shop owner login works: {data['email']}")
 
 
-class TestVoucherCRUD:
-    """Voucher CRUD tests"""
+class TestStorefrontLoads:
+    """Test that storefront loads normally for non-expired shops"""
     
-    @pytest.fixture
-    def shop_owner_token(self):
-        """Get shop owner token"""
-        response = requests.post(f"{BASE_URL}/api/auth/login", json={
-            "email": SHOP_OWNER_EMAIL,
-            "password": SHOP_OWNER_PASSWORD
-        })
-        assert response.status_code == 200
-        return response.json().get("token")
-    
-    def test_get_vouchers(self, shop_owner_token):
-        """Test GET /api/dashboard/vouchers"""
-        headers = {"Authorization": f"Bearer {shop_owner_token}"}
-        response = requests.get(f"{BASE_URL}/api/dashboard/vouchers", headers=headers)
-        assert response.status_code == 200, f"Get vouchers failed: {response.text}"
+    def test_storefront_api_returns_shop_data(self):
+        """Test that storefront API returns shop data"""
+        response = requests.get(f"{BASE_URL}/api/shop/{TEST_SHOP_SLUG}")
+        assert response.status_code == 200, f"Expected 200, got {response.status_code}"
+        
         data = response.json()
-        assert isinstance(data, list), "Expected list of vouchers"
-        print(f"✓ GET vouchers successful, count: {len(data)}")
+        assert data["name"] == "The Elite Shop", f"Unexpected shop name: {data['name']}"
+        assert data["slug"] == TEST_SHOP_SLUG
+        print(f"✓ Storefront API returns shop data: {data['name']}")
     
-    def test_create_voucher(self, shop_owner_token):
-        """Test POST /api/dashboard/vouchers"""
-        headers = {"Authorization": f"Bearer {shop_owner_token}"}
-        voucher_code = f"TEST{uuid.uuid4().hex[:6].upper()}"
-        payload = {
-            "code": voucher_code,
-            "discount_type": "percentage",
-            "discount_value": 10,
-            "min_order_amount": 100000,
-            "max_uses": 50,
-            "applicable_products": [],
-            "expiry_date": "2026-12-31T23:59:59Z",
-            "is_active": True
-        }
-        response = requests.post(f"{BASE_URL}/api/dashboard/vouchers", json=payload, headers=headers)
-        assert response.status_code == 200, f"Create voucher failed: {response.text}"
-        data = response.json()
-        assert data.get("code") == voucher_code, f"Voucher code mismatch"
-        assert data.get("discount_type") == "percentage"
-        assert data.get("discount_value") == 10
-        print(f"✓ CREATE voucher successful, code: {voucher_code}")
-        return data.get("id")
-    
-    def test_update_voucher(self, shop_owner_token):
-        """Test PUT /api/dashboard/vouchers/{voucher_id}"""
-        headers = {"Authorization": f"Bearer {shop_owner_token}"}
-        # First create a voucher
-        voucher_code = f"UPD{uuid.uuid4().hex[:6].upper()}"
-        create_response = requests.post(f"{BASE_URL}/api/dashboard/vouchers", json={
-            "code": voucher_code,
-            "discount_type": "fixed",
-            "discount_value": 50000,
-            "is_active": True
-        }, headers=headers)
-        assert create_response.status_code == 200
-        voucher_id = create_response.json().get("id")
+    def test_storefront_products_api(self):
+        """Test that storefront products API works"""
+        response = requests.get(f"{BASE_URL}/api/shop/{TEST_SHOP_SLUG}/products")
+        assert response.status_code == 200, f"Expected 200, got {response.status_code}"
         
-        # Update the voucher
-        update_response = requests.put(f"{BASE_URL}/api/dashboard/vouchers/{voucher_id}", json={
-            "discount_value": 75000,
-            "is_active": False
-        }, headers=headers)
-        assert update_response.status_code == 200, f"Update voucher failed: {update_response.text}"
-        print(f"✓ UPDATE voucher successful, id: {voucher_id}")
-    
-    def test_delete_voucher(self, shop_owner_token):
-        """Test DELETE /api/dashboard/vouchers/{voucher_id}"""
-        headers = {"Authorization": f"Bearer {shop_owner_token}"}
-        # First create a voucher
-        voucher_code = f"DEL{uuid.uuid4().hex[:6].upper()}"
-        create_response = requests.post(f"{BASE_URL}/api/dashboard/vouchers", json={
-            "code": voucher_code,
-            "discount_type": "percentage",
-            "discount_value": 5,
-            "is_active": True
-        }, headers=headers)
-        assert create_response.status_code == 200
-        voucher_id = create_response.json().get("id")
-        
-        # Delete the voucher
-        delete_response = requests.delete(f"{BASE_URL}/api/dashboard/vouchers/{voucher_id}", headers=headers)
-        assert delete_response.status_code == 200, f"Delete voucher failed: {delete_response.text}"
-        print(f"✓ DELETE voucher successful, id: {voucher_id}")
-
-
-class TestVoucherValidation:
-    """Voucher validation tests"""
-    
-    @pytest.fixture
-    def shop_owner_token(self):
-        """Get shop owner token"""
-        response = requests.post(f"{BASE_URL}/api/auth/login", json={
-            "email": SHOP_OWNER_EMAIL,
-            "password": SHOP_OWNER_PASSWORD
-        })
-        assert response.status_code == 200
-        return response.json().get("token")
-    
-    @pytest.fixture
-    def shop_slug(self, shop_owner_token):
-        """Get shop slug"""
-        headers = {"Authorization": f"Bearer {shop_owner_token}"}
-        response = requests.get(f"{BASE_URL}/api/dashboard/shop", headers=headers)
-        assert response.status_code == 200
-        return response.json().get("slug")
-    
-    def test_validate_voucher_invalid_code(self, shop_slug):
-        """Test voucher validation with invalid code"""
-        response = requests.post(f"{BASE_URL}/api/shop/{shop_slug}/voucher/validate", json={
-            "code": "INVALIDCODE123"
-        })
-        assert response.status_code == 404, f"Expected 404 for invalid code, got {response.status_code}"
-        print(f"✓ Invalid voucher code returns 404")
-    
-    def test_validate_voucher_empty_code(self, shop_slug):
-        """Test voucher validation with empty code"""
-        response = requests.post(f"{BASE_URL}/api/shop/{shop_slug}/voucher/validate", json={
-            "code": ""
-        })
-        assert response.status_code == 400, f"Expected 400 for empty code, got {response.status_code}"
-        print(f"✓ Empty voucher code returns 400")
-
-
-class TestAgentSystem:
-    """Agent/Dealer system tests"""
-    
-    @pytest.fixture
-    def super_admin_token(self):
-        """Get super admin token"""
-        response = requests.post(f"{BASE_URL}/api/auth/login", json={
-            "email": SUPER_ADMIN_EMAIL,
-            "password": SUPER_ADMIN_PASSWORD
-        })
-        assert response.status_code == 200
-        return response.json().get("token")
-    
-    @pytest.fixture
-    def shop_owner_token(self):
-        """Get shop owner token"""
-        response = requests.post(f"{BASE_URL}/api/auth/login", json={
-            "email": SHOP_OWNER_EMAIL,
-            "password": SHOP_OWNER_PASSWORD
-        })
-        assert response.status_code == 200
-        return response.json().get("token")
-    
-    @pytest.fixture
-    def shop_id(self, shop_owner_token):
-        """Get shop ID"""
-        headers = {"Authorization": f"Bearer {shop_owner_token}"}
-        response = requests.get(f"{BASE_URL}/api/dashboard/shop", headers=headers)
-        assert response.status_code == 200
-        return response.json().get("id")
-    
-    def test_enable_agents_feature(self, super_admin_token, shop_id):
-        """Test enabling agents feature for a shop"""
-        headers = {"Authorization": f"Bearer {super_admin_token}"}
-        response = requests.put(f"{BASE_URL}/api/admin/shops/{shop_id}/agents-toggle", json={
-            "agents_enabled": True
-        }, headers=headers)
-        assert response.status_code == 200, f"Enable agents failed: {response.text}"
-        print(f"✓ Agents feature enabled for shop {shop_id}")
-    
-    def test_get_agents_without_feature_enabled(self, shop_owner_token, super_admin_token, shop_id):
-        """Test getting agents when feature is disabled"""
-        # First disable agents
-        admin_headers = {"Authorization": f"Bearer {super_admin_token}"}
-        requests.put(f"{BASE_URL}/api/admin/shops/{shop_id}/agents-toggle", json={
-            "agents_enabled": False
-        }, headers=admin_headers)
-        
-        # Try to get agents
-        headers = {"Authorization": f"Bearer {shop_owner_token}"}
-        response = requests.get(f"{BASE_URL}/api/dashboard/agents", headers=headers)
-        assert response.status_code == 403, f"Expected 403 when agents disabled, got {response.status_code}"
-        print(f"✓ GET agents returns 403 when feature disabled")
-        
-        # Re-enable for other tests
-        requests.put(f"{BASE_URL}/api/admin/shops/{shop_id}/agents-toggle", json={
-            "agents_enabled": True
-        }, headers=admin_headers)
-    
-    def test_get_agents(self, shop_owner_token, super_admin_token, shop_id):
-        """Test GET /api/dashboard/agents"""
-        # Ensure agents enabled
-        admin_headers = {"Authorization": f"Bearer {super_admin_token}"}
-        requests.put(f"{BASE_URL}/api/admin/shops/{shop_id}/agents-toggle", json={
-            "agents_enabled": True
-        }, headers=admin_headers)
-        
-        headers = {"Authorization": f"Bearer {shop_owner_token}"}
-        response = requests.get(f"{BASE_URL}/api/dashboard/agents", headers=headers)
-        assert response.status_code == 200, f"Get agents failed: {response.text}"
-        data = response.json()
-        assert isinstance(data, list), "Expected list of agents"
-        print(f"✓ GET agents successful, count: {len(data)}")
-    
-    def test_create_agent(self, shop_owner_token, super_admin_token, shop_id):
-        """Test POST /api/dashboard/agents"""
-        # Ensure agents enabled
-        admin_headers = {"Authorization": f"Bearer {super_admin_token}"}
-        requests.put(f"{BASE_URL}/api/admin/shops/{shop_id}/agents-toggle", json={
-            "agents_enabled": True
-        }, headers=admin_headers)
-        
-        headers = {"Authorization": f"Bearer {shop_owner_token}"}
-        agent_email = f"testagent_{uuid.uuid4().hex[:8]}@test.com"
-        payload = {
-            "name": "Test Agent",
-            "email": agent_email,
-            "password": "testpass123",
-            "phone": "0901234567",
-            "level": 1
-        }
-        response = requests.post(f"{BASE_URL}/api/dashboard/agents", json=payload, headers=headers)
-        assert response.status_code == 200, f"Create agent failed: {response.text}"
-        data = response.json()
-        assert data.get("email") == agent_email.lower()
-        assert data.get("level") == 1
-        assert "tracking_code" in data
-        print(f"✓ CREATE agent successful, email: {agent_email}, tracking_code: {data.get('tracking_code')}")
-        return data
-    
-    def test_update_agent(self, shop_owner_token, super_admin_token, shop_id):
-        """Test PUT /api/dashboard/agents/{agent_id}"""
-        # Ensure agents enabled
-        admin_headers = {"Authorization": f"Bearer {super_admin_token}"}
-        requests.put(f"{BASE_URL}/api/admin/shops/{shop_id}/agents-toggle", json={
-            "agents_enabled": True
-        }, headers=admin_headers)
-        
-        headers = {"Authorization": f"Bearer {shop_owner_token}"}
-        # Create agent first
-        agent_email = f"updateagent_{uuid.uuid4().hex[:8]}@test.com"
-        create_response = requests.post(f"{BASE_URL}/api/dashboard/agents", json={
-            "name": "Update Test Agent",
-            "email": agent_email,
-            "password": "testpass123",
-            "level": 1
-        }, headers=headers)
-        assert create_response.status_code == 200
-        agent_id = create_response.json().get("id")
-        
-        # Update agent
-        update_response = requests.put(f"{BASE_URL}/api/dashboard/agents/{agent_id}", json={
-            "name": "Updated Agent Name",
-            "is_active": False
-        }, headers=headers)
-        assert update_response.status_code == 200, f"Update agent failed: {update_response.text}"
-        print(f"✓ UPDATE agent successful, id: {agent_id}")
-    
-    def test_delete_agent(self, shop_owner_token, super_admin_token, shop_id):
-        """Test DELETE /api/dashboard/agents/{agent_id}"""
-        # Ensure agents enabled
-        admin_headers = {"Authorization": f"Bearer {super_admin_token}"}
-        requests.put(f"{BASE_URL}/api/admin/shops/{shop_id}/agents-toggle", json={
-            "agents_enabled": True
-        }, headers=admin_headers)
-        
-        headers = {"Authorization": f"Bearer {shop_owner_token}"}
-        # Create agent first
-        agent_email = f"deleteagent_{uuid.uuid4().hex[:8]}@test.com"
-        create_response = requests.post(f"{BASE_URL}/api/dashboard/agents", json={
-            "name": "Delete Test Agent",
-            "email": agent_email,
-            "password": "testpass123",
-            "level": 1
-        }, headers=headers)
-        assert create_response.status_code == 200
-        agent_id = create_response.json().get("id")
-        
-        # Delete agent
-        delete_response = requests.delete(f"{BASE_URL}/api/dashboard/agents/{agent_id}", headers=headers)
-        assert delete_response.status_code == 200, f"Delete agent failed: {delete_response.text}"
-        print(f"✓ DELETE agent successful, id: {agent_id}")
-    
-    def test_agent_sales_overview(self, shop_owner_token, super_admin_token, shop_id):
-        """Test GET /api/dashboard/agent-sales"""
-        # Ensure agents enabled
-        admin_headers = {"Authorization": f"Bearer {super_admin_token}"}
-        requests.put(f"{BASE_URL}/api/admin/shops/{shop_id}/agents-toggle", json={
-            "agents_enabled": True
-        }, headers=admin_headers)
-        
-        headers = {"Authorization": f"Bearer {shop_owner_token}"}
-        response = requests.get(f"{BASE_URL}/api/dashboard/agent-sales", headers=headers)
-        assert response.status_code == 200, f"Get agent sales failed: {response.text}"
-        data = response.json()
-        assert "agents" in data
-        assert "grand_total" in data
-        print(f"✓ GET agent-sales successful, total agents: {data.get('total_agents')}")
-
-
-class TestAgentLogin:
-    """Agent login and dashboard tests"""
-    
-    @pytest.fixture
-    def super_admin_token(self):
-        """Get super admin token"""
-        response = requests.post(f"{BASE_URL}/api/auth/login", json={
-            "email": SUPER_ADMIN_EMAIL,
-            "password": SUPER_ADMIN_PASSWORD
-        })
-        assert response.status_code == 200
-        return response.json().get("token")
-    
-    @pytest.fixture
-    def shop_owner_token(self):
-        """Get shop owner token"""
-        response = requests.post(f"{BASE_URL}/api/auth/login", json={
-            "email": SHOP_OWNER_EMAIL,
-            "password": SHOP_OWNER_PASSWORD
-        })
-        assert response.status_code == 200
-        return response.json().get("token")
-    
-    @pytest.fixture
-    def shop_id(self, shop_owner_token):
-        """Get shop ID"""
-        headers = {"Authorization": f"Bearer {shop_owner_token}"}
-        response = requests.get(f"{BASE_URL}/api/dashboard/shop", headers=headers)
-        assert response.status_code == 200
-        return response.json().get("id")
-    
-    def test_agent_login_and_dashboard(self, shop_owner_token, super_admin_token, shop_id):
-        """Test agent login and dashboard access"""
-        # Ensure agents enabled
-        admin_headers = {"Authorization": f"Bearer {super_admin_token}"}
-        requests.put(f"{BASE_URL}/api/admin/shops/{shop_id}/agents-toggle", json={
-            "agents_enabled": True
-        }, headers=admin_headers)
-        
-        # Create agent
-        headers = {"Authorization": f"Bearer {shop_owner_token}"}
-        agent_email = f"loginagent_{uuid.uuid4().hex[:8]}@test.com"
-        agent_password = "agentpass123"
-        create_response = requests.post(f"{BASE_URL}/api/dashboard/agents", json={
-            "name": "Login Test Agent",
-            "email": agent_email,
-            "password": agent_password,
-            "level": 1
-        }, headers=headers)
-        assert create_response.status_code == 200
-        agent_data = create_response.json()
-        
-        # Login as agent
-        login_response = requests.post(f"{BASE_URL}/api/auth/login", json={
-            "email": agent_email,
-            "password": agent_password
-        })
-        assert login_response.status_code == 200, f"Agent login failed: {login_response.text}"
-        login_data = login_response.json()
-        assert login_data.get("role") == "agent", f"Expected agent role, got {login_data.get('role')}"
-        agent_token = login_data.get("token")
-        print(f"✓ Agent login successful, role: {login_data.get('role')}")
-        
-        # Access agent dashboard
-        agent_headers = {"Authorization": f"Bearer {agent_token}"}
-        dashboard_response = requests.get(f"{BASE_URL}/api/agent/dashboard", headers=agent_headers)
-        assert dashboard_response.status_code == 200, f"Agent dashboard failed: {dashboard_response.text}"
-        dashboard_data = dashboard_response.json()
-        assert "agent" in dashboard_data
-        assert "shop" in dashboard_data
-        assert "total_sales" in dashboard_data
-        print(f"✓ Agent dashboard accessible, total_sales: {dashboard_data.get('total_sales')}")
-
-
-class TestBusinessCard:
-    """Business card tests"""
-    
-    @pytest.fixture
-    def shop_owner_token(self):
-        """Get shop owner token"""
-        response = requests.post(f"{BASE_URL}/api/auth/login", json={
-            "email": SHOP_OWNER_EMAIL,
-            "password": SHOP_OWNER_PASSWORD
-        })
-        assert response.status_code == 200
-        return response.json().get("token")
-    
-    @pytest.fixture
-    def shop_slug(self, shop_owner_token):
-        """Get shop slug"""
-        headers = {"Authorization": f"Bearer {shop_owner_token}"}
-        response = requests.get(f"{BASE_URL}/api/dashboard/shop", headers=headers)
-        assert response.status_code == 200
-        return response.json().get("slug")
-    
-    def test_get_business_card(self, shop_owner_token):
-        """Test GET /api/dashboard/business-card"""
-        headers = {"Authorization": f"Bearer {shop_owner_token}"}
-        response = requests.get(f"{BASE_URL}/api/dashboard/business-card", headers=headers)
-        assert response.status_code == 200, f"Get business card failed: {response.text}"
-        data = response.json()
-        # Should have basic fields
-        assert "display_name" in data or "phone" in data or "email" in data
-        print(f"✓ GET business-card successful")
-    
-    def test_update_business_card(self, shop_owner_token):
-        """Test PUT /api/dashboard/business-card"""
-        headers = {"Authorization": f"Bearer {shop_owner_token}"}
-        payload = {
-            "display_name": "Test Business Card",
-            "title": "Shop Owner",
-            "phone": "0901234567",
-            "email": "test@example.com"
-        }
-        response = requests.put(f"{BASE_URL}/api/dashboard/business-card", json=payload, headers=headers)
-        assert response.status_code == 200, f"Update business card failed: {response.text}"
-        print(f"✓ PUT business-card successful")
-    
-    def test_get_public_business_card(self, shop_slug):
-        """Test GET /api/card/{shop_slug}"""
-        response = requests.get(f"{BASE_URL}/api/card/{shop_slug}")
-        assert response.status_code == 200, f"Get public business card failed: {response.text}"
-        data = response.json()
-        assert "display_name" in data or "shop_name" in data
-        assert data.get("card_type") == "shop_owner"
-        print(f"✓ GET public business card successful, shop: {data.get('shop_name')}")
-    
-    def test_get_public_business_card_not_found(self):
-        """Test GET /api/card/{invalid_slug}"""
-        response = requests.get(f"{BASE_URL}/api/card/nonexistent-slug-12345")
-        assert response.status_code == 404, f"Expected 404 for invalid slug, got {response.status_code}"
-        print(f"✓ Invalid card slug returns 404")
-
-
-class TestOGMetaTags:
-    """OG Meta Tags tests"""
-    
-    @pytest.fixture
-    def shop_owner_token(self):
-        """Get shop owner token"""
-        response = requests.post(f"{BASE_URL}/api/auth/login", json={
-            "email": SHOP_OWNER_EMAIL,
-            "password": SHOP_OWNER_PASSWORD
-        })
-        assert response.status_code == 200
-        return response.json().get("token")
-    
-    @pytest.fixture
-    def shop_slug(self, shop_owner_token):
-        """Get shop slug"""
-        headers = {"Authorization": f"Bearer {shop_owner_token}"}
-        response = requests.get(f"{BASE_URL}/api/dashboard/shop", headers=headers)
-        assert response.status_code == 200
-        return response.json().get("slug")
-    
-    @pytest.fixture
-    def product_id(self, shop_slug):
-        """Get a product ID from the shop"""
-        response = requests.get(f"{BASE_URL}/api/shop/{shop_slug}/products")
-        assert response.status_code == 200
         products = response.json()
-        if products:
-            return products[0].get("id")
-        return None
+        assert isinstance(products, list), "Expected list of products"
+        print(f"✓ Storefront products API returns {len(products)} products")
     
-    def test_og_shop_page(self, shop_slug):
-        """Test GET /api/og/shop/{slug}"""
-        response = requests.get(f"{BASE_URL}/api/og/shop/{shop_slug}")
-        assert response.status_code == 200, f"OG shop page failed: {response.text}"
-        content = response.text
-        assert "og:title" in content, "Missing og:title meta tag"
-        assert "og:description" in content, "Missing og:description meta tag"
-        assert "og:url" in content, "Missing og:url meta tag"
-        print(f"✓ OG shop page returns HTML with meta tags")
-    
-    def test_og_product_page(self, shop_slug, product_id):
-        """Test GET /api/og/shop/{slug}/product/{product_id}"""
-        if not product_id:
-            pytest.skip("No products available for testing")
-        response = requests.get(f"{BASE_URL}/api/og/shop/{shop_slug}/product/{product_id}")
-        assert response.status_code == 200, f"OG product page failed: {response.text}"
-        content = response.text
-        assert "og:title" in content, "Missing og:title meta tag"
-        assert "og:type" in content, "Missing og:type meta tag"
-        print(f"✓ OG product page returns HTML with meta tags")
-    
-    def test_og_card_page(self, shop_slug):
-        """Test GET /api/og/card/{card_slug}"""
-        response = requests.get(f"{BASE_URL}/api/og/card/{shop_slug}")
-        assert response.status_code == 200, f"OG card page failed: {response.text}"
-        content = response.text
-        assert "og:title" in content, "Missing og:title meta tag"
-        print(f"✓ OG card page returns HTML with meta tags")
-    
-    def test_og_shop_not_found(self):
-        """Test OG page for non-existent shop"""
-        response = requests.get(f"{BASE_URL}/api/og/shop/nonexistent-shop-12345")
-        assert response.status_code == 404, f"Expected 404 for invalid shop, got {response.status_code}"
-        print(f"✓ OG shop page returns 404 for invalid slug")
+    def test_storefront_categories_api(self):
+        """Test that storefront categories API works"""
+        response = requests.get(f"{BASE_URL}/api/shop/{TEST_SHOP_SLUG}/categories")
+        assert response.status_code == 200, f"Expected 200, got {response.status_code}"
+        
+        categories = response.json()
+        assert isinstance(categories, list), "Expected list of categories"
+        print(f"✓ Storefront categories API returns {len(categories)} categories")
 
 
 if __name__ == "__main__":

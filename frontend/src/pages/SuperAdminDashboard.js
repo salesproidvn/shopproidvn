@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '../components/ui/dropdown-menu';
 import { 
   LayoutDashboard, Store, Users, ShoppingCart, 
-  LogOut, Menu, X, TrendingUp, CalendarClock, Eye, Phone, Mail, Globe, Wrench, Trash2, Image, AlertTriangle, CheckCircle2, Settings, Lock, Copy, MoreHorizontal, Send, Download
+  LogOut, Menu, X, TrendingUp, CalendarClock, Eye, Phone, Mail, Globe, Wrench, Trash2, Image, AlertTriangle, CheckCircle2, Settings, Lock, Copy, MoreHorizontal, Send, Download, Shield, Activity, ShieldAlert, ShieldCheck, Clock
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -47,6 +47,9 @@ const SuperAdminDashboard = () => {
   // Change password state
   const [changePasswordData, setChangePasswordData] = useState({ current_password: '', new_password: '', confirm_password: '' });
   const [changingPassword, setChangingPassword] = useState(false);
+  // Security dashboard state
+  const [securityData, setSecurityData] = useState(null);
+  const [securityLoading, setSecurityLoading] = useState(false);
 
   useEffect(() => {
     if (authLoading) return;
@@ -75,6 +78,18 @@ const SuperAdminDashboard = () => {
       toast.error(t.failedToLoad);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchSecurityData = async () => {
+    try {
+      setSecurityLoading(true);
+      const res = await axios.get(`${API}/admin/security/dashboard`);
+      setSecurityData(res.data);
+    } catch (err) {
+      console.error('Failed to load security data');
+    } finally {
+      setSecurityLoading(false);
     }
   };
 
@@ -158,7 +173,8 @@ const SuperAdminDashboard = () => {
     try {
       await axios.post(`${API}/admin/shops/${shopId}/expiry`, { expiry_date: expiryDate || null });
       toast.success(t.expiryUpdated);
-      fetchData();
+      // Targeted update: only update the specific shop in local state to avoid white screen
+      setShops(prev => prev.map(s => s.id === shopId ? { ...s, expiry_date: expiryDate || '' } : s));
     } catch (err) {
       toast.error(t.failedToUpdate);
     }
@@ -168,7 +184,8 @@ const SuperAdminDashboard = () => {
     try {
       await axios.put(`${API}/admin/shops/${shopId}/limits`, { [field]: parseInt(value) || 0 });
       toast.success(t.limitsUpdated);
-      fetchData();
+      // Targeted update to avoid white screen
+      setShops(prev => prev.map(s => s.id === shopId ? { ...s, [field]: parseInt(value) || 0 } : s));
     } catch (err) {
       toast.error(t.failedToUpdate);
     }
@@ -207,6 +224,7 @@ const SuperAdminDashboard = () => {
     { id: 'overview', label: t.overview, icon: LayoutDashboard },
     { id: 'shops', label: t.shopManagement, icon: Store },
     { id: 'users', label: t.userManagement, icon: Users },
+    ...(isSuperAdmin ? [{ id: 'security', label: 'Bảo mật', icon: Shield }] : []),
     ...(isSuperAdmin ? [{ id: 'maintenance', label: t.maintenance || 'Bảo trì', icon: Wrench }] : []),
     { id: 'settings', label: t.settings || 'Cài đặt', icon: Settings },
   ];
@@ -273,6 +291,7 @@ const SuperAdminDashboard = () => {
                   {activeTab === 'overview' && t.dashboardOverview}
                   {activeTab === 'shops' && t.shopManagement}
                   {activeTab === 'users' && t.userManagement}
+                  {activeTab === 'security' && 'Bảo mật hệ thống'}
                   {activeTab === 'maintenance' && (t.maintenance || 'Bảo trì hệ thống')}
                   {activeTab === 'settings' && (t.settings || 'Cài đặt')}
                 </h1>
@@ -807,6 +826,186 @@ const SuperAdminDashboard = () => {
                       {t.rescan || 'Quét lại'}
                     </Button>
                   </div>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* Security Dashboard Tab */}
+          {activeTab === 'security' && (
+            <div className="space-y-6" data-testid="security-tab">
+              {!securityData && !securityLoading && (
+                <div className="text-center py-8">
+                  <Button onClick={fetchSecurityData} className="bg-[#0055FF] hover:bg-[#0040CC]" data-testid="load-security-btn">
+                    <Shield className="w-4 h-4 mr-2" /> Tải dữ liệu bảo mật
+                  </Button>
+                </div>
+              )}
+              {securityLoading && (
+                <div className="flex items-center justify-center py-12">
+                  <div className="animate-spin w-8 h-8 border-4 border-[#0055FF] border-t-transparent rounded-full" />
+                </div>
+              )}
+              {securityData && (
+                <>
+                  {/* Security Status Cards */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <Card className="border-0 shadow-sm" data-testid="security-active-ips">
+                      <CardHeader className="flex flex-row items-center justify-between pb-2">
+                        <CardTitle className="text-sm font-medium text-[#64748B]">IP đang theo dõi</CardTitle>
+                        <Activity className="w-5 h-5 text-[#0055FF]" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-3xl font-bold text-[#0F172A]">{securityData.rate_limiter.active_tracked_ips}</div>
+                        <p className="text-xs text-[#94A3B8] mt-1">Active trong 2 phút qua</p>
+                      </CardContent>
+                    </Card>
+                    <Card className="border-0 shadow-sm" data-testid="security-blocked-ips">
+                      <CardHeader className="flex flex-row items-center justify-between pb-2">
+                        <CardTitle className="text-sm font-medium text-[#64748B]">IP bị chặn</CardTitle>
+                        <ShieldAlert className="w-5 h-5 text-red-500" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-3xl font-bold text-[#0F172A]">{securityData.rate_limiter.total_blocked}</div>
+                        <p className="text-xs text-[#94A3B8] mt-1">Đang bị rate limit</p>
+                      </CardContent>
+                    </Card>
+                    <Card className="border-0 shadow-sm" data-testid="security-locked-accounts">
+                      <CardHeader className="flex flex-row items-center justify-between pb-2">
+                        <CardTitle className="text-sm font-medium text-[#64748B]">Tài khoản bị khóa</CardTitle>
+                        <Lock className="w-5 h-5 text-orange-500" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-3xl font-bold text-[#0F172A]">{securityData.brute_force.total_locked}</div>
+                        <p className="text-xs text-[#94A3B8] mt-1">Brute force protection</p>
+                      </CardContent>
+                    </Card>
+                    <Card className="border-0 shadow-sm" data-testid="security-word-limit">
+                      <CardHeader className="flex flex-row items-center justify-between pb-2">
+                        <CardTitle className="text-sm font-medium text-[#64748B]">Giới hạn nội dung</CardTitle>
+                        <ShieldCheck className="w-5 h-5 text-emerald-500" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-3xl font-bold text-[#0F172A]">{securityData.security_config.content_word_limit}</div>
+                        <p className="text-xs text-[#94A3B8] mt-1">Từ tối đa / bài viết</p>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* Rate Limit Breakdown */}
+                  <Card className="border-0 shadow-sm" data-testid="security-rate-breakdown">
+                    <CardHeader className="p-5 pb-3">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-lg flex items-center gap-2">
+                          <Activity className="w-5 h-5 text-[#0055FF]" />
+                          Rate Limiting
+                        </CardTitle>
+                        <Button variant="outline" size="sm" onClick={fetchSecurityData} className="text-xs" data-testid="refresh-security-btn">
+                          <Clock className="w-3 h-3 mr-1" /> Làm mới
+                        </Button>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="p-5 pt-0">
+                      <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+                        {Object.entries(securityData.rate_limiter.breakdown).map(([key, value]) => (
+                          <div key={key} className="bg-[#F8FAFC] rounded-xl p-4 text-center">
+                            <div className="text-2xl font-bold text-[#0F172A]">{value}</div>
+                            <div className="text-xs text-[#64748B] mt-1 capitalize">{key}</div>
+                            <div className="text-[10px] text-[#94A3B8]">{securityData.security_config.rate_limits[key] || ''}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Blocked IPs List */}
+                  {Object.keys(securityData.rate_limiter.blocked_ips).length > 0 && (
+                    <Card className="border-0 shadow-sm border-l-4 border-l-red-500" data-testid="security-blocked-list">
+                      <CardHeader className="p-5 pb-3">
+                        <CardTitle className="text-lg flex items-center gap-2 text-red-600">
+                          <ShieldAlert className="w-5 h-5" />
+                          IP đang bị chặn
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="p-5 pt-0">
+                        <div className="space-y-2">
+                          {Object.entries(securityData.rate_limiter.blocked_ips).map(([ip, remaining]) => (
+                            <div key={ip} className="flex items-center justify-between bg-red-50 rounded-lg px-4 py-2">
+                              <span className="font-mono text-sm text-red-700">{ip}</span>
+                              <span className="text-xs text-red-500">Còn {Math.ceil(remaining / 60)} phút</span>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Locked Accounts */}
+                  {Object.keys(securityData.brute_force.locked_accounts).length > 0 && (
+                    <Card className="border-0 shadow-sm border-l-4 border-l-orange-500" data-testid="security-locked-list">
+                      <CardHeader className="p-5 pb-3">
+                        <CardTitle className="text-lg flex items-center gap-2 text-orange-600">
+                          <Lock className="w-5 h-5" />
+                          Tài khoản đang bị khóa (Brute Force)
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="p-5 pt-0">
+                        <div className="space-y-2">
+                          {Object.entries(securityData.brute_force.locked_accounts).map(([key, attempts]) => (
+                            <div key={key} className="flex items-center justify-between bg-orange-50 rounded-lg px-4 py-2">
+                              <span className="font-mono text-sm text-orange-700">{key}</span>
+                              <span className="text-xs text-orange-500">{attempts} lần thử</span>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Security Configuration */}
+                  <Card className="border-0 shadow-sm" data-testid="security-config">
+                    <CardHeader className="p-5 pb-3">
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <ShieldCheck className="w-5 h-5 text-emerald-500" />
+                        Cấu hình bảo mật
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-5 pt-0">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-3">
+                          <h4 className="text-sm font-semibold text-[#334155]">Rate Limits</h4>
+                          {Object.entries(securityData.security_config.rate_limits).map(([key, value]) => (
+                            <div key={key} className="flex items-center justify-between text-sm">
+                              <span className="text-[#64748B] capitalize">{key}</span>
+                              <span className="font-mono text-xs bg-[#F1F5F9] px-2 py-1 rounded">{value}</span>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="space-y-3">
+                          <h4 className="text-sm font-semibold text-[#334155]">Bảo vệ</h4>
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-[#64748B]">Brute Force</span>
+                            <span className="font-mono text-xs bg-[#F1F5F9] px-2 py-1 rounded">{securityData.security_config.brute_force_threshold}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-[#64748B]">Payload tối đa</span>
+                            <span className="font-mono text-xs bg-[#F1F5F9] px-2 py-1 rounded">{securityData.security_config.max_request_size}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-[#64748B]">Giới hạn từ</span>
+                            <span className="font-mono text-xs bg-[#F1F5F9] px-2 py-1 rounded">{securityData.security_config.content_word_limit} từ</span>
+                          </div>
+                          <h4 className="text-sm font-semibold text-[#334155] pt-2">Security Headers</h4>
+                          {securityData.security_config.security_headers.map((header) => (
+                            <div key={header} className="flex items-center gap-2 text-sm">
+                              <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+                              <span className="font-mono text-xs text-[#64748B]">{header}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
                 </>
               )}
             </div>

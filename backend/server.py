@@ -172,24 +172,23 @@ def get_client_ip(request: Request) -> str:
 
 # ==================== SECURITY: MIDDLEWARE ====================
 
-class SecurityHeadersMiddleware(BaseHTTPMiddleware):
-    """Add security headers to all responses."""
-    async def dispatch(self, request, call_next):
-        response = await call_next(request)
-        response.headers["X-Content-Type-Options"] = "nosniff"
-        response.headers["X-Frame-Options"] = "SAMEORIGIN"
-        response.headers["X-XSS-Protection"] = "1; mode=block"
-        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-        response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
-        return response
+class SecurityMiddleware(BaseHTTPMiddleware):
+    """Combined security middleware: headers + rate limiting + request size limit."""
+    MAX_BODY_SIZE = 10 * 1024 * 1024  # 10MB
 
-class RateLimitMiddleware(BaseHTTPMiddleware):
-    """Global rate limiting middleware."""
     async def dispatch(self, request, call_next):
         ip = get_client_ip(request)
         path = request.url.path
 
-        # Strict rate limits for auth endpoints
+        # Request size limit check
+        content_length = request.headers.get("content-length")
+        if content_length and int(content_length) > self.MAX_BODY_SIZE:
+            return JSONResponse(
+                status_code=413,
+                content={"detail": "Dung lượng yêu cầu quá lớn (tối đa 10MB)"}
+            )
+
+        # Rate limiting
         if path in ("/api/auth/login", "/api/auth/register", "/api/auth/forgot-password"):
             if not rate_limiter.is_allowed(f"auth:{ip}", max_requests=10, window_seconds=60):
                 logger.warning(f"Rate limit exceeded for auth from {ip}")
@@ -197,14 +196,12 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                     status_code=429,
                     content={"detail": "Quá nhiều yêu cầu. Vui lòng thử lại sau."}
                 )
-        # Rate limit for order creation
         elif path.endswith("/orders") and request.method == "POST":
             if not rate_limiter.is_allowed(f"order:{ip}", max_requests=15, window_seconds=60):
                 return JSONResponse(
                     status_code=429,
                     content={"detail": "Quá nhiều đơn hàng. Vui lòng thử lại sau."}
                 )
-        # Global rate limit
         elif path.startswith("/api/"):
             if not rate_limiter.is_allowed(f"global:{ip}", max_requests=120, window_seconds=60):
                 logger.warning(f"Global rate limit exceeded from {ip}")
@@ -214,20 +211,15 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                 )
 
         response = await call_next(request)
+
+        # Security headers
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "SAMEORIGIN"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+
         return response
-
-class RequestSizeLimitMiddleware(BaseHTTPMiddleware):
-    """Limit request body size to prevent abuse."""
-    MAX_BODY_SIZE = 10 * 1024 * 1024  # 10MB
-
-    async def dispatch(self, request, call_next):
-        content_length = request.headers.get("content-length")
-        if content_length and int(content_length) > self.MAX_BODY_SIZE:
-            return JSONResponse(
-                status_code=413,
-                content={"detail": "Dung lượng yêu cầu quá lớn (tối đa 10MB)"}
-            )
-        return await call_next(request)
 
 # ==================== CLOUDFLARE R2 STORAGE ====================
 
@@ -2146,6 +2138,7 @@ async def get_shop_by_slug(slug: str):
         "custom_pages": shop.get("custom_pages", []),
         "post_carousel_position": shop.get("post_carousel_position", "top"),
         "max_products": shop.get("max_products", 100), "max_posts": shop.get("max_posts", 50),
+        "expiry_date": shop.get("expiry_date", ""),
     }
 
 @api_router.get("/shop/{slug}/products")
@@ -2365,6 +2358,64 @@ async def security_status(request: Request):
         }
     }
 
+@api_router.get("/admin/security/dashboard")
+async def security_dashboard(request: Request):
+    """Security dashboard data for Super Admin."""
+    await require_super_admin(request)
+    now = time.time()
+
+    # Rate limiter stats
+    active_ips = len(rate_limiter.requests)
+    blocked_ips = {ip: int(unblock - now) for ip, unblock in rate_limiter.blocked_ips.items() if unblock > now}
+    total_blocked = len(blocked_ips)
+
+    # Login tracker stats
+    locked_accounts = {}
+    for key, attempts in login_tracker.attempts.items():
+        cutoff = now - 900  # 15 min window
+        recent = [t for t in attempts if t > cutoff]
+        if len(recent) >= 5:
+            locked_accounts[key] = len(recent)
+
+    # Rate limit breakdown
+    auth_requests = sum(1 for k in rate_limiter.requests if k.startswith("auth:"))
+    order_requests = sum(1 for k in rate_limiter.requests if k.startswith("order:"))
+    global_requests = sum(1 for k in rate_limiter.requests if k.startswith("global:"))
+    contact_requests = sum(1 for k in rate_limiter.requests if k.startswith("contact:"))
+    register_requests = sum(1 for k in rate_limiter.requests if k.startswith("register:"))
+
+    return {
+        "rate_limiter": {
+            "active_tracked_ips": active_ips,
+            "blocked_ips": blocked_ips,
+            "total_blocked": total_blocked,
+            "breakdown": {
+                "auth": auth_requests,
+                "orders": order_requests,
+                "global": global_requests,
+                "contact": contact_requests,
+                "register": register_requests,
+            }
+        },
+        "brute_force": {
+            "locked_accounts": locked_accounts,
+            "total_locked": len(locked_accounts),
+        },
+        "security_config": {
+            "rate_limits": {
+                "global": "120 req/min",
+                "auth": "10 req/min",
+                "orders": "15 req/min",
+                "contact": "5 req/5min",
+                "register": "3 req/5min",
+            },
+            "brute_force_threshold": "5 attempts / 15min lockout",
+            "content_word_limit": MAX_CONTENT_WORDS,
+            "max_request_size": "10MB",
+            "security_headers": ["X-Content-Type-Options", "X-Frame-Options", "X-XSS-Protection", "Referrer-Policy", "Permissions-Policy"],
+        }
+    }
+
 # ==================== OG META TAGS FOR SOCIAL SHARING ====================
 
 @api_router.get("/og/shop/{slug}", response_class=HTMLResponse)
@@ -2479,9 +2530,16 @@ cors_origins_env = os.environ.get('CORS_ORIGINS', '')
 if cors_origins_env == "*":
     from starlette.responses import Response as StarletteResponse
 
-    class DynamicCORSMiddleware(BaseHTTPMiddleware):
+    class CombinedMiddleware(BaseHTTPMiddleware):
+        """Combined CORS + Security middleware to avoid BaseHTTPMiddleware stacking issues."""
+        MAX_BODY_SIZE = 10 * 1024 * 1024  # 10MB
+
         async def dispatch(self, request, call_next):
             origin = request.headers.get("origin", "")
+            ip = get_client_ip(request)
+            path = request.url.path
+
+            # Handle CORS preflight
             if request.method == "OPTIONS":
                 resp = StarletteResponse(status_code=200)
                 resp.headers["Access-Control-Allow-Origin"] = origin or "*"
@@ -2490,13 +2548,42 @@ if cors_origins_env == "*":
                 resp.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With"
                 resp.headers["Access-Control-Max-Age"] = "86400"
                 return resp
+
+            # Request size limit
+            content_length = request.headers.get("content-length")
+            if content_length and int(content_length) > self.MAX_BODY_SIZE:
+                return JSONResponse(status_code=413, content={"detail": "Dung lượng yêu cầu quá lớn (tối đa 10MB)"})
+
+            # Rate limiting
+            if path in ("/api/auth/login", "/api/auth/register", "/api/auth/forgot-password"):
+                if not rate_limiter.is_allowed(f"auth:{ip}", max_requests=10, window_seconds=60):
+                    logger.warning(f"Rate limit exceeded for auth from {ip}")
+                    return JSONResponse(status_code=429, content={"detail": "Quá nhiều yêu cầu. Vui lòng thử lại sau."})
+            elif path.endswith("/orders") and request.method == "POST":
+                if not rate_limiter.is_allowed(f"order:{ip}", max_requests=15, window_seconds=60):
+                    return JSONResponse(status_code=429, content={"detail": "Quá nhiều đơn hàng. Vui lòng thử lại sau."})
+            elif path.startswith("/api/"):
+                if not rate_limiter.is_allowed(f"global:{ip}", max_requests=120, window_seconds=60):
+                    logger.warning(f"Global rate limit exceeded from {ip}")
+                    return JSONResponse(status_code=429, content={"detail": "Quá nhiều yêu cầu. Vui lòng thử lại sau."})
+
             response = await call_next(request)
+
+            # CORS headers
             if origin:
                 response.headers["Access-Control-Allow-Origin"] = origin
                 response.headers["Access-Control-Allow-Credentials"] = "true"
+
+            # Security headers
+            response.headers["X-Content-Type-Options"] = "nosniff"
+            response.headers["X-Frame-Options"] = "SAMEORIGIN"
+            response.headers["X-XSS-Protection"] = "1; mode=block"
+            response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+            response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+
             return response
 
-    app.add_middleware(DynamicCORSMiddleware)
+    app.add_middleware(CombinedMiddleware)
 else:
     allowed_origins = [frontend_url, "http://localhost:3000"]
     if cors_origins_env:
@@ -2508,11 +2595,8 @@ else:
         allow_methods=["*"],
         allow_headers=["*"],
     )
-
-# Add security middleware (added after CORS so they run before CORS in the middleware chain)
-app.add_middleware(RequestSizeLimitMiddleware)
-app.add_middleware(RateLimitMiddleware)
-app.add_middleware(SecurityHeadersMiddleware)
+    # Add security middleware only when using standard CORS (not combined)
+    app.add_middleware(SecurityMiddleware)
 
 # ==================== STARTUP - SEED DATA ====================
 

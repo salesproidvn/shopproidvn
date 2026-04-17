@@ -267,8 +267,9 @@ export const vi = {
   // Shop Expiry
   expiryDate: 'Ngày hết hạn',
   setExpiry: 'Đặt hạn',
-  shopExpired: 'Cửa hàng tạm ngưng',
-  shopExpiredMsg: 'Cửa hàng này hiện đang tạm ngưng hoạt động. Vui lòng liên hệ quản trị viên.',
+  shopExpired: 'Cửa hàng đã hết hạn',
+  shopExpiredMsg: 'Cửa hàng này đã hết hạn sử dụng. Vui lòng liên hệ với Pro ID để gia hạn.',
+  shopExpiredContact: 'Cửa hàng này đã hết hạn sử dụng. Vui lòng liên hệ với Pro ID để gia hạn.',
   expired: 'Hết hạn',
   noExpiry: 'Không giới hạn',
   expiryUpdated: 'Ngày hết hạn đã cập nhật',
@@ -807,8 +808,9 @@ export const en = {
   // Shop Expiry
   expiryDate: 'Expiry Date',
   setExpiry: 'Set Expiry',
-  shopExpired: 'Shop Unavailable',
-  shopExpiredMsg: 'This shop is currently unavailable. Please contact the administrator.',
+  shopExpired: 'Shop Expired',
+  shopExpiredMsg: 'This shop has expired. Please contact Pro ID to renew.',
+  shopExpiredContact: 'This shop has expired. Please contact Pro ID to renew.',
   expired: 'Expired',
   noExpiry: 'No Expiry',
   expiryUpdated: 'Expiry date updated',

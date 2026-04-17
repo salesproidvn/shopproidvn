@@ -712,12 +712,32 @@ const StorefrontPage = () => {
     <div className="min-h-screen bg-white pb-14" data-testid="storefront-page" style={{ '--tc': themeColor }}>
       {/* Expired Overlay */}
       {isExpired && (
-        <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" data-testid="shop-expired-overlay">
+        <div className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-md flex items-center justify-center p-4" data-testid="shop-expired-overlay">
           <div className="bg-white rounded-3xl p-8 sm:p-12 max-w-md w-full text-center shadow-2xl">
             <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6"><AlertTriangle className="w-8 h-8 text-red-500" /></div>
-            <h2 className="text-2xl font-bold text-[#0F172A] mb-3">{t.shopExpired}</h2>
-            <p className="text-[#64748B] mb-8">{t.shopExpiredMsg}</p>
-            <Link to="/"><Button className="hover:opacity-90 rounded-full px-8 py-6" style={{ backgroundColor: themeColor }}><ArrowLeft className="w-4 h-4 mr-2" /> {t.backToHome}</Button></Link>
+            <h2 className="text-2xl font-bold text-[#0F172A] mb-3">Cửa hàng đã hết hạn</h2>
+            <p className="text-[#64748B] mb-6">Cửa hàng này đã hết hạn sử dụng. Vui lòng liên hệ với Pro ID để gia hạn.</p>
+            <div className="space-y-3">
+              <a
+                href="tel:0965784668"
+                className="inline-flex items-center justify-center gap-2 w-full h-12 bg-[#0F172A] hover:bg-[#1E293B] text-white font-semibold rounded-xl transition-colors text-sm"
+                data-testid="contact-phone-btn"
+              >
+                <Phone className="w-5 h-5" />
+                Gọi: 0965 784 668
+              </a>
+              <a
+                href="https://zalo.me/proidvn"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center gap-2 w-full h-12 bg-[#0068FF] hover:bg-[#0055DD] text-white font-semibold rounded-xl transition-colors text-sm"
+                data-testid="contact-zalo-btn"
+              >
+                <MessageCircle className="w-5 h-5" />
+                Liên hệ qua Zalo OA
+              </a>
+            </div>
+            <p className="text-xs text-[#94A3B8] mt-4">zalo.me/proidvn</p>
           </div>
         </div>
       )}
