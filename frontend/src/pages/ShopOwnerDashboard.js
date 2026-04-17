@@ -338,14 +338,22 @@ const ShopOwnerDashboard = () => {
     try {
       const { data } = await axios.get(`${API}/dashboard/agents`);
       setAgents(data);
-    } catch { }
+    } catch (err) {
+      if (err.response?.status !== 403) {
+        console.error('Failed to load agents:', err.response?.data?.detail);
+      }
+    }
   };
 
   const fetchAgentSales = async () => {
     try {
       const { data } = await axios.get(`${API}/dashboard/agent-sales`);
       setAgentSalesData(data);
-    } catch { }
+    } catch (err) {
+      if (err.response?.status !== 403) {
+        console.error('Failed to load agent sales:', err.response?.data?.detail);
+      }
+    }
   };
 
   const handleSaveAgent = async () => {
@@ -490,7 +498,7 @@ const ShopOwnerDashboard = () => {
     if (activeTab === 'vouchers') fetchVouchers();
     if (activeTab === 'agents' && shop?.agents_enabled) { fetchAgents(); fetchAgentSales(); }
     if (activeTab === 'card') fetchBusinessCard();
-  }, [activeTab]);
+  }, [activeTab, shop?.agents_enabled]);
 
   const openMediaLibrary = (callback, { multiple = false, maxSelect = 1 } = {}) => {
     setMediaCallback(() => callback);
@@ -1180,8 +1188,8 @@ const ShopOwnerDashboard = () => {
       )}
 
       {/* Sidebar - Desktop: toggle width, Mobile: overlay slide-in */}
-      <aside className={`fixed top-0 left-0 h-full bg-[#0F172A] text-white z-50 transition-all duration-300 w-64 ${mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 ${sidebarOpen ? 'lg:w-64' : 'lg:w-16'}`}>
-        <div className="p-4 flex items-center justify-between">
+      <aside className={`fixed top-0 left-0 h-full bg-[#0F172A] text-white z-50 transition-all duration-300 w-64 ${mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 ${sidebarOpen ? 'lg:w-64' : 'lg:w-16'} flex flex-col`}>
+        <div className="p-4 flex items-center justify-between flex-shrink-0">
           <div className={`min-w-0 ${sidebarOpen ? '' : 'lg:hidden'}`}>
             <span className="font-bold text-base truncate block">{shop?.name || t.dashboard}</span>
             <p className="text-xs text-[#94A3B8] truncate">/{shop?.slug}</p>
@@ -1194,7 +1202,7 @@ const ShopOwnerDashboard = () => {
           </Button>
         </div>
         
-        <nav className="mt-4">
+        <nav className="flex-1 overflow-y-auto mt-2 pb-2">
           {menuItems.map((item) => (
             <button
               key={item.id}
@@ -1209,17 +1217,16 @@ const ShopOwnerDashboard = () => {
           ))}
         </nav>
 
-        {shop && (
-          <div className={`px-4 mt-4 ${sidebarOpen ? '' : 'lg:hidden'}`}>
-            <a href={`${window.location.origin}/shop/${shop.slug}`} target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-2 px-4 py-2 bg-white/10 rounded-lg text-sm hover:bg-white/20 transition-colors">
-              <ExternalLink className="w-4 h-4" />
-              {t.previewShop}
-            </a>
-          </div>
-        )}
-        
-        <div className="absolute bottom-0 left-0 right-0 p-4">
+        <div className="flex-shrink-0 border-t border-white/10">
+          {shop && (
+            <div className={`px-4 pt-3 ${sidebarOpen ? '' : 'lg:hidden'}`}>
+              <a href={`${window.location.origin}/shop/${shop.slug}`} target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-2 px-4 py-2 bg-white/10 rounded-lg text-sm hover:bg-white/20 transition-colors">
+                <ExternalLink className="w-4 h-4" />
+                {t.previewShop}
+              </a>
+            </div>
+          )}
           <button onClick={() => { handleLogout(); setMobileSidebarOpen(false); }} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/10 text-red-400 text-sm" data-testid="logout-btn">
             <LogOut className="w-5 h-5" />
             <span className={sidebarOpen ? '' : 'lg:hidden'}>{t.logout}</span>
