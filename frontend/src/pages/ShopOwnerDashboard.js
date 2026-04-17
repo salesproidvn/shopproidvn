@@ -388,6 +388,7 @@ const ShopOwnerDashboard = () => {
   // Business Card state
   const [businessCard, setBusinessCard] = useState(null);
   const [cardProductSearch, setCardProductSearch] = useState('');
+  const [cardCategoryFilter, setCardCategoryFilter] = useState('all');
 
   const fetchBusinessCard = async () => {
     try {
@@ -2432,14 +2433,28 @@ const ShopOwnerDashboard = () => {
                   <div>
                     <label className="text-xs font-medium text-[#334155] mb-1 block">{t.applicableProducts || 'Sản phẩm hiển thị'}</label>
                     <div className="border border-[#E2E8F0] rounded-[5px] overflow-hidden">
-                      <div className="p-2 border-b border-[#F1F5F9]">
-                        <div className="relative">
+                      <div className="p-2 border-b border-[#F1F5F9] flex gap-2">
+                        <div className="relative flex-1">
                           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#94A3B8]" />
                           <Input placeholder="Tìm sản phẩm..." value={cardProductSearch} onChange={(e) => setCardProductSearch(e.target.value)} className="pl-8 h-8 text-xs" data-testid="card-product-search" />
                         </div>
+                        <Select value={cardCategoryFilter} onValueChange={setCardCategoryFilter}>
+                          <SelectTrigger className="h-8 text-xs w-[140px] flex-shrink-0" data-testid="card-category-filter">
+                            <SelectValue placeholder="Danh mục" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-white">
+                            <SelectItem value="all">Tất cả danh mục</SelectItem>
+                            {categories.map(c => (
+                              <SelectItem key={c.id} value={c.id}>{c.parent_id ? '↳ ' : ''}{c.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                       <div className="p-3 max-h-40 overflow-y-auto space-y-1.5">
-                        {products.filter(p => !cardProductSearch || p.name.toLowerCase().includes(cardProductSearch.toLowerCase())).map(p => (
+                        {products
+                          .filter(p => cardCategoryFilter === 'all' || p.category_id === cardCategoryFilter)
+                          .filter(p => !cardProductSearch || p.name.toLowerCase().includes(cardProductSearch.toLowerCase()))
+                          .map(p => (
                           <label key={p.id} className="flex items-center gap-2 cursor-pointer">
                             <input type="checkbox" checked={(businessCard.selected_products || []).includes(p.id)}
                               onChange={(e) => {
@@ -2453,6 +2468,9 @@ const ShopOwnerDashboard = () => {
                             <span className="text-xs text-[#334155] truncate">{p.name} - {formatVND(p.price)}</span>
                           </label>
                         ))}
+                        {products.filter(p => cardCategoryFilter === 'all' || p.category_id === cardCategoryFilter).filter(p => !cardProductSearch || p.name.toLowerCase().includes(cardProductSearch.toLowerCase())).length === 0 && (
+                          <p className="text-[10px] text-[#94A3B8] text-center py-2">Không tìm thấy sản phẩm</p>
+                        )}
                       </div>
                     </div>
                     {(businessCard.selected_products || []).length > 0 && (
