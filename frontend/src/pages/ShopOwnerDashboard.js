@@ -325,6 +325,7 @@ const ShopOwnerDashboard = () => {
   const [showVoucherModal, setShowVoucherModal] = useState(false);
   const [editingVoucher, setEditingVoucher] = useState(null);
   const [voucherForm, setVoucherForm] = useState({ code: '', discount_type: 'percentage', discount_value: '', min_order_amount: '', max_uses: '', applicable_products: [], expiry_date: '', is_active: true });
+  const [voucherProductSearch, setVoucherProductSearch] = useState('');
 
   // Agent state
   const [agents, setAgents] = useState([]);
@@ -487,7 +488,7 @@ const ShopOwnerDashboard = () => {
   useEffect(() => {
     if (activeTab === 'media') fetchMediaList(1);
     if (activeTab === 'vouchers') fetchVouchers();
-    if (activeTab === 'agents') { fetchAgents(); fetchAgentSales(); }
+    if (activeTab === 'agents' && shop?.agents_enabled) { fetchAgents(); fetchAgentSales(); }
     if (activeTab === 'card') fetchBusinessCard();
   }, [activeTab]);
 
@@ -3456,13 +3457,19 @@ const ShopOwnerDashboard = () => {
             </div>
             <div>
               <label className="text-xs font-medium text-[#334155] mb-1 block">{t.applicableProducts}</label>
-              <div className="border border-[#E2E8F0] rounded-[5px] p-3 max-h-40 overflow-y-auto">
-                <label className="flex items-center gap-2 mb-2 cursor-pointer">
+              <div className="border border-[#E2E8F0] rounded-[5px] overflow-hidden">
+                <label className="flex items-center gap-2 px-3 pt-3 pb-2 cursor-pointer">
                   <input type="checkbox" checked={voucherForm.applicable_products.length === 0} onChange={() => setVoucherForm({...voucherForm, applicable_products: []})} className="rounded" />
                   <span className="text-sm font-medium">{t.allProducts}</span>
                 </label>
-                <div className="border-t border-[#F1F5F9] pt-2 space-y-1.5">
-                  {products.map(p => (
+                <div className="px-3 pb-2">
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#94A3B8]" />
+                    <Input placeholder="Tìm sản phẩm..." value={voucherProductSearch} onChange={(e) => setVoucherProductSearch(e.target.value)} className="pl-8 h-8 text-xs" data-testid="voucher-product-search" />
+                  </div>
+                </div>
+                <div className="border-t border-[#F1F5F9] px-3 py-2 max-h-36 overflow-y-auto space-y-1.5">
+                  {products.filter(p => !voucherProductSearch || p.name.toLowerCase().includes(voucherProductSearch.toLowerCase())).map(p => (
                     <label key={p.id} className="flex items-center gap-2 cursor-pointer">
                       <input type="checkbox" checked={voucherForm.applicable_products.includes(p.id)}
                         onChange={(e) => {
