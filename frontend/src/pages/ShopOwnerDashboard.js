@@ -3667,6 +3667,9 @@ const ShopOwnerDashboard = () => {
       </Dialog>
 
       <MediaLibrary
+        open={mediaOpen}
+        onClose={() => setMediaOpen(false)}
+        onSelect={(urls) => { if (mediaCallback) mediaCallback(urls); }}
         multiple={mediaMultiple}
         maxSelect={mediaMaxSelect}
       />
