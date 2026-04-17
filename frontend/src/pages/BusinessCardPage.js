@@ -36,9 +36,39 @@ const BusinessCardPage = () => {
 
   const cardPermalink = `${window.location.origin}/card/${cardSlug}`;
 
-  const handleSaveVCF = () => {
+  const handleSaveVCF = async () => {
     if (!card) return;
     const esc = (s) => s ? s.replace(/\n/g, '\\n').replace(/,/g, '\\,').replace(/;/g, '\\;') : '';
+    
+    // Convert profile image to base64 for VCF
+    let photoLine = null;
+    const imgUrl = card.avatar_url || card.logo_url;
+    if (imgUrl) {
+      try {
+        const response = await fetch(imgUrl);
+        const blob = await response.blob();
+        const base64 = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            const result = reader.result;
+            // Extract base64 data after the comma
+            const b64 = result.split(',')[1];
+            resolve(b64);
+          };
+          reader.readAsDataURL(blob);
+        });
+        if (base64) {
+          const mimeType = blob.type || 'image/jpeg';
+          const typeMap = { 'image/jpeg': 'JPEG', 'image/png': 'PNG', 'image/gif': 'GIF', 'image/webp': 'JPEG' };
+          const photoType = typeMap[mimeType] || 'JPEG';
+          photoLine = `PHOTO;ENCODING=b;TYPE=${photoType}:${base64}`;
+        }
+      } catch (e) {
+        // Fallback to URI if fetch fails
+        photoLine = `PHOTO;VALUE=URI:${imgUrl}`;
+      }
+    }
+    
     const lines = [
       'BEGIN:VCARD', 'VERSION:3.0',
       `FN:${esc(card.display_name || '')}`,
@@ -48,12 +78,12 @@ const BusinessCardPage = () => {
       card.email ? `EMAIL;TYPE=WORK:${card.email}` : null,
       card.address ? `ADR;TYPE=WORK:;;${esc(card.address)};;;;` : null,
       card.website ? `URL:${card.website}` : null,
-      card.avatar_url ? `PHOTO;VALUE=URI:${card.avatar_url}` : (card.logo_url ? `PHOTO;VALUE=URI:${card.logo_url}` : null),
+      photoLine,
       `URL:${cardPermalink}`,
       'END:VCARD',
     ].filter(Boolean);
-    const blob = new Blob([lines.join('\r\n')], { type: 'text/vcard;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
+    const vcfBlob = new Blob([lines.join('\r\n')], { type: 'text/vcard;charset=utf-8' });
+    const url = URL.createObjectURL(vcfBlob);
     const a = document.createElement('a');
     a.href = url; a.download = `${card.display_name || 'contact'}.vcf`;
     a.click(); URL.revokeObjectURL(url);
@@ -62,14 +92,30 @@ const BusinessCardPage = () => {
   const handleShare = () => {
     const ogUrl = `${process.env.REACT_APP_BACKEND_URL}/api/og/card/${cardSlug}`;
     if (navigator.share) {
-      navigator.share({ title: card.display_name, text: `${card.display_name} - ${card.shop_name}`, url: ogUrl });
+      navigator.share({ title: card.display_name, text: `${card.display_name} - ${card.shop_name}`, url: ogUrl }).catch(() => {});
     } else {
-      navigator.clipboard?.writeText(ogUrl)?.then(() => toast.success('Link copied!'))?.catch(() => {
-        const ta = document.createElement('textarea'); ta.value = ogUrl; ta.style.position = 'fixed'; ta.style.left = '-9999px';
-        document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
-        toast.success('Link copied!');
-      });
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(ogUrl).then(() => {
+            toast.success(t.linkCopied || 'Link copied!');
+          }).catch(() => {
+            fallbackCopy(ogUrl);
+          });
+        } else {
+          fallbackCopy(ogUrl);
+        }
+      } catch {
+        fallbackCopy(ogUrl);
+      }
     }
+  };
+
+  const fallbackCopy = (text) => {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.left = '-9999px';
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+    document.body.removeChild(ta);
+    toast.success(t.linkCopied || 'Link copied!');
   };
 
   if (loading) return <div className="flex items-center justify-center min-h-screen bg-[#F8FAFC]"><div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full" /></div>;
