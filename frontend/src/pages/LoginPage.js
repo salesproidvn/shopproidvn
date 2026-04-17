@@ -143,9 +143,6 @@ const LoginPage = () => {
           {/* Logo */}
           <div className="flex items-center gap-3">
             <img src="/proid-logo.png" alt="Pro ID" className="h-11 w-auto" />
-            <div>
-              <span className="text-xl font-bold text-white tracking-tight">PRO ID SHOP</span>
-            </div>
           </div>
 
           {/* Hero Content */}
@@ -275,26 +272,6 @@ const LoginPage = () => {
                   <p className="text-sm text-[#64748B] mt-1.5">
                     {mode === 'login' ? t.loginToManage : t.createAccount}
                   </p>
-                </div>
-
-                {/* Social Login */}
-                <div className="flex gap-3 mb-6">
-                  <Button variant="outline" className="flex-1 h-11 rounded-xl text-sm font-medium border-[#E2E8F0] hover:bg-[#F8FAFC]" onClick={() => handleSocialLogin('google')} data-testid="google-login-btn">
-                    <GoogleIcon />
-                    <span className="ml-2">Google</span>
-                  </Button>
-                  <Button variant="outline" className="flex-1 h-11 rounded-xl text-sm font-medium border-[#E2E8F0] hover:bg-[#F8FAFC]" onClick={() => handleSocialLogin('facebook')} data-testid="facebook-login-btn">
-                    <FacebookIcon />
-                    <span className="ml-2">Facebook</span>
-                  </Button>
-                </div>
-
-                {/* Divider */}
-                <div className="relative mb-6">
-                  <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-[#E2E8F0]" /></div>
-                  <div className="relative flex justify-center text-[11px] uppercase tracking-wider">
-                    <span className="bg-white px-3 text-[#94A3B8]">{t.orLoginWith}</span>
-                  </div>
                 </div>
 
                 {/* Form */}

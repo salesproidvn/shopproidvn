@@ -119,7 +119,7 @@ class LoginTracker:
     def record_failure(self, key: str):
         self.attempts[key].append(time.time())
 
-    def is_locked(self, key: str, max_attempts: int = 5, window_seconds: int = 900) -> bool:
+    def is_locked(self, key: str, max_attempts: int = 50, window_seconds: int = 900) -> bool:
         now = time.time()
         cutoff = now - window_seconds
         self.attempts[key] = [t for t in self.attempts[key] if t > cutoff]
@@ -2374,7 +2374,7 @@ async def security_dashboard(request: Request):
     for key, attempts in login_tracker.attempts.items():
         cutoff = now - 900  # 15 min window
         recent = [t for t in attempts if t > cutoff]
-        if len(recent) >= 5:
+        if len(recent) >= 50:
             locked_accounts[key] = len(recent)
 
     # Rate limit breakdown
@@ -2409,7 +2409,7 @@ async def security_dashboard(request: Request):
                 "contact": "5 req/5min",
                 "register": "3 req/5min",
             },
-            "brute_force_threshold": "5 attempts / 15min lockout",
+            "brute_force_threshold": "50 attempts / 15min lockout",
             "content_word_limit": MAX_CONTENT_WORDS,
             "max_request_size": "10MB",
             "security_headers": ["X-Content-Type-Options", "X-Frame-Options", "X-XSS-Protection", "Referrer-Policy", "Permissions-Policy"],
