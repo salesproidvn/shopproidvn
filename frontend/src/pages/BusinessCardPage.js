@@ -131,7 +131,7 @@ const BusinessCardPage = () => {
       <div className="w-full" style={{ background: `linear-gradient(135deg, ${themeColor}, ${themeColor}dd)` }}>
         <div className="max-w-md mx-auto px-6 pt-10 pb-16 text-center text-white">
           {(card.avatar_url || card.logo_url) && (
-            <img src={card.avatar_url || card.logo_url} alt="" className="w-24 h-24 rounded-full mx-auto mb-4 object-cover border-4 border-white/30 shadow-lg" data-testid="card-avatar" />
+            <img src={card.avatar_url || card.logo_url} alt="" className="w-24 h-24 rounded-full mx-auto mb-4 object-cover shadow-lg" data-testid="card-avatar" />
           )}
           <h1 className="text-2xl font-bold mb-1" data-testid="card-name">{card.display_name}</h1>
           {card.title && <p className="text-white/80 text-sm mb-1" data-testid="card-title">{card.title}</p>}
