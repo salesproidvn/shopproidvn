@@ -951,22 +951,25 @@ async def send_login_email(user_id: str, request: Request):
         shop_name = shop.get("name", "") if shop else ""
     default_pw = "iLoveProID@"
     await db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"password_hash": hash_password(default_pw)}})
+    login_url = os.environ.get("FRONTEND_URL", "https://shop.proid.vn")
     html = f"""<div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;background:#fff;">
-      <div style="background:linear-gradient(135deg,#0055FF,#00C2FF);padding:24px 32px;border-radius:8px 8px 0 0;">
-        <h1 style="margin:0;color:#fff;font-size:20px;">Thong tin dang nhap</h1>
+      <div style="background:linear-gradient(135deg,#CC0000,#FF4444);padding:24px 32px;border-radius:8px 8px 0 0;">
+        <h1 style="margin:0;color:#fff;font-size:20px;">Thông tin đăng nhập</h1>
         <p style="margin:4px 0 0;color:rgba(255,255,255,0.85);font-size:14px;">{shop_name}</p>
       </div>
       <div style="padding:24px 32px;border:1px solid #E2E8F0;border-top:none;border-radius:0 0 8px 8px;">
-        <p style="color:#334155;font-size:14px;">Xin chao <strong>{user.get('name','')}</strong>,</p>
-        <p style="color:#334155;font-size:14px;">Mat khau cua ban da duoc dat lai. Duoi day la thong tin dang nhap moi:</p>
+        <p style="color:#334155;font-size:14px;">Xin chào <strong>{user.get('name','')}</strong>,</p>
+        <p style="color:#334155;font-size:14px;">Dưới đây là thông tin đăng nhập của bạn:</p>
         <div style="background:#F8FAFC;border-radius:8px;padding:16px;margin:16px 0;">
           <p style="margin:0 0 8px;color:#0F172A;font-size:14px;"><strong>Email:</strong> {user['email']}</p>
-          <p style="margin:0;color:#0F172A;font-size:14px;"><strong>Mat khau:</strong> {default_pw}</p>
+          <p style="margin:0 0 8px;color:#0F172A;font-size:14px;"><strong>Mật khẩu:</strong> {default_pw}</p>
+          <p style="margin:0;color:#0F172A;font-size:14px;"><strong>Đăng nhập tại:</strong> <a href="{login_url}" style="color:#CC0000;">{login_url}</a></p>
         </div>
-        <p style="color:#64748B;font-size:12px;">Vui long doi mat khau sau khi dang nhap.</p>
+        <a href="{login_url}" style="display:inline-block;background:linear-gradient(135deg,#CC0000,#FF4444);color:#fff;text-decoration:none;padding:12px 32px;border-radius:8px;font-size:14px;font-weight:600;margin-top:8px;">Đăng nhập ngay</a>
+        <p style="color:#64748B;font-size:12px;margin-top:16px;">Vui lòng đổi mật khẩu sau khi đăng nhập.</p>
       </div></div>"""
     try:
-        params = {"from": SENDER_EMAIL, "to": [user["email"]], "subject": f"Thong tin dang nhap - {shop_name or 'Ocean Pro Web'}", "html": html}
+        params = {"from": SENDER_EMAIL, "to": [user["email"]], "subject": f"Thông tin đăng nhập - {shop_name or 'Pro ID Shop'}", "html": html}
         await asyncio.to_thread(resend.Emails.send, params)
         return {"message": f"Email sent to {user['email']}"}
     except Exception as e:
