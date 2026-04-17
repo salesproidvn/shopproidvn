@@ -475,6 +475,22 @@ const SuperAdminDashboard = () => {
                             className="text-xs border rounded px-1 py-0.5 w-16 text-center"
                             data-testid={`max-categories-${shop.id}`} />
                         </div>
+                        <div className="flex items-center gap-2">
+                          <span>{t.agentsFeature || 'Đại lý'}:</span>
+                          <button
+                            onClick={async () => {
+                              try {
+                                const newVal = !shop.agents_enabled;
+                                await axios.put(`${API}/admin/shops/${shop.id}/agents-toggle`, { agents_enabled: newVal });
+                                setShops(shops.map(s => s.id === shop.id ? {...s, agents_enabled: newVal} : s));
+                                toast.success(newVal ? (t.agentsEnabled || 'Agents enabled') : (t.agentsDisabled || 'Agents disabled'));
+                              } catch { toast.error('Error'); }
+                            }}
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold transition-colors ${shop.agents_enabled ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+                            data-testid={`agents-toggle-${shop.id}`}>
+                            {shop.agents_enabled ? 'ON' : 'OFF'}
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))}

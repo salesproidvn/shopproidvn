@@ -3,17 +3,15 @@ import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom'
 import axios from 'axios';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
-import { useCart } from '../context/CartContext';
+// Cart removed - ordering through agent system
 import { formatVND } from '../utils/format';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '../components/ui/sheet';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog';
 import { Textarea } from '../components/ui/textarea';
-import { ScrollArea } from '../components/ui/scroll-area';
 import { 
-  Search, ShoppingCart, Phone, Mail, MapPin, Facebook, Instagram, Download,
+  Search, Phone, Mail, MapPin, Facebook, Instagram, Download,
   Plus, Minus, Trash2, ArrowLeft, LayoutDashboard, X, AlertTriangle, Play,
   MessageCircle, Map, FolderOpen, ChevronLeft, ChevronRight, FileText, Calendar, Share2,
   Home, Store, Grid3X3, BookOpen, PhoneCall, Menu as MenuIcon, ChevronDown, Globe, Pencil
@@ -42,12 +40,7 @@ const StorefrontPage = () => {
   const [error, setError] = useState(null);
   const [isExpired, setIsExpired] = useState(false);
 
-  const { cart, addToCart: ctxAddToCart, updateQuantity, removeFromCart: ctxRemoveFromCart, clearCart, cartTotal, cartCount } = useCart();
-  const [showCart, setShowCart] = useState(false);
-  const [showCheckout, setShowCheckout] = useState(false);
-  const [checkoutForm, setCheckoutForm] = useState({
-    customer_name: '', customer_phone: '', customer_email: '', customer_address: '', note: ''
-  });
+  // Cart removed
 
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [activeImage, setActiveImage] = useState(0);
@@ -112,8 +105,8 @@ const StorefrontPage = () => {
     if (categoryParam && categories.length > 0) {
       setSelectedCategory(categoryParam);
     }
-    if (searchParams.get('checkout') === '1' && cart.length > 0) {
-      setShowCheckout(true);
+    if (searchParams.get('checkout') === '1') {
+      // Cart removed - redirect to shop
     }
   }, [searchParams, products, categories]);
 
@@ -168,18 +161,6 @@ const StorefrontPage = () => {
     setFilteredProducts(result);
   }, [selectedCategory, searchQuery, products, categories]);
 
-  const addToCart = (product) => {
-    ctxAddToCart(product.id, product, 1);
-    toast.success(t.addedToCart);
-  };
-
-  const updateCartQuantity = (productId, delta) => {
-    const item = cart.find(i => i.product_id === productId);
-    if (item) updateQuantity(productId, item.quantity + delta);
-  };
-
-  const removeFromCart = (productId) => { ctxRemoveFromCart(productId); };
-
   const themeColor = shop?.theme_color || '#0055FF';
 
   const layoutSections = shop?.layout_sections?.length ? shop.layout_sections : [
@@ -223,18 +204,6 @@ const StorefrontPage = () => {
     setEditSaving(false);
   };
 
-
-  const handleCheckout = async (e) => {
-    e.preventDefault();
-    try {
-      const orderData = { ...checkoutForm, items: cart.map(item => ({ product_id: item.product_id, quantity: item.quantity })) };
-      const { data } = await axios.post(`${API}/shop/${slug}/orders`, orderData);
-      emitNotification({ type: 'new_order', title: t.newOrder, message: `${checkoutForm.customer_name} - ${formatVND(data.total_amount)}`, order_id: data.id, shop_slug: slug });
-      clearCart(); setShowCheckout(false); setShowCart(false);
-      setCheckoutForm({ customer_name: '', customer_phone: '', customer_email: '', customer_address: '', note: '' });
-      navigate(`/shop/${slug}/thank-you`, { state: { order: data } });
-    } catch { toast.error(t.orderFailed); }
-  };
 
   const toggleCategoryExpand = (catId) => {
     setExpandedCategories(prev => ({ ...prev, [catId]: !prev[catId] }));
@@ -365,11 +334,6 @@ const StorefrontPage = () => {
         <h3 className="font-medium text-[#0F172A] text-sm sm:text-base line-clamp-2 mb-1">{product.name}</h3>
         {product.sku && <p className="text-[10px] text-[#94A3B8] mb-1">SKU: {product.sku}</p>}
         <p className="text-base sm:text-lg font-bold mb-2" style={{ color: themeColor }}>{formatVND(product.price)}</p>
-        <Button className="w-full hover:opacity-90 text-white text-xs sm:text-sm h-9 sm:h-10 rounded-[5px]"
-          style={{ backgroundColor: themeColor }}
-          onClick={(e) => { e.stopPropagation(); addToCart(product); }} data-testid={`add-cart-${product.id}`}>
-          {t.addToCart}
-        </Button>
       </div>
     </div>
   );
@@ -536,11 +500,12 @@ const StorefrontPage = () => {
               </button>
               <Link to={`/shop/${slug}`} className="font-bold text-[#0F172A] text-base truncate max-w-[200px] hover:opacity-70 transition-opacity" data-testid="product-header-shop-name">{shop?.name}</Link>
               <button onClick={() => {
-                const url = `${window.location.origin}/shop/${slug}?product=${selectedProduct.id}`;
+                const ogUrl = `${process.env.REACT_APP_BACKEND_URL}/api/og/shop/${slug}/product/${selectedProduct.id}`;
+                const directUrl = `${window.location.origin}/shop/${slug}?product=${selectedProduct.id}`;
                 if (navigator.share) {
-                  navigator.share({ title: selectedProduct.name, text: `${selectedProduct.name} - ${formatVND(selectedProduct.price)}`, url });
+                  navigator.share({ title: selectedProduct.name, text: `${selectedProduct.name} - ${formatVND(selectedProduct.price)}`, url: ogUrl });
                 } else {
-                  navigator.clipboard.writeText(url);
+                  navigator.clipboard.writeText(ogUrl);
                   toast.success(t.linkCopied || 'Link copied!');
                 }
               }} className="flex items-center gap-2 text-sm text-[#334155] hover:text-[#0F172A] transition-colors" data-testid="product-share-top-btn">
@@ -603,22 +568,17 @@ const StorefrontPage = () => {
               {selectedProduct.sku && <p className="text-xs text-[#94A3B8] mb-2" data-testid="product-sku">SKU: {selectedProduct.sku}</p>}
               {selectedProduct.category && <p className="text-sm text-[#94A3B8] mb-4">{selectedProduct.category}</p>}
               <div className="flex gap-2 sm:gap-3 mb-4 sm:mb-6">
-                <Button className="flex-1 hover:opacity-90 py-4 sm:py-6 text-sm sm:text-base rounded-[5px]"
-                  style={{ backgroundColor: themeColor }}
-                  onClick={() => { addToCart(selectedProduct); }} data-testid="product-add-cart">
-                  <ShoppingCart className="w-5 h-5 mr-2" /> {t.addToCart}
-                </Button>
-                <Button variant="outline" className="py-6 px-4 rounded-[5px]"
+                <Button variant="outline" className="flex-1 py-6 px-4 rounded-[5px]"
                   onClick={() => {
-                    const url = `${window.location.origin}/shop/${slug}?product=${selectedProduct.id}`;
+                    const ogUrl = `${process.env.REACT_APP_BACKEND_URL}/api/og/shop/${slug}/product/${selectedProduct.id}`;
                     if (navigator.share) {
-                      navigator.share({ title: selectedProduct.name, text: `${selectedProduct.name} - ${formatVND(selectedProduct.price)}`, url });
+                      navigator.share({ title: selectedProduct.name, text: `${selectedProduct.name} - ${formatVND(selectedProduct.price)}`, url: ogUrl });
                     } else {
-                      navigator.clipboard.writeText(url);
+                      navigator.clipboard.writeText(ogUrl);
                       toast.success(t.linkCopied || 'Link copied!');
                     }
                   }} data-testid="product-share-btn">
-                  <Share2 className="w-5 h-5" />
+                  <Share2 className="w-5 h-5 mr-2" /> {t.share || 'Chia sẻ'}
                 </Button>
               </div>
               {selectedProduct.description && <div className="text-[#334155] text-sm sm:text-base leading-relaxed mb-4 sm:mb-6 prose prose-sm max-w-none break-words overflow-hidden [&_img]:max-w-full [&_pre]:overflow-x-auto [&_table]:overflow-x-auto [&_ol]:list-decimal [&_ol]:pl-6 [&_ul]:list-disc [&_ul]:pl-6" data-testid="product-description" dangerouslySetInnerHTML={{ __html: selectedProduct.description }} />}
@@ -722,12 +682,6 @@ const StorefrontPage = () => {
                   </Button>
                 </Link>
               )}
-              <Button variant="outline" className="relative rounded-full h-9 w-9 p-0" onClick={() => setShowCart(true)} data-testid="cart-button">
-                <ShoppingCart className="w-4 h-4" />
-                {cartCount > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 w-4 h-4 text-white text-[10px] rounded-full flex items-center justify-center" style={{ backgroundColor: themeColor }}>{cartCount}</span>
-                )}
-              </Button>
               {/* Mobile menu toggle */}
               <Button variant="ghost" size="icon" className="md:hidden h-9 w-9" onClick={() => setMobileMenuOpen(!mobileMenuOpen)} data-testid="mobile-menu-toggle">
                 <MenuIcon className="w-5 h-5" />
@@ -1190,128 +1144,6 @@ const StorefrontPage = () => {
             </div>
           </div>
         </>
-      )}
-
-      {/* Cart Drawer */}
-      <Sheet open={showCart} onOpenChange={setShowCart}>
-        <SheetContent className="w-full sm:max-w-md flex flex-col bg-white" data-testid="cart-drawer">
-          <SheetHeader>
-            <SheetTitle>{t.cart} ({cartCount})</SheetTitle>
-            <SheetDescription>{t.cartItems}</SheetDescription>
-          </SheetHeader>
-          {cart.length === 0 ? (
-            <div className="flex-1 flex items-center justify-center"><p className="text-[#64748B]">{t.cartEmpty}</p></div>
-          ) : (
-            <>
-              <ScrollArea className="flex-1 -mx-6 px-6">
-                <div className="space-y-4 py-4">
-                  {cart.map((item) => (
-                    <div key={item.product_id} className="flex gap-4 p-3 bg-[#F8FAFC] rounded-xl">
-                      <img src={item.image_url} alt={item.name} className="w-16 h-16 rounded-lg object-cover" />
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-medium text-[#0F172A] text-sm truncate">{item.name}</h4>
-                        <p className="font-semibold text-sm" style={{ color: themeColor }}>{formatVND(item.price)}</p>
-                        <div className="flex items-center gap-2 mt-2">
-                          <Button variant="outline" size="icon" className="w-7 h-7" onClick={() => updateCartQuantity(item.product_id, -1)}><Minus className="w-3 h-3" /></Button>
-                          <span className="w-6 text-center text-sm">{item.quantity}</span>
-                          <Button variant="outline" size="icon" className="w-7 h-7" onClick={() => updateCartQuantity(item.product_id, 1)}><Plus className="w-3 h-3" /></Button>
-                          <Button variant="ghost" size="icon" className="w-7 h-7 ml-auto text-red-500" onClick={() => removeFromCart(item.product_id)}><Trash2 className="w-4 h-4" /></Button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </ScrollArea>
-              <div className="border-t pt-4 space-y-4">
-                <div className="flex justify-between text-lg">
-                  <span className="text-[#64748B]">{t.total}:</span>
-                  <span className="font-bold" style={{ color: themeColor }}>{formatVND(cartTotal)}</span>
-                </div>
-                <Button className="w-full hover:opacity-90 py-6 rounded-[5px]" style={{ backgroundColor: themeColor }}
-                  onClick={() => { setShowCart(false); setShowCheckout(true); }} data-testid="checkout-btn">
-                  {t.orderNow}
-                </Button>
-              </div>
-            </>
-          )}
-        </SheetContent>
-      </Sheet>
-
-      {/* Checkout Full-Screen Overlay */}
-      {showCheckout && (
-        <div className="fixed inset-0 z-50 bg-[#F8FAFC] overflow-y-auto" data-testid="checkout-overlay">
-          <div className="max-w-4xl mx-auto px-4 py-8">
-            <div className="flex items-center gap-4 mb-8">
-              <Button variant="ghost" size="icon" className="rounded-full" onClick={() => { if (searchParams.get('checkout') === '1') { navigate(-1); } else { setShowCheckout(false); setShowCart(true); } }} data-testid="checkout-back-btn"><ArrowLeft className="w-5 h-5" /></Button>
-              <h1 className="text-2xl font-bold text-[#0F172A]">{t.checkoutTitle}</h1>
-            </div>
-            <div className="grid md:grid-cols-5 gap-8">
-              <div className="md:col-span-3">
-                <div className="bg-white rounded-2xl p-6 shadow-sm">
-                  <h2 className="font-semibold text-lg text-[#0F172A] mb-4">{t.shippingInfo}</h2>
-                  <form id="checkout-form" onSubmit={handleCheckout} className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-1.5">{t.customerName} *</label>
-                      <Input value={checkoutForm.customer_name} onChange={(e) => setCheckoutForm({ ...checkoutForm, customer_name: e.target.value })} required data-testid="checkout-name" />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium mb-1.5">{t.phone} *</label>
-                        <Input value={checkoutForm.customer_phone} onChange={(e) => setCheckoutForm({ ...checkoutForm, customer_phone: e.target.value })} required data-testid="checkout-phone" />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-1.5">{t.email}</label>
-                        <Input type="email" value={checkoutForm.customer_email} onChange={(e) => setCheckoutForm({ ...checkoutForm, customer_email: e.target.value })} data-testid="checkout-email" />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1.5">{t.address} *</label>
-                      <Input value={checkoutForm.customer_address} onChange={(e) => setCheckoutForm({ ...checkoutForm, customer_address: e.target.value })} required data-testid="checkout-address" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1.5">{t.note}</label>
-                      <Input value={checkoutForm.note} onChange={(e) => setCheckoutForm({ ...checkoutForm, note: e.target.value })} placeholder={t.noteMore} data-testid="checkout-note" />
-                    </div>
-                  </form>
-                </div>
-              </div>
-              <div className="md:col-span-2">
-                <div className="bg-white rounded-2xl p-6 shadow-sm sticky top-8">
-                  <h2 className="font-semibold text-lg text-[#0F172A] mb-4">{t.orderSummary}</h2>
-                  <div className="space-y-3 mb-4">
-                    {cart.map((item) => (
-                      <div key={item.product_id} className="flex gap-3">
-                        <img src={item.image_url} alt={item.name} className="w-12 h-12 rounded-lg object-cover" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-[#0F172A] truncate">{item.name}</p>
-                          <p className="text-xs text-[#64748B]">x{item.quantity}</p>
-                        </div>
-                        <p className="text-sm font-semibold text-[#0F172A]">{formatVND(item.price * item.quantity)}</p>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="border-t pt-4 space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-[#64748B]">{t.subtotal}</span>
-                      <span className="text-[#0F172A]">{formatVND(cartTotal)}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-[#64748B]">{t.shipping}</span>
-                      <span className="text-green-500 font-medium">{t.freeShipping}</span>
-                    </div>
-                    <div className="flex justify-between text-lg font-bold pt-2 border-t">
-                      <span className="text-[#0F172A]">{t.total}</span>
-                      <span style={{ color: themeColor }}>{formatVND(cartTotal)}</span>
-                    </div>
-                  </div>
-                  <Button form="checkout-form" type="submit" className="w-full hover:opacity-90 rounded-[5px] py-6 mt-6 text-base" style={{ backgroundColor: themeColor }} data-testid="place-order-btn">
-                    {t.placeOrder}
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
       )}
 
       {/* Inline Product Edit Modal */}

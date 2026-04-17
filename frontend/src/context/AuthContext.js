@@ -51,6 +51,10 @@ export const AuthProvider = ({ children }) => {
       window.location.href = '/admin';
     } else if (data.role === 'shop_owner') {
       window.location.href = '/dashboard';
+    } else if (data.role === 'agent') {
+      window.location.href = '/agent';
+    } else if (data.role === 'sub_admin') {
+      window.location.href = '/admin';
     }
     return data;
   };

@@ -18,6 +18,8 @@ import BlogPostPage from "./pages/BlogPostPage";
 import CategoryPage from "./pages/CategoryPage";
 import SingleCategoryPage from "./pages/SingleCategoryPage";
 import CustomPage from "./pages/CustomPage";
+import AgentDashboard from "./pages/AgentDashboard";
+import BusinessCardPage from "./pages/BusinessCardPage";
 
 function App() {
   return (
@@ -32,6 +34,8 @@ function App() {
                 <Route path="/wishlist" element={<WishlistPage />} />
                 <Route path="/admin" element={<SuperAdminDashboard />} />
                 <Route path="/dashboard" element={<ShopOwnerDashboard />} />
+                <Route path="/agent" element={<AgentDashboard />} />
+                <Route path="/card/:cardSlug" element={<BusinessCardPage />} />
                 <Route path="/shop/:slug" element={<StorefrontPage />} />
                 <Route path="/shop/:slug/categories" element={<CategoryPage />} />
                 <Route path="/shop/:slug/category/:categoryId" element={<SingleCategoryPage />} />

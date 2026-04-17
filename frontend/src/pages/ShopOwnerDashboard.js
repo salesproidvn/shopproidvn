@@ -17,7 +17,7 @@ import {
   LogOut, Menu, X, Plus, Pencil, Trash2, TrendingUp, Clock, Eye, Palette, Upload, ExternalLink,
   Bold, Italic, List, ChevronUp, ChevronDown, Play, FileText, Image, Calendar, Search, LayoutGrid, GripVertical,
   Globe, Navigation, Link2, Video, Type, ArrowUp, ArrowDown, EyeOff, Copy, Grid3X3,
-  Bell, BellOff, Smartphone, Download, Mail, Loader2, Check
+  Bell, BellOff, Smartphone, Download, Mail, Loader2, Check, Ticket, Users
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
@@ -320,6 +320,117 @@ const ShopOwnerDashboard = () => {
   const [mediaSelected, setMediaSelected] = useState([]);
   const mediaBulkInputRef = useRef(null);
 
+  // Voucher state
+  const [vouchers, setVouchers] = useState([]);
+  const [showVoucherModal, setShowVoucherModal] = useState(false);
+  const [editingVoucher, setEditingVoucher] = useState(null);
+  const [voucherForm, setVoucherForm] = useState({ code: '', discount_type: 'percentage', discount_value: '', min_order_amount: '', max_uses: '', applicable_products: [], expiry_date: '', is_active: true });
+
+  // Agent state
+  const [agents, setAgents] = useState([]);
+  const [agentSalesData, setAgentSalesData] = useState(null);
+  const [showAgentModal, setShowAgentModal] = useState(false);
+  const [editingAgent, setEditingAgent] = useState(null);
+  const [agentForm, setAgentForm] = useState({ name: '', email: '', password: '', phone: '', level: 1, parent_agent_id: '' });
+
+  const fetchAgents = async () => {
+    try {
+      const { data } = await axios.get(`${API}/dashboard/agents`);
+      setAgents(data);
+    } catch { }
+  };
+
+  const fetchAgentSales = async () => {
+    try {
+      const { data } = await axios.get(`${API}/dashboard/agent-sales`);
+      setAgentSalesData(data);
+    } catch { }
+  };
+
+  const handleSaveAgent = async () => {
+    try {
+      const payload = { ...agentForm, level: Number(agentForm.level) };
+      if (!payload.parent_agent_id) delete payload.parent_agent_id;
+      if (editingAgent) {
+        await axios.put(`${API}/dashboard/agents/${editingAgent.id}`, payload);
+        toast.success(t.agentUpdated);
+      } else {
+        await axios.post(`${API}/dashboard/agents`, payload);
+        toast.success(t.agentCreated);
+      }
+      setShowAgentModal(false);
+      setEditingAgent(null);
+      setAgentForm({ name: '', email: '', password: '', phone: '', level: 1, parent_agent_id: '' });
+      fetchAgents();
+      fetchAgentSales();
+    } catch (err) { toast.error(err.response?.data?.detail || 'Error'); }
+  };
+
+  const handleDeleteAgent = async (id) => {
+    if (!window.confirm(t.confirmDeleteAgent)) return;
+    try {
+      await axios.delete(`${API}/dashboard/agents/${id}`);
+      toast.success(t.agentDeleted);
+      fetchAgents();
+      fetchAgentSales();
+    } catch { toast.error('Error'); }
+  };
+
+  // Business Card state
+  const [businessCard, setBusinessCard] = useState(null);
+
+  const fetchBusinessCard = async () => {
+    try {
+      const { data } = await axios.get(`${API}/dashboard/business-card`);
+      setBusinessCard(data);
+    } catch { }
+  };
+
+  const handleSaveBusinessCard = async () => {
+    try {
+      await axios.put(`${API}/dashboard/business-card`, businessCard);
+      toast.success(t.saved || 'Saved');
+    } catch (err) { toast.error(err.response?.data?.detail || 'Error'); }
+  };
+
+  const fetchVouchers = async () => {
+    try {
+      const { data } = await axios.get(`${API}/dashboard/vouchers`);
+      setVouchers(data);
+    } catch { console.error('Failed to load vouchers'); }
+  };
+
+  const handleSaveVoucher = async () => {
+    try {
+      const payload = {
+        ...voucherForm,
+        discount_value: Number(voucherForm.discount_value) || 0,
+        min_order_amount: Number(voucherForm.min_order_amount) || 0,
+        max_uses: Number(voucherForm.max_uses) || 0,
+      };
+      if (editingVoucher) {
+        await axios.put(`${API}/dashboard/vouchers/${editingVoucher.id}`, payload);
+        toast.success(t.voucherUpdated);
+      } else {
+        await axios.post(`${API}/dashboard/vouchers`, payload);
+        toast.success(t.voucherCreated);
+      }
+      setShowVoucherModal(false);
+      setEditingVoucher(null);
+      setVoucherForm({ code: '', discount_type: 'percentage', discount_value: '', min_order_amount: '', max_uses: '', applicable_products: [], expiry_date: '', is_active: true });
+      fetchVouchers();
+    } catch (err) { toast.error(err.response?.data?.detail || 'Error'); }
+  };
+
+  const handleDeleteVoucher = async (id) => {
+    if (!window.confirm(t.confirmDeleteVoucher)) return;
+    try {
+      await axios.delete(`${API}/dashboard/vouchers/${id}`);
+      toast.success(t.voucherDeleted);
+      fetchVouchers();
+    } catch { toast.error('Error'); }
+  };
+
   const fetchMediaList = async (p = 1) => {
     setMediaLoading(true);
     try {
@@ -374,6 +485,9 @@ const ShopOwnerDashboard = () => {
 
   useEffect(() => {
     if (activeTab === 'media') fetchMediaList(1);
+    if (activeTab === 'vouchers') fetchVouchers();
+    if (activeTab === 'agents') { fetchAgents(); fetchAgentSales(); }
+    if (activeTab === 'card') fetchBusinessCard();
   }, [activeTab]);
 
   const openMediaLibrary = (callback, { multiple = false, maxSelect = 1 } = {}) => {
@@ -986,6 +1100,9 @@ const ShopOwnerDashboard = () => {
     { id: 'media', label: t.mediaLibrary || 'Thư viện ảnh', icon: Image },
     { id: 'menu', label: t.menuManager, icon: Navigation },
     { id: 'layout', label: t.displayLayout, icon: LayoutGrid },
+    { id: 'vouchers', label: t.vouchers || 'Voucher', icon: Ticket },
+    ...(shop?.agents_enabled ? [{ id: 'agents', label: t.agents || 'Đại lý', icon: Users }] : []),
+    { id: 'card', label: t.businessCard || 'Danh thiếp', icon: Globe },
     { id: 'settings', label: t.settings, icon: Settings },
   ];
 
@@ -1147,6 +1264,9 @@ const ShopOwnerDashboard = () => {
                   {activeTab === 'orders' && t.orders}
                   {activeTab === 'media' && (t.mediaLibrary || 'Thư viện ảnh')}
                   {activeTab === 'menu' && t.menuManager}
+                  {activeTab === 'vouchers' && (t.vouchers || 'Voucher')}
+                  {activeTab === 'agents' && (t.agents || 'Đại lý')}
+                  {activeTab === 'card' && (t.businessCard || 'Danh thiếp')}
                   {activeTab === 'layout' && t.displayLayout}
                   {activeTab === 'settings' && t.settings}
                 </h1>
@@ -1178,6 +1298,16 @@ const ShopOwnerDashboard = () => {
             {activeTab === 'pages' && customPages.length < 10 && (
               <Button onClick={() => { setEditingPage(null); setPageForm({ title: '', sections: [], is_published: true }); setShowPageModal(true); }} style={{ backgroundColor: themeColor }} className="hover:opacity-90 text-sm" data-testid="add-page-btn">
                 <Plus className="w-4 h-4 mr-2" /> {t.createPage}
+              </Button>
+            )}
+            {activeTab === 'vouchers' && (
+              <Button onClick={() => { setEditingVoucher(null); setVoucherForm({ code: '', discount_type: 'percentage', discount_value: '', min_order_amount: '', max_uses: '', applicable_products: [], expiry_date: '', is_active: true }); setShowVoucherModal(true); }} style={{ backgroundColor: themeColor }} className="hover:opacity-90 text-sm" data-testid="add-voucher-btn">
+                <Plus className="w-4 h-4 mr-2" /> {t.createVoucher}
+              </Button>
+            )}
+            {activeTab === 'agents' && agents.length < 100 && (
+              <Button onClick={() => { setEditingAgent(null); setAgentForm({ name: '', email: '', password: '', phone: '', level: 1, parent_agent_id: '' }); setShowAgentModal(true); }} style={{ backgroundColor: themeColor }} className="hover:opacity-90 text-sm" data-testid="add-agent-btn">
+                <Plus className="w-4 h-4 mr-2" /> {t.createAgent}
               </Button>
             )}
           </div>
@@ -1965,6 +2095,271 @@ const ShopOwnerDashboard = () => {
               </Card>
             </div>
           )}
+
+
+          {/* Vouchers Tab */}
+          {activeTab === 'vouchers' && (
+            <div className="space-y-4" data-testid="vouchers-tab">
+              {vouchers.length === 0 ? (
+                <Card className="border-0 shadow-sm">
+                  <CardContent className="p-8 text-center">
+                    <Ticket className="w-12 h-12 mx-auto mb-3 text-[#CBD5E1]" />
+                    <p className="text-[#64748B]">{t.noVouchers}</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="grid gap-3">
+                  {vouchers.map(v => {
+                    const isExpired = v.expiry_date && new Date(v.expiry_date) < new Date();
+                    const isMaxed = v.max_uses > 0 && v.used_count >= v.max_uses;
+                    return (
+                      <Card key={v.id} className="border-0 shadow-sm" data-testid={`voucher-${v.id}`}>
+                        <CardContent className="p-4">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="font-mono font-bold text-lg tracking-wider" style={{ color: themeColor }}>{v.code}</span>
+                                {v.is_active && !isExpired && !isMaxed ? (
+                                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-medium">{t.voucherActive}</span>
+                                ) : isExpired ? (
+                                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-medium">{t.expired}</span>
+                                ) : (
+                                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 font-medium">{t.voucherInactive}</span>
+                                )}
+                              </div>
+                              <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-[#64748B]">
+                                <span>{v.discount_type === 'percentage' ? `${v.discount_value}%` : formatVND(v.discount_value)}</span>
+                                <span>{t.usedCount}: {v.used_count}/{v.max_uses > 0 ? v.max_uses : '∞'}</span>
+                                {v.min_order_amount > 0 && <span>{t.minOrderAmount}: {formatVND(v.min_order_amount)}</span>}
+                                {v.expiry_date && <span>{t.expiryDate}: {new Date(v.expiry_date).toLocaleDateString('vi-VN')}</span>}
+                                {v.applicable_products?.length > 0 && <span>{v.applicable_products.length} {t.selectedProducts?.toLowerCase()}</span>}
+                              </div>
+                            </div>
+                            <div className="flex gap-2 flex-shrink-0">
+                              <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => {
+                                setEditingVoucher(v);
+                                setVoucherForm({
+                                  code: v.code, discount_type: v.discount_type, discount_value: v.discount_value,
+                                  min_order_amount: v.min_order_amount || '', max_uses: v.max_uses || '',
+                                  applicable_products: v.applicable_products || [],
+                                  expiry_date: v.expiry_date ? v.expiry_date.split('T')[0] : '',
+                                  is_active: v.is_active,
+                                });
+                                setShowVoucherModal(true);
+                              }} data-testid={`edit-voucher-${v.id}`}>
+                                <Pencil className="w-3 h-3 mr-1" /> {t.editVoucher}
+                              </Button>
+                              <Button variant="outline" size="sm" className="h-8 text-xs text-red-500 hover:text-red-700 hover:border-red-300" onClick={() => handleDeleteVoucher(v.id)} data-testid={`delete-voucher-${v.id}`}>
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+
+          {/* Agents Tab */}
+          {activeTab === 'agents' && shop?.agents_enabled && (
+            <div className="space-y-4" data-testid="agents-tab">
+              {/* Sales Overview */}
+              {agentSalesData && (
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                  <Card className="border-0 shadow-sm">
+                    <CardContent className="p-4">
+                      <p className="text-xs text-[#64748B]">{t.totalSales}</p>
+                      <p className="text-lg font-bold" style={{ color: themeColor }}>{formatVND(agentSalesData.grand_total)}</p>
+                    </CardContent>
+                  </Card>
+                  <Card className="border-0 shadow-sm">
+                    <CardContent className="p-4">
+                      <p className="text-xs text-[#64748B]">{t.ownerSales}</p>
+                      <p className="text-lg font-bold">{formatVND(agentSalesData.owner_sales?.total || 0)}</p>
+                    </CardContent>
+                  </Card>
+                  <Card className="border-0 shadow-sm">
+                    <CardContent className="p-4">
+                      <p className="text-xs text-[#64748B]">{t.agents}</p>
+                      <p className="text-lg font-bold">{agentSalesData.total_agents}</p>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+              {/* Agent List */}
+              {agents.length === 0 ? (
+                <Card className="border-0 shadow-sm">
+                  <CardContent className="p-8 text-center">
+                    <Users className="w-12 h-12 mx-auto mb-3 text-[#CBD5E1]" />
+                    <p className="text-[#64748B]">{t.noAgents}</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="grid gap-3">
+                  {agents.map(a => {
+                    const salesInfo = agentSalesData?.agents?.find(ag => ag.id === a.id);
+                    const parentAgent = a.parent_agent_id ? agents.find(p => p.id === a.parent_agent_id) : null;
+                    const shopSlug = shop?.slug || '';
+                    const refLink = `${window.location.origin}/shop/${shopSlug}?ref=${a.tracking_code}`;
+                    return (
+                      <Card key={a.id} className="border-0 shadow-sm" data-testid={`agent-${a.id}`}>
+                        <CardContent className="p-4">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="font-bold text-[#0F172A]">{a.name}</span>
+                                <span className="text-[10px] px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: themeColor + '15', color: themeColor }}>Cấp {a.level}</span>
+                                {a.is_active ? (
+                                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-medium">{t.agentActive}</span>
+                                ) : (
+                                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 font-medium">{t.voucherInactive}</span>
+                                )}
+                              </div>
+                              <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-[#64748B]">
+                                <span>{a.email}</span>
+                                {a.phone && <span>{a.phone}</span>}
+                                {parentAgent && <span>{t.parentAgent}: {parentAgent.name}</span>}
+                                <span>{t.trackingCode}: <span className="font-mono">{a.tracking_code}</span></span>
+                              </div>
+                              {salesInfo && (
+                                <div className="flex gap-4 mt-1 text-xs">
+                                  <span className="font-medium" style={{ color: themeColor }}>{t.totalSales}: {formatVND(salesInfo.total_sales)}</span>
+                                  <span className="text-[#64748B]">{t.orderCount}: {salesInfo.order_count}</span>
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex gap-2 flex-shrink-0">
+                              <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => {
+                                navigator.clipboard.writeText(refLink);
+                                toast.success(t.linkCopied || 'Copied!');
+                              }} data-testid={`copy-agent-link-${a.id}`}>
+                                <Copy className="w-3 h-3 mr-1" /> {t.copyLink}
+                              </Button>
+                              <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => {
+                                setEditingAgent(a);
+                                setAgentForm({ name: a.name, email: a.email, password: '', phone: a.phone || '', level: a.level, parent_agent_id: a.parent_agent_id || '' });
+                                setShowAgentModal(true);
+                              }} data-testid={`edit-agent-${a.id}`}>
+                                <Pencil className="w-3 h-3" />
+                              </Button>
+                              <Button variant="outline" size="sm" className="h-8 text-xs text-red-500 hover:text-red-700" onClick={() => handleDeleteAgent(a.id)} data-testid={`delete-agent-${a.id}`}>
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+
+
+          {/* Business Card Tab */}
+          {activeTab === 'card' && businessCard && (
+            <div className="space-y-4" data-testid="business-card-tab">
+              <Card className="border-0 shadow-sm">
+                <CardHeader className="p-4">
+                  <CardTitle className="text-base">{t.businessCard || 'Danh thiếp điện tử'}</CardTitle>
+                  <p className="text-xs text-[#94A3B8] mt-1">
+                    Link: <a href={`/card/${shop?.slug}`} target="_blank" rel="noopener noreferrer" className="underline" style={{ color: themeColor }}>{window.location.origin}/card/{shop?.slug}</a>
+                  </p>
+                </CardHeader>
+                <CardContent className="p-4 pt-0 space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-medium text-[#334155] mb-1 block">{t.name || 'Tên hiển thị'}</label>
+                      <Input value={businessCard.display_name || ''} onChange={(e) => setBusinessCard({...businessCard, display_name: e.target.value})} className="text-sm" data-testid="card-display-name" />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-[#334155] mb-1 block">Chức danh</label>
+                      <Input value={businessCard.title || ''} onChange={(e) => setBusinessCard({...businessCard, title: e.target.value})} placeholder="VD: CEO, Sales Manager" className="text-sm" data-testid="card-title-input" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-medium text-[#334155] mb-1 block">{t.phone}</label>
+                      <Input value={businessCard.phone || ''} onChange={(e) => setBusinessCard({...businessCard, phone: e.target.value})} className="text-sm" data-testid="card-phone" />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-[#334155] mb-1 block">Email</label>
+                      <Input value={businessCard.email || ''} onChange={(e) => setBusinessCard({...businessCard, email: e.target.value})} className="text-sm" data-testid="card-email" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-[#334155] mb-1 block">{t.address}</label>
+                    <Input value={businessCard.address || ''} onChange={(e) => setBusinessCard({...businessCard, address: e.target.value})} className="text-sm" data-testid="card-address" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-medium text-[#334155] mb-1 block">Ảnh đại diện URL</label>
+                      <div className="flex gap-2">
+                        <Input value={businessCard.avatar_url || ''} onChange={(e) => setBusinessCard({...businessCard, avatar_url: e.target.value})} className="text-sm flex-1" data-testid="card-avatar-url" />
+                        <Button variant="outline" size="sm" onClick={() => openMediaLibrary((url) => setBusinessCard({...businessCard, avatar_url: Array.isArray(url) ? url[0] : url}))}>
+                          <Upload className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-[#334155] mb-1 block">Website</label>
+                      <Input value={businessCard.website || ''} onChange={(e) => setBusinessCard({...businessCard, website: e.target.value})} placeholder="https://" className="text-sm" data-testid="card-website" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <label className="text-xs font-medium text-[#334155] mb-1 block">Facebook</label>
+                      <Input value={businessCard.social_facebook || ''} onChange={(e) => setBusinessCard({...businessCard, social_facebook: e.target.value})} className="text-sm" />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-[#334155] mb-1 block">Instagram</label>
+                      <Input value={businessCard.social_instagram || ''} onChange={(e) => setBusinessCard({...businessCard, social_instagram: e.target.value})} className="text-sm" />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-[#334155] mb-1 block">Zalo</label>
+                      <Input value={businessCard.social_zalo || ''} onChange={(e) => setBusinessCard({...businessCard, social_zalo: e.target.value})} placeholder="Số điện thoại Zalo" className="text-sm" />
+                    </div>
+                  </div>
+                  {/* Product Selection */}
+                  <div>
+                    <label className="text-xs font-medium text-[#334155] mb-1 block">{t.applicableProducts || 'Sản phẩm hiển thị'}</label>
+                    <div className="border border-[#E2E8F0] rounded-[5px] p-3 max-h-40 overflow-y-auto">
+                      <div className="space-y-1.5">
+                        {products.map(p => (
+                          <label key={p.id} className="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" checked={(businessCard.selected_products || []).includes(p.id)}
+                              onChange={(e) => {
+                                const sel = businessCard.selected_products || [];
+                                if (e.target.checked) {
+                                  setBusinessCard({...businessCard, selected_products: [...sel, p.id]});
+                                } else {
+                                  setBusinessCard({...businessCard, selected_products: sel.filter(id => id !== p.id)});
+                                }
+                              }} className="rounded" />
+                            <span className="text-xs text-[#334155] truncate">{p.name} - {formatVND(p.price)}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                    {(businessCard.selected_products || []).length > 0 && (
+                      <p className="text-[10px] text-[#94A3B8] mt-1">{(businessCard.selected_products || []).length} sản phẩm được chọn</p>
+                    )}
+                  </div>
+                  <Button className="w-full text-white" style={{ backgroundColor: themeColor }} onClick={handleSaveBusinessCard} data-testid="save-business-card-btn">
+                    {t.save}
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+
 
           {/* Settings Tab */}
           {activeTab === 'settings' && shop && (
@@ -2998,10 +3393,147 @@ const ShopOwnerDashboard = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Voucher Modal */}
+      <Dialog open={showVoucherModal} onOpenChange={setShowVoucherModal}>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto bg-white">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold">{editingVoucher ? t.editVoucher : t.createVoucher}</DialogTitle>
+            <DialogDescription className="sr-only">Voucher form</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 mt-2">
+            <div>
+              <label className="text-xs font-medium text-[#334155] mb-1 block">{t.voucherCode} *</label>
+              <Input value={voucherForm.code} onChange={(e) => setVoucherForm({...voucherForm, code: e.target.value.toUpperCase()})} placeholder="VD: SALE10" className="text-sm font-mono" data-testid="voucher-code-input" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-medium text-[#334155] mb-1 block">{t.discountType}</label>
+                <Select value={voucherForm.discount_type} onValueChange={(v) => setVoucherForm({...voucherForm, discount_type: v})}>
+                  <SelectTrigger className="text-sm" data-testid="voucher-type-select"><SelectValue /></SelectTrigger>
+                  <SelectContent className="bg-white">
+                    <SelectItem value="percentage">{t.discountPercentage}</SelectItem>
+                    <SelectItem value="fixed">{t.discountFixed}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-[#334155] mb-1 block">{t.discountValue} *</label>
+                <Input type="number" value={voucherForm.discount_value} onChange={(e) => setVoucherForm({...voucherForm, discount_value: e.target.value})} placeholder={voucherForm.discount_type === 'percentage' ? '10' : '50000'} className="text-sm" data-testid="voucher-value-input" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-medium text-[#334155] mb-1 block">{t.minOrderAmount}</label>
+                <Input type="number" value={voucherForm.min_order_amount} onChange={(e) => setVoucherForm({...voucherForm, min_order_amount: e.target.value})} placeholder="0" className="text-sm" data-testid="voucher-min-order-input" />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-[#334155] mb-1 block">{t.maxUses} (0 = {t.unlimited})</label>
+                <Input type="number" value={voucherForm.max_uses} onChange={(e) => setVoucherForm({...voucherForm, max_uses: e.target.value})} placeholder="0" className="text-sm" data-testid="voucher-max-uses-input" />
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-[#334155] mb-1 block">{t.expiryDate}</label>
+              <Input type="date" value={voucherForm.expiry_date} onChange={(e) => setVoucherForm({...voucherForm, expiry_date: e.target.value})} className="text-sm" data-testid="voucher-expiry-input" />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-[#334155] mb-1 block">{t.applicableProducts}</label>
+              <div className="border border-[#E2E8F0] rounded-[5px] p-3 max-h-40 overflow-y-auto">
+                <label className="flex items-center gap-2 mb-2 cursor-pointer">
+                  <input type="checkbox" checked={voucherForm.applicable_products.length === 0} onChange={() => setVoucherForm({...voucherForm, applicable_products: []})} className="rounded" />
+                  <span className="text-sm font-medium">{t.allProducts}</span>
+                </label>
+                <div className="border-t border-[#F1F5F9] pt-2 space-y-1.5">
+                  {products.map(p => (
+                    <label key={p.id} className="flex items-center gap-2 cursor-pointer">
+                      <input type="checkbox" checked={voucherForm.applicable_products.includes(p.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setVoucherForm({...voucherForm, applicable_products: [...voucherForm.applicable_products, p.id]});
+                          } else {
+                            setVoucherForm({...voucherForm, applicable_products: voucherForm.applicable_products.filter(id => id !== p.id)});
+                          }
+                        }} className="rounded" />
+                      <span className="text-xs text-[#334155] truncate">{p.name} - {formatVND(p.price)}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+              {voucherForm.applicable_products.length > 0 && <p className="text-[10px] text-[#94A3B8] mt-1">{voucherForm.applicable_products.length} {t.selectedProducts?.toLowerCase()}</p>}
+            </div>
+            <div className="flex items-center gap-3">
+              <Switch checked={voucherForm.is_active} onCheckedChange={(v) => setVoucherForm({...voucherForm, is_active: v})} data-testid="voucher-active-switch" />
+              <span className="text-sm text-[#334155]">{voucherForm.is_active ? t.voucherActive : t.voucherInactive}</span>
+            </div>
+            <div className="flex gap-2 pt-2">
+              <Button variant="outline" className="flex-1 text-sm" onClick={() => setShowVoucherModal(false)}>Cancel</Button>
+              <Button className="flex-1 text-sm text-white" style={{ backgroundColor: themeColor }} onClick={handleSaveVoucher} data-testid="save-voucher-btn">{t.save}</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Agent Modal */}
+      <Dialog open={showAgentModal} onOpenChange={setShowAgentModal}>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto bg-white">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold">{editingAgent ? t.editAgent : t.createAgent}</DialogTitle>
+            <DialogDescription className="sr-only">Agent form</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 mt-2">
+            <div>
+              <label className="text-xs font-medium text-[#334155] mb-1 block">{t.agentName} *</label>
+              <Input value={agentForm.name} onChange={(e) => setAgentForm({...agentForm, name: e.target.value})} className="text-sm" data-testid="agent-name-input" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-medium text-[#334155] mb-1 block">{t.agentEmail} *</label>
+                <Input type="email" value={agentForm.email} onChange={(e) => setAgentForm({...agentForm, email: e.target.value})} className="text-sm" disabled={!!editingAgent} data-testid="agent-email-input" />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-[#334155] mb-1 block">{editingAgent ? 'Mật khẩu mới (bỏ trống = giữ nguyên)' : 'Mật khẩu *'}</label>
+                <Input type="password" value={agentForm.password} onChange={(e) => setAgentForm({...agentForm, password: e.target.value})} className="text-sm" data-testid="agent-password-input" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-medium text-[#334155] mb-1 block">{t.agentPhone}</label>
+                <Input value={agentForm.phone} onChange={(e) => setAgentForm({...agentForm, phone: e.target.value})} className="text-sm" data-testid="agent-phone-input" />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-[#334155] mb-1 block">{t.agentLevel}</label>
+                <Select value={String(agentForm.level)} onValueChange={(v) => setAgentForm({...agentForm, level: Number(v)})}>
+                  <SelectTrigger className="text-sm" data-testid="agent-level-select"><SelectValue /></SelectTrigger>
+                  <SelectContent className="bg-white">
+                    <SelectItem value="1">{t.agentLevel1}</SelectItem>
+                    <SelectItem value="2">{t.agentLevel2}</SelectItem>
+                    <SelectItem value="3">{t.agentLevel3}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            {agentForm.level > 1 && (
+              <div>
+                <label className="text-xs font-medium text-[#334155] mb-1 block">{t.parentAgent}</label>
+                <Select value={agentForm.parent_agent_id || 'none'} onValueChange={(v) => setAgentForm({...agentForm, parent_agent_id: v === 'none' ? '' : v})}>
+                  <SelectTrigger className="text-sm" data-testid="agent-parent-select"><SelectValue /></SelectTrigger>
+                  <SelectContent className="bg-white">
+                    <SelectItem value="none">{t.noParentAgent}</SelectItem>
+                    {agents.filter(a => a.level < agentForm.level && a.id !== editingAgent?.id).map(a => (
+                      <SelectItem key={a.id} value={a.id}>{a.name} (Cấp {a.level})</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            <div className="flex gap-2 pt-2">
+              <Button variant="outline" className="flex-1 text-sm" onClick={() => setShowAgentModal(false)}>Cancel</Button>
+              <Button className="flex-1 text-sm text-white" style={{ backgroundColor: themeColor }} onClick={handleSaveAgent} data-testid="save-agent-btn">{t.save}</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <MediaLibrary
-        open={mediaOpen}
-        onClose={() => setMediaOpen(false)}
-        onSelect={(urls) => { if (mediaCallback) mediaCallback(urls); }}
         multiple={mediaMultiple}
         maxSelect={mediaMaxSelect}
       />
