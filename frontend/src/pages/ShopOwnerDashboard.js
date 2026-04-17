@@ -2253,8 +2253,25 @@ const ShopOwnerDashboard = () => {
                             </div>
                             <div className="flex gap-2 flex-shrink-0">
                               <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => {
-                                navigator.clipboard.writeText(refLink);
-                                toast.success(t.linkCopied || 'Copied!');
+                                try {
+                                  if (navigator.clipboard && navigator.clipboard.writeText) {
+                                    navigator.clipboard.writeText(refLink).then(() => {
+                                      toast.success(t.linkCopied || 'Copied!');
+                                    }).catch(() => {
+                                      const ta = document.createElement('textarea');
+                                      ta.value = refLink; ta.style.position = 'fixed'; ta.style.left = '-9999px';
+                                      document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+                                      document.body.removeChild(ta);
+                                      toast.success(t.linkCopied || 'Copied!');
+                                    });
+                                  } else {
+                                    const ta = document.createElement('textarea');
+                                    ta.value = refLink; ta.style.position = 'fixed'; ta.style.left = '-9999px';
+                                    document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+                                    document.body.removeChild(ta);
+                                    toast.success(t.linkCopied || 'Copied!');
+                                  }
+                                } catch { toast.error('Copy failed'); }
                               }} data-testid={`copy-agent-link-${a.id}`}>
                                 <Copy className="w-3 h-3 mr-1" /> {t.copyLink}
                               </Button>

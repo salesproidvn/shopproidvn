@@ -115,6 +115,11 @@ const StorefrontPage = () => {
     if (searchParams.get('checkout') === '1' && cart.length > 0) {
       setShowCheckout(true);
     }
+    // Store agent referral tracking code
+    const refCode = searchParams.get('ref');
+    if (refCode) {
+      sessionStorage.setItem(`agent_ref_${slug}`, refCode);
+    }
   }, [searchParams, products, categories]);
 
   const fetchShopData = async () => {
@@ -227,7 +232,8 @@ const StorefrontPage = () => {
   const handleCheckout = async (e) => {
     e.preventDefault();
     try {
-      const orderData = { ...checkoutForm, items: cart.map(item => ({ product_id: item.product_id, quantity: item.quantity })) };
+      const agentRef = sessionStorage.getItem(`agent_ref_${slug}`) || null;
+      const orderData = { ...checkoutForm, items: cart.map(item => ({ product_id: item.product_id, quantity: item.quantity })), agent_tracking_code: agentRef };
       const { data } = await axios.post(`${API}/shop/${slug}/orders`, orderData);
       emitNotification({ type: 'new_order', title: t.newOrder, message: `${checkoutForm.customer_name} - ${formatVND(data.total_amount)}`, order_id: data.id, shop_slug: slug });
       clearCart(); setShowCheckout(false); setShowCart(false);
