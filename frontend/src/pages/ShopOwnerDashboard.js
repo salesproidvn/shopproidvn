@@ -333,6 +333,7 @@ const ShopOwnerDashboard = () => {
   const [showAgentModal, setShowAgentModal] = useState(false);
   const [editingAgent, setEditingAgent] = useState(null);
   const [agentForm, setAgentForm] = useState({ name: '', email: '', password: '', phone: '', level: 1, parent_agent_id: '' });
+  const [agentSearch, setAgentSearch] = useState('');
 
   const fetchAgents = async () => {
     try {
@@ -2316,7 +2317,7 @@ const ShopOwnerDashboard = () => {
                   </Card>
                 </div>
               )}
-              {/* Agent List */}
+              {/* Agent Search + List */}
               {agents.length === 0 ? (
                 <Card className="border-0 shadow-sm">
                   <CardContent className="p-8 text-center">
@@ -2325,8 +2326,23 @@ const ShopOwnerDashboard = () => {
                   </CardContent>
                 </Card>
               ) : (
+                <>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#94A3B8]" />
+                  <Input
+                    placeholder="Tìm đại lý theo tên, email, SĐT..."
+                    value={agentSearch}
+                    onChange={(e) => setAgentSearch(e.target.value)}
+                    className="pl-9 h-9 text-sm bg-white"
+                    data-testid="agent-search-input"
+                  />
+                </div>
                 <div className="grid gap-3">
-                  {agents.map(a => {
+                  {agents.filter(a => {
+                    if (!agentSearch) return true;
+                    const q = agentSearch.toLowerCase();
+                    return (a.name || '').toLowerCase().includes(q) || (a.email || '').toLowerCase().includes(q) || (a.phone || '').includes(q);
+                  }).map(a => {
                     const salesInfo = agentSalesData?.agents?.find(ag => ag.id === a.id);
                     const parentAgent = a.parent_agent_id ? agents.find(p => p.id === a.parent_agent_id) : null;
                     const shopSlug = shop?.slug || '';
@@ -2399,6 +2415,7 @@ const ShopOwnerDashboard = () => {
                     );
                   })}
                 </div>
+                </>
               )}
               </>
               )}
