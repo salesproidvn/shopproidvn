@@ -119,11 +119,9 @@ const SuperAdminDashboard = () => {
   };
 
   const handleResetPassword = async (userId) => {
-    if (!window.confirm('Bạn có chắc muốn đặt lại mật khẩu cho người dùng này?')) return;
     try {
-      const { data } = await axios.post(`${API}/admin/users/${userId}/reset-password`, {});
-      alert(`Mật khẩu đã được đặt lại thành công!\n\nMật khẩu mới: iLoveProID@`);
-      toast.success('Đã đặt lại mật khẩu thành công');
+      await axios.post(`${API}/admin/users/${userId}/reset-password`, {});
+      toast.success('Đã đặt lại mật khẩu thành: iLoveProID@');
     } catch (err) {
       toast.error(t.failedToUpdate);
     }
