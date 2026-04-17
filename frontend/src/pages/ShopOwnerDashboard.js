@@ -1230,7 +1230,7 @@ const ShopOwnerDashboard = () => {
     p.name.toLowerCase().includes(productSearchQuery.toLowerCase())
   );
 
-  if (authLoading || loading) {
+  if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC]">
         <div className="animate-spin w-8 h-8 border-4 border-[#0055FF] border-t-transparent rounded-full" />
@@ -1380,7 +1380,17 @@ const ShopOwnerDashboard = () => {
           </div>
 
           {/* Overview Tab */}
-          {activeTab === 'overview' && stats && (
+          {activeTab === 'overview' && loading && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                {[1,2,3,4].map(i => (
+                  <Card key={i} className="border-0 shadow-sm"><CardHeader className="p-4 pb-2"><div className="h-3 w-20 bg-[#E2E8F0] rounded animate-pulse" /></CardHeader><CardContent className="p-4 pt-0"><div className="h-7 w-16 bg-[#E2E8F0] rounded animate-pulse" /></CardContent></Card>
+                ))}
+              </div>
+              <Card className="border-0 shadow-sm"><CardContent className="p-4 space-y-3">{[1,2,3].map(i => <div key={i} className="h-14 bg-[#F1F5F9] rounded-lg animate-pulse" />)}</CardContent></Card>
+            </div>
+          )}
+          {activeTab === 'overview' && !loading && stats && (
             <div className="space-y-6">
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <Card className="border-0 shadow-sm">
@@ -1451,7 +1461,10 @@ const ShopOwnerDashboard = () => {
           )}
 
           {/* Products Tab */}
-          {activeTab === 'products' && (
+          {activeTab === 'products' && loading && (
+            <Card className="border-0 shadow-sm"><CardContent className="p-4 space-y-3"><div className="h-9 w-full bg-[#F1F5F9] rounded animate-pulse" /><div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">{[1,2,3,4,5,6,7,8].map(i => <div key={i} className="h-48 bg-[#F1F5F9] rounded-xl animate-pulse" />)}</div></CardContent></Card>
+          )}
+          {activeTab === 'products' && !loading && (
             <Card className="border-0 shadow-sm">
               <CardContent className="p-4">
                 <div className="flex flex-col sm:flex-row gap-3 mb-4">
@@ -1522,7 +1535,10 @@ const ShopOwnerDashboard = () => {
           )}
 
           {/* Categories Tab */}
-          {activeTab === 'categories' && (
+          {activeTab === 'categories' && loading && (
+            <div className="space-y-3">{[1,2,3,4].map(i => <div key={i} className="h-16 bg-[#F1F5F9] rounded-xl animate-pulse" />)}</div>
+          )}
+          {activeTab === 'categories' && !loading && (
             <div className="space-y-6">
               {/* Category Position Manager */}
               {categories.length > 0 && (
@@ -1606,7 +1622,10 @@ const ShopOwnerDashboard = () => {
           )}
 
           {/* Orders Tab */}
-          {activeTab === 'orders' && (
+          {activeTab === 'orders' && loading && (
+            <div className="space-y-3">{[1,2,3].map(i => <Card key={i} className="border-0 shadow-sm"><CardContent className="p-4"><div className="h-20 bg-[#F1F5F9] rounded-lg animate-pulse" /></CardContent></Card>)}</div>
+          )}
+          {activeTab === 'orders' && !loading && (
             <div className="space-y-4">
               {/* Agent Sales Summary - only show if there are agent orders */}
               {orders.some(o => o.agent_name) && (
@@ -1691,7 +1710,10 @@ const ShopOwnerDashboard = () => {
           )}
 
           {/* Posts Tab */}
-          {activeTab === 'posts' && (
+          {activeTab === 'posts' && loading && (
+            <Card className="border-0 shadow-sm"><CardContent className="p-4 space-y-3">{[1,2,3].map(i => <div key={i} className="h-24 bg-[#F1F5F9] rounded-lg animate-pulse" />)}</CardContent></Card>
+          )}
+          {activeTab === 'posts' && !loading && (
             <Card className="border-0 shadow-sm">
               <CardContent className="p-4">
                 {posts.length === 0 ? (
@@ -1739,7 +1761,10 @@ const ShopOwnerDashboard = () => {
 
 
           {/* Custom Pages Tab */}
-          {activeTab === 'pages' && (
+          {activeTab === 'pages' && loading && (
+            <div className="space-y-3">{[1,2].map(i => <div key={i} className="h-20 bg-[#F1F5F9] rounded-xl animate-pulse" />)}</div>
+          )}
+          {activeTab === 'pages' && !loading && (
             <div className="space-y-4" data-testid="pages-tab">
               {customPages.length >= 10 && (
                 <div className="bg-yellow-50 border border-yellow-200 rounded-[5px] p-3 text-sm text-yellow-700">{t.maxPagesReached}</div>
@@ -2216,7 +2241,10 @@ const ShopOwnerDashboard = () => {
 
 
           {/* Vouchers Tab */}
-          {activeTab === 'vouchers' && (
+          {activeTab === 'vouchers' && loading && (
+            <div className="space-y-3">{[1,2].map(i => <div key={i} className="h-20 bg-[#F1F5F9] rounded-xl animate-pulse" />)}</div>
+          )}
+          {activeTab === 'vouchers' && !loading && (
             <div className="space-y-4" data-testid="vouchers-tab">
               {vouchers.length === 0 ? (
                 <Card className="border-0 shadow-sm">

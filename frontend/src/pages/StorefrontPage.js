@@ -312,8 +312,39 @@ const StorefrontPage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC]">
-        <div className="animate-spin w-8 h-8 border-4 border-t-transparent rounded-full" style={{ borderColor: themeColor, borderTopColor: 'transparent' }} />
+      <div className="min-h-screen bg-[#F8FAFC]">
+        {/* Skeleton Header */}
+        <header className="sticky top-0 z-40 bg-white border-b border-[#E2E8F0]">
+          <div className="max-w-7xl mx-auto px-4">
+            <div className="flex items-center justify-between h-14">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full bg-[#E2E8F0] animate-pulse" />
+                <div className="h-5 w-32 bg-[#E2E8F0] rounded animate-pulse" />
+              </div>
+              <div className="hidden md:flex items-center gap-4">
+                {[1,2,3].map(i => <div key={i} className="h-4 w-16 bg-[#F1F5F9] rounded animate-pulse" />)}
+              </div>
+              <div className="h-9 w-9 bg-[#F1F5F9] rounded-full animate-pulse" />
+            </div>
+          </div>
+        </header>
+        {/* Skeleton Banner */}
+        <div className="h-48 sm:h-72 bg-[#E2E8F0] animate-pulse" />
+        {/* Skeleton Products */}
+        <div className="max-w-7xl mx-auto px-4 py-8">
+          <div className="h-7 w-40 bg-[#E2E8F0] rounded animate-pulse mb-6" />
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 lg:gap-5">
+            {[1,2,3,4,5,6,7,8,9,10].map(i => (
+              <div key={i} className="rounded-xl overflow-hidden bg-white shadow-sm">
+                <div className="aspect-square bg-[#F1F5F9] animate-pulse" />
+                <div className="p-3 space-y-2">
+                  <div className="h-4 w-3/4 bg-[#E2E8F0] rounded animate-pulse" />
+                  <div className="h-5 w-1/2 bg-[#E2E8F0] rounded animate-pulse" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
