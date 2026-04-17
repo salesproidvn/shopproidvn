@@ -455,7 +455,6 @@ const StorefrontPage = () => {
       </div>
       <div className="p-3 sm:p-4 text-center">
         <h3 className="font-medium text-[#0F172A] text-sm sm:text-base line-clamp-2 mb-1">{product.name}</h3>
-        {product.sku && <p className="text-[10px] text-[#94A3B8] mb-1">SKU: {product.sku}</p>}
         <p className="text-base sm:text-lg font-bold mb-2" style={{ color: themeColor }}>{formatVND(product.price)}</p>
       </div>
     </div>
