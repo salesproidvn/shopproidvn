@@ -10,7 +10,7 @@ import json
 from datetime import datetime
 
 class MultiTenantEcommerceAPITester:
-    def __init__(self, base_url="https://shop-desktop-ui.preview.emergentagent.com/api"):
+    def __init__(self, base_url="https://multi-tenant-shop-14.preview.emergentagent.com/api"):
         self.base_url = base_url
         self.session = requests.Session()
         self.session.headers.update({'Content-Type': 'application/json'})

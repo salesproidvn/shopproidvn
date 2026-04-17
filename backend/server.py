@@ -2,8 +2,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from fastapi import FastAPI, APIRouter, HTTPException, Request, Response, Depends, Query, File, UploadFile
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from starlette.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from bson import ObjectId
 import os
@@ -17,6 +18,9 @@ import json
 import asyncio
 import re
 import html as html_mod
+import time
+import collections
+import bleach
 import boto3
 import resend
 from PIL import Image
@@ -64,6 +68,166 @@ api_router = APIRouter(prefix="/api")
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+# ==================== SECURITY: RATE LIMITING ====================
+
+MAX_CONTENT_WORDS = 1000  # Max words for blog posts and product descriptions
+
+class RateLimiter:
+    """In-memory rate limiter with per-IP tracking and auto-cleanup."""
+    def __init__(self):
+        self.requests = collections.defaultdict(list)  # ip -> [timestamps]
+        self.blocked_ips = {}  # ip -> unblock_time
+        self.last_cleanup = time.time()
+
+    def _cleanup(self):
+        now = time.time()
+        if now - self.last_cleanup < 60:
+            return
+        self.last_cleanup = now
+        cutoff = now - 120
+        for ip in list(self.requests.keys()):
+            self.requests[ip] = [t for t in self.requests[ip] if t > cutoff]
+            if not self.requests[ip]:
+                del self.requests[ip]
+        for ip in list(self.blocked_ips.keys()):
+            if self.blocked_ips[ip] < now:
+                del self.blocked_ips[ip]
+
+    def is_allowed(self, ip: str, max_requests: int, window_seconds: int) -> bool:
+        self._cleanup()
+        now = time.time()
+        if ip in self.blocked_ips and self.blocked_ips[ip] > now:
+            return False
+        cutoff = now - window_seconds
+        self.requests[ip] = [t for t in self.requests[ip] if t > cutoff]
+        if len(self.requests[ip]) >= max_requests:
+            return False
+        self.requests[ip].append(now)
+        return True
+
+    def block_ip(self, ip: str, duration_seconds: int):
+        self.blocked_ips[ip] = time.time() + duration_seconds
+
+rate_limiter = RateLimiter()
+
+class LoginTracker:
+    """Track failed login attempts for brute force protection."""
+    def __init__(self):
+        self.attempts = collections.defaultdict(list)  # key -> [timestamps]
+
+    def record_failure(self, key: str):
+        self.attempts[key].append(time.time())
+
+    def is_locked(self, key: str, max_attempts: int = 5, window_seconds: int = 900) -> bool:
+        now = time.time()
+        cutoff = now - window_seconds
+        self.attempts[key] = [t for t in self.attempts[key] if t > cutoff]
+        return len(self.attempts[key]) >= max_attempts
+
+    def clear(self, key: str):
+        self.attempts.pop(key, None)
+
+login_tracker = LoginTracker()
+
+# ==================== SECURITY: INPUT SANITIZATION ====================
+
+ALLOWED_HTML_TAGS = ['p', 'br', 'b', 'i', 'u', 'strong', 'em', 'a', 'ul', 'ol', 'li',
+                     'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'img', 'div', 'span',
+                     'table', 'thead', 'tbody', 'tr', 'td', 'th', 'blockquote', 'pre', 'code']
+ALLOWED_HTML_ATTRS = {
+    '*': ['class', 'style', 'id', 'data-testid'],
+    'a': ['href', 'title', 'target', 'rel'],
+    'img': ['src', 'alt', 'width', 'height'],
+}
+
+def sanitize_html(text: str) -> str:
+    """Sanitize HTML content to prevent XSS."""
+    if not text:
+        return text
+    return bleach.clean(text, tags=ALLOWED_HTML_TAGS, attributes=ALLOWED_HTML_ATTRS, strip=True)
+
+def count_words(text: str) -> int:
+    """Count words in text, stripping HTML tags first."""
+    if not text:
+        return 0
+    clean = bleach.clean(text, tags=[], strip=True)
+    return len(clean.split())
+
+def validate_word_limit(text: str, field_name: str, max_words: int = MAX_CONTENT_WORDS):
+    """Validate text doesn't exceed word limit."""
+    wc = count_words(text)
+    if wc > max_words:
+        raise HTTPException(
+            status_code=400,
+            detail=f"{field_name} vượt quá giới hạn {max_words} từ (hiện tại: {wc} từ)"
+        )
+
+def get_client_ip(request: Request) -> str:
+    """Get real client IP from headers or connection."""
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.client.host if request.client else "unknown"
+
+# ==================== SECURITY: MIDDLEWARE ====================
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """Add security headers to all responses."""
+    async def dispatch(self, request, call_next):
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "SAMEORIGIN"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+        return response
+
+class RateLimitMiddleware(BaseHTTPMiddleware):
+    """Global rate limiting middleware."""
+    async def dispatch(self, request, call_next):
+        ip = get_client_ip(request)
+        path = request.url.path
+
+        # Strict rate limits for auth endpoints
+        if path in ("/api/auth/login", "/api/auth/register", "/api/auth/forgot-password"):
+            if not rate_limiter.is_allowed(f"auth:{ip}", max_requests=10, window_seconds=60):
+                logger.warning(f"Rate limit exceeded for auth from {ip}")
+                return JSONResponse(
+                    status_code=429,
+                    content={"detail": "Quá nhiều yêu cầu. Vui lòng thử lại sau."}
+                )
+        # Rate limit for order creation
+        elif path.endswith("/orders") and request.method == "POST":
+            if not rate_limiter.is_allowed(f"order:{ip}", max_requests=15, window_seconds=60):
+                return JSONResponse(
+                    status_code=429,
+                    content={"detail": "Quá nhiều đơn hàng. Vui lòng thử lại sau."}
+                )
+        # Global rate limit
+        elif path.startswith("/api/"):
+            if not rate_limiter.is_allowed(f"global:{ip}", max_requests=120, window_seconds=60):
+                logger.warning(f"Global rate limit exceeded from {ip}")
+                return JSONResponse(
+                    status_code=429,
+                    content={"detail": "Quá nhiều yêu cầu. Vui lòng thử lại sau."}
+                )
+
+        response = await call_next(request)
+        return response
+
+class RequestSizeLimitMiddleware(BaseHTTPMiddleware):
+    """Limit request body size to prevent abuse."""
+    MAX_BODY_SIZE = 10 * 1024 * 1024  # 10MB
+
+    async def dispatch(self, request, call_next):
+        content_length = request.headers.get("content-length")
+        if content_length and int(content_length) > self.MAX_BODY_SIZE:
+            return JSONResponse(
+                status_code=413,
+                content={"detail": "Dung lượng yêu cầu quá lớn (tối đa 10MB)"}
+            )
+        return await call_next(request)
 
 # ==================== CLOUDFLARE R2 STORAGE ====================
 
@@ -433,7 +597,13 @@ class BusinessCardUpdate(BaseModel):
 # ==================== AUTH ENDPOINTS ====================
 
 @api_router.post("/auth/register")
-async def register(user_data: UserRegister, response: Response):
+async def register(user_data: UserRegister, request: Request, response: Response):
+    # Security: Rate limit registration
+    ip = get_client_ip(request)
+    if not rate_limiter.is_allowed(f"register:{ip}", max_requests=3, window_seconds=300):
+        raise HTTPException(status_code=429, detail="Quá nhiều đăng ký. Vui lòng thử lại sau.")
+    # Security: Sanitize name
+    user_data.name = bleach.clean(user_data.name, tags=[], strip=True)
     email = user_data.email.lower()
     existing = await db.users.find_one({"email": email})
     if existing:
@@ -447,8 +617,18 @@ async def register(user_data: UserRegister, response: Response):
     return {"id": user_id, "email": email, "name": user_data.name, "role": "customer", "token": access_token}
 
 @api_router.post("/auth/login")
-async def login(user_data: UserLogin, response: Response):
+async def login(user_data: UserLogin, request: Request, response: Response):
     email = user_data.email.lower()
+    ip = get_client_ip(request)
+    lock_key = f"{ip}:{email}"
+
+    # Brute force protection
+    if login_tracker.is_locked(lock_key):
+        raise HTTPException(
+            status_code=429,
+            detail="Quá nhiều lần đăng nhập thất bại. Vui lòng thử lại sau 15 phút."
+        )
+
     user = await db.users.find_one({"email": email})
     if not user:
         # Check agents collection
@@ -457,16 +637,21 @@ async def login(user_data: UserLogin, response: Response):
             if not agent.get("is_active", True):
                 raise HTTPException(status_code=403, detail="Account is blocked")
             if not verify_password(user_data.password, agent["password_hash"]):
+                login_tracker.record_failure(lock_key)
                 raise HTTPException(status_code=401, detail="Invalid email or password")
+            login_tracker.clear(lock_key)
             agent_id = agent["id"]
             access_token = create_access_token(agent_id, email, "agent")
             set_auth_cookies(response, access_token, create_refresh_token(agent_id))
             return {"id": agent_id, "email": agent["email"], "name": agent["name"], "role": "agent", "shop_id": agent.get("shop_id"), "agent_id": agent_id, "token": access_token}
+        login_tracker.record_failure(lock_key)
         raise HTTPException(status_code=401, detail="Invalid email or password")
     if user.get("status") == "blocked":
         raise HTTPException(status_code=403, detail="Account is blocked")
     if not verify_password(user_data.password, user["password_hash"]):
+        login_tracker.record_failure(lock_key)
         raise HTTPException(status_code=401, detail="Invalid email or password")
+    login_tracker.clear(lock_key)
     user_id = str(user["_id"])
     role = user.get("role", "customer")
     access_token = create_access_token(user_id, email, role)
@@ -1015,6 +1200,10 @@ async def get_shop_products(request: Request):
 async def create_product(data: ProductCreate, request: Request):
     user = await require_shop_owner(request)
     shop_id = await resolve_shop_id(request, user)
+    # Security: Validate word limit for description
+    validate_word_limit(data.description, "Mô tả sản phẩm")
+    # Security: Sanitize HTML in description
+    data.description = sanitize_html(data.description)
     shop = await db.shops.find_one({"_id": ObjectId(shop_id)}, {"max_products": 1})
     max_prods = (shop or {}).get("max_products", 100)
     count = await db.products.count_documents({"shop_id": shop_id})
@@ -1049,6 +1238,10 @@ async def update_product(prod_id: str, request: Request):
     user = await require_shop_owner(request)
     shop_id = await resolve_shop_id(request, user)
     body = await request.json()
+    # Security: Validate word limit and sanitize description
+    if "description" in body and body["description"]:
+        validate_word_limit(body["description"], "Mô tả sản phẩm")
+        body["description"] = sanitize_html(body["description"])
     if "category_id" in body:
         cid = body["category_id"]
         if cid and cid != "none":
@@ -1145,6 +1338,9 @@ async def get_shop_posts(request: Request):
 async def create_post(data: PostCreate, request: Request):
     user = await require_shop_owner(request)
     shop_id = await resolve_shop_id(request, user)
+    # Security: Validate word limit and sanitize HTML
+    validate_word_limit(data.description, "Nội dung bài viết")
+    data.description = sanitize_html(data.description)
     shop = await db.shops.find_one({"_id": ObjectId(shop_id)}, {"max_posts": 1})
     max_p = (shop or {}).get("max_posts", 50)
     count = await db.posts.count_documents({"shop_id": shop_id})
@@ -1169,6 +1365,10 @@ async def update_post(post_id: str, request: Request):
     body = await request.json()
     body.pop("id", None)
     body.pop("shop_id", None)
+    # Security: Validate word limit and sanitize HTML
+    if "description" in body and body["description"]:
+        validate_word_limit(body["description"], "Nội dung bài viết")
+        body["description"] = sanitize_html(body["description"])
     result = await db.posts.update_one({"id": post_id, "shop_id": shop_id}, {"$set": body})
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Post not found")
@@ -1998,7 +2198,11 @@ async def get_shop_page_public(slug: str, page_slug: str):
     return page
 
 @api_router.post("/shop/{slug}/orders")
-async def create_order(slug: str, data: OrderCreate):
+async def create_order(slug: str, data: OrderCreate, request: Request):
+    # Security: Sanitize customer inputs
+    data.customer_name = bleach.clean(data.customer_name, tags=[], strip=True)
+    data.customer_address = bleach.clean(data.customer_address, tags=[], strip=True)
+    data.note = bleach.clean(data.note or "", tags=[], strip=True)
     shop = await db.shops.find_one({"slug": slug, "status": "active"})
     if not shop:
         raise HTTPException(status_code=404, detail="Shop not found")
@@ -2100,7 +2304,14 @@ async def create_order(slug: str, data: OrderCreate):
     return {"id": order_id, "order_id": order_id, "subtotal": total, "discount_amount": discount_amount, "total_amount": final_total, "voucher": voucher_info, "items": items, "message": "Order placed successfully"}
 
 @api_router.post("/shop/{slug}/contact")
-async def submit_contact(slug: str, data: ContactForm):
+async def submit_contact(slug: str, data: ContactForm, request: Request):
+    # Security: Rate limit contact form
+    ip = get_client_ip(request)
+    if not rate_limiter.is_allowed(f"contact:{ip}", max_requests=5, window_seconds=300):
+        raise HTTPException(status_code=429, detail="Quá nhiều tin nhắn. Vui lòng thử lại sau.")
+    # Security: Sanitize inputs
+    data.name = bleach.clean(data.name, tags=[], strip=True)
+    data.message = bleach.clean(data.message, tags=[], strip=True)
     shop = await db.shops.find_one({"slug": slug, "status": "active"})
     if not shop:
         raise HTTPException(status_code=404, detail="Shop not found")
@@ -2136,6 +2347,23 @@ async def get_categories():
 @api_router.get("/")
 async def root():
     return {"message": "The Wi Shop API"}
+
+@api_router.get("/security/status")
+async def security_status(request: Request):
+    """Public endpoint to show security features enabled."""
+    return {
+        "security_features": {
+            "rate_limiting": True,
+            "brute_force_protection": True,
+            "content_word_limit": MAX_CONTENT_WORDS,
+            "xss_sanitization": True,
+            "security_headers": True,
+            "request_size_limit": "10MB",
+            "cors_configured": True,
+            "jwt_auth": True,
+            "password_hashing": "bcrypt",
+        }
+    }
 
 # ==================== OG META TAGS FOR SOCIAL SHARING ====================
 
@@ -2237,13 +2465,18 @@ async def og_product_page(slug: str, product_id: str):
 
 app.include_router(api_router)
 
+# ==================== SECURITY MIDDLEWARE ====================
+
+# Order matters: SecurityHeaders -> RateLimit -> RequestSizeLimit -> CORS
+# Starlette middleware runs in reverse order of addition (last added = first to run)
+# So we add CORS first, then security middleware
+
 # ==================== CORS ====================
 
 frontend_url = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
 cors_origins_env = os.environ.get('CORS_ORIGINS', '')
 
 if cors_origins_env == "*":
-    from starlette.middleware.base import BaseHTTPMiddleware
     from starlette.responses import Response as StarletteResponse
 
     class DynamicCORSMiddleware(BaseHTTPMiddleware):
@@ -2275,6 +2508,11 @@ else:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+# Add security middleware (added after CORS so they run before CORS in the middleware chain)
+app.add_middleware(RequestSizeLimitMiddleware)
+app.add_middleware(RateLimitMiddleware)
+app.add_middleware(SecurityHeadersMiddleware)
 
 # ==================== STARTUP - SEED DATA ====================
 

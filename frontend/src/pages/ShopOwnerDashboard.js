@@ -719,6 +719,7 @@ const ShopOwnerDashboard = () => {
 
   const handleSaveProduct = async (e) => {
     e.preventDefault();
+    if (countWords(productForm.description) > 1000) { toast.error(t.maxWordsReachedProduct || 'Mô tả sản phẩm vượt quá 1000 từ'); return; }
     const savedScrollY = window.scrollY;
     try {
       const data = { 
@@ -962,7 +963,7 @@ const ShopOwnerDashboard = () => {
 
   const handleSavePost = async (e) => {
     e.preventDefault();
-    if (countWords(postForm.description) > 2000) { toast.error(t.maxWordsReached); return; }
+    if (countWords(postForm.description) > 1000) { toast.error(t.maxWordsReached); return; }
     const savedScrollY = window.scrollY;
     try {
       const data = { ...postForm, images: postForm.images || [], attached_products: postForm.attached_products || [] };
@@ -3113,7 +3114,12 @@ const ShopOwnerDashboard = () => {
               </div>
             </div>
             <div>
-              <label className="block text-xs font-medium mb-1">{t.description}</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-medium">{t.description}</label>
+                <span className={`text-[10px] ${countWords(productForm.description) > 1000 ? 'text-red-500 font-bold' : 'text-[#94A3B8]'}`} data-testid="product-word-count">
+                  {countWords(productForm.description)}/1000 {t.wordCount || 'từ'}
+                </span>
+              </div>
               <ReactQuill theme="snow" value={productForm.description} onChange={(val) => setProductForm({ ...productForm, description: val })} modules={quillModulesProduct} className="bg-white [&_.ql-container]:min-h-[120px]" data-testid="product-description-input" />
             </div>
             <div className="flex gap-3 pt-4">
@@ -3416,8 +3422,8 @@ const ShopOwnerDashboard = () => {
             <div>
               <div className="flex items-center justify-between mb-1">
                 <label className="block text-xs font-medium">{t.postDescription} *</label>
-                <span className={`text-[10px] ${countWords(postForm.description) > 2000 ? 'text-red-500 font-bold' : 'text-[#94A3B8]'}`}>
-                  {countWords(postForm.description)}/2000 {t.wordCount}
+                <span className={`text-[10px] ${countWords(postForm.description) > 1000 ? 'text-red-500 font-bold' : 'text-[#94A3B8]'}`}>
+                  {countWords(postForm.description)}/1000 {t.wordCount}
                 </span>
               </div>
               <ReactQuill theme="snow" value={postForm.description} onChange={(val) => setPostForm({ ...postForm, description: val })} modules={quillModules} className="bg-white [&_.ql-container]:min-h-[200px]" data-testid="post-editor" />
