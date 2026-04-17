@@ -7,6 +7,7 @@ import { formatVND } from '../utils/format';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '../components/ui/dropdown-menu';
 import { 
@@ -50,6 +51,9 @@ const SuperAdminDashboard = () => {
   // Security dashboard state
   const [securityData, setSecurityData] = useState(null);
   const [securityLoading, setSecurityLoading] = useState(false);
+  // Edit user modal state
+  const [editingUser, setEditingUser] = useState(null);
+  const [editForm, setEditForm] = useState({ name: '', email: '', phone: '', shop_name: '' });
 
   useEffect(() => {
     if (authLoading) return;
@@ -115,10 +119,11 @@ const SuperAdminDashboard = () => {
   };
 
   const handleResetPassword = async (userId) => {
-    if (!window.confirm(t.resetPasswordConfirm)) return;
+    if (!window.confirm('Bạn có chắc muốn đặt lại mật khẩu cho người dùng này?')) return;
     try {
-      await axios.post(`${API}/admin/users/${userId}/reset-password`, {});
-      toast.success(t.passwordResetSuccess);
+      const { data } = await axios.post(`${API}/admin/users/${userId}/reset-password`, {});
+      alert(`Mật khẩu đã được đặt lại thành công!\n\nMật khẩu mới: iLoveProID@`);
+      toast.success('Đã đặt lại mật khẩu thành công');
     } catch (err) {
       toast.error(t.failedToUpdate);
     }
@@ -134,6 +139,21 @@ const SuperAdminDashboard = () => {
       fetchData();
     } catch (err) {
       toast.error(err.response?.data?.detail || t.failedToCreate);
+    }
+  };
+
+  const handleEditUser = async () => {
+    try {
+      await axios.put(`${API}/admin/users/${editingUser.id}`, editForm);
+      toast.success('Cập nhật thành công');
+      setUsers(prev => prev.map(u => u.id === editingUser.id ? {
+        ...u, name: editForm.name || u.name, email: editForm.email || u.email, phone: editForm.phone,
+        shop: u.shop ? { ...u.shop, name: editForm.shop_name || u.shop.name } : null,
+        shop_name: editForm.shop_name || u.shop_name,
+      } : u));
+      setEditingUser(null);
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Cập nhật thất bại');
     }
   };
 
@@ -419,8 +439,14 @@ const SuperAdminDashboard = () => {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="bg-white w-48">
+                                <DropdownMenuItem onClick={() => {
+                                  setEditingUser(u);
+                                  setEditForm({ name: u.name, email: u.email, phone: u.phone || '', shop_name: u.shop?.name || '' });
+                                }} data-testid={`edit-user-${u.id}`} className="cursor-pointer">
+                                  <Settings className="w-4 h-4 mr-2" /> Chỉnh sửa thông tin
+                                </DropdownMenuItem>
                                 <DropdownMenuItem onClick={async () => {
-                                  const info = `Tên: ${u.name}\nEmail: ${u.email}\nMật khẩu: iLoveProID@`;
+                                  const info = `Email: ${u.email}\nMật khẩu: iLoveProID@`;
                                   try { await navigator.clipboard.writeText(info); toast.success('Đã copy thông tin đăng nhập'); }
                                   catch { const ta = document.createElement('textarea'); ta.value = info; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); toast.success('Đã copy thông tin đăng nhập'); }
                                 }} data-testid={`copy-login-${u.id}`} className="cursor-pointer">
@@ -522,6 +548,12 @@ const SuperAdminDashboard = () => {
                                 className="text-xs border rounded px-1 py-0.5 w-14 text-center" />
                             </div>
                             <div className="flex items-center gap-1.5">
+                              <span>Trang:</span>
+                              <input type="number" min="0" value={u.shop.max_pages ?? 20}
+                                onChange={(e) => handleSetLimits(u.shop.id, 'max_pages', e.target.value)}
+                                className="text-xs border rounded px-1 py-0.5 w-14 text-center" />
+                            </div>
+                            <div className="flex items-center gap-1.5">
                               <span>Đại lý:</span>
                               <button
                                 onClick={async () => {
@@ -536,6 +568,9 @@ const SuperAdminDashboard = () => {
                                 data-testid={`agents-toggle-${u.shop.id}`}>
                                 {u.shop.agents_enabled ? 'ON' : 'OFF'}
                               </button>
+                              <input type="number" min="0" value={u.shop.max_agents ?? 100}
+                                onChange={(e) => handleSetLimits(u.shop.id, 'max_agents', e.target.value)}
+                                className="text-xs border rounded px-1 py-0.5 w-14 text-center" />
                             </div>
                             <button
                               onClick={() => {
@@ -1094,6 +1129,39 @@ const SuperAdminDashboard = () => {
               <Button type="button" className="flex-1 bg-[#0055FF] hover:bg-[#0040CC]" onClick={handleBulkCreate} disabled={bulkCreating} data-testid="bulk-submit-btn">
                 {bulkCreating ? 'Đang tạo...' : `Tạo (${bulkText.split('\n').filter(l => l.trim() && !l.trim().startsWith('#')).length} users)`}
               </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit User Modal */}
+      <Dialog open={!!editingUser} onOpenChange={(open) => !open && setEditingUser(null)}>
+        <DialogContent className="sm:max-w-md bg-white" data-testid="edit-user-modal">
+          <DialogHeader>
+            <DialogTitle>Chỉnh sửa người dùng</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Họ tên</Label>
+              <Input value={editForm.name} onChange={(e) => setEditForm({...editForm, name: e.target.value})} data-testid="edit-user-name" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Email</Label>
+              <Input type="email" value={editForm.email} onChange={(e) => setEditForm({...editForm, email: e.target.value})} data-testid="edit-user-email" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Số điện thoại</Label>
+              <Input value={editForm.phone} onChange={(e) => setEditForm({...editForm, phone: e.target.value})} data-testid="edit-user-phone" placeholder="0912345678" />
+            </div>
+            {editingUser?.shop && (
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium">Tên cửa hàng</Label>
+                <Input value={editForm.shop_name} onChange={(e) => setEditForm({...editForm, shop_name: e.target.value})} data-testid="edit-shop-name" />
+              </div>
+            )}
+            <div className="flex gap-3 pt-2">
+              <Button variant="outline" className="flex-1" onClick={() => setEditingUser(null)}>Hủy</Button>
+              <Button className="flex-1 bg-[#0055FF] hover:bg-[#0040CC]" onClick={handleEditUser} data-testid="edit-user-save">Lưu</Button>
             </div>
           </div>
         </DialogContent>

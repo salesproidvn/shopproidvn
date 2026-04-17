@@ -787,10 +787,9 @@ async def update_shop_limits(shop_id: str, request: Request):
     await require_super_admin(request)
     body = await request.json()
     update = {}
-    if "max_products" in body:
-        update["max_products"] = int(body["max_products"])
-    if "max_posts" in body:
-        update["max_posts"] = int(body["max_posts"])
+    for field in ["max_products", "max_posts", "max_pages", "max_categories", "max_agents"]:
+        if field in body:
+            update[field] = int(body[field])
     if update:
         await db.shops.update_one({"_id": ObjectId(shop_id)}, {"$set": update})
     return {"message": "Limits updated"}
@@ -821,11 +820,13 @@ async def get_all_users(request: Request):
                     "max_posts": shop.get("max_posts", 50),
                     "max_pages": shop.get("max_pages", 20),
                     "max_categories": shop.get("max_categories", 50),
+                    "max_agents": shop.get("max_agents", 100),
                     "agents_enabled": shop.get("agents_enabled", False),
                 }
         result.append({
             "id": str(u["_id"]), "email": u["email"], "name": u["name"], "role": u["role"],
             "status": u.get("status", "active"),
+            "phone": u.get("phone", ""),
             "shop_name": shop_data["name"] if shop_data else None,
             "shop_slug": shop_data["slug"] if shop_data else None,
             "shop_id": u.get("shop_id"),
@@ -899,6 +900,32 @@ async def delete_user(user_id: str, request: Request):
         await db.posts.delete_many({"shop_id": user["shop_id"]})
     await db.users.delete_one({"_id": ObjectId(user_id)})
     return {"message": "User deleted"}
+
+@api_router.put("/admin/users/{user_id}")
+async def admin_update_user(user_id: str, request: Request):
+    await require_super_admin(request)
+    body = await request.json()
+    user = await db.users.find_one({"_id": ObjectId(user_id)})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    user_update = {}
+    if "name" in body and body["name"]:
+        user_update["name"] = bleach.clean(body["name"], tags=[], strip=True)
+    if "email" in body and body["email"]:
+        new_email = body["email"].lower().strip()
+        if new_email != user["email"]:
+            existing = await db.users.find_one({"email": new_email})
+            if existing:
+                raise HTTPException(status_code=400, detail="Email đã tồn tại")
+            user_update["email"] = new_email
+    if "phone" in body:
+        user_update["phone"] = bleach.clean(body["phone"] or "", tags=[], strip=True)
+    if user_update:
+        await db.users.update_one({"_id": ObjectId(user_id)}, {"$set": user_update})
+    # Update shop name if provided
+    if "shop_name" in body and body["shop_name"] and user.get("shop_id"):
+        await db.shops.update_one({"_id": ObjectId(user["shop_id"])}, {"$set": {"name": bleach.clean(body["shop_name"], tags=[], strip=True)}})
+    return {"message": "User updated"}
 
 @api_router.post("/admin/users/{user_id}/reset-password")
 async def admin_reset_password(user_id: str, request: Request):
