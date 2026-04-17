@@ -516,6 +516,8 @@ export const vi = {
   confirmDeleteVoucher: 'Bạn có chắc muốn xóa voucher này?',
   unlimited: 'Không giới hạn',
   expired: 'Hết hạn',
+  apply: 'Áp dụng',
+  discount: 'Giảm giá',
 
   // Agents
   agents: 'Đại lý',
@@ -1055,6 +1057,8 @@ export const en = {
   confirmDeleteVoucher: 'Are you sure you want to delete this voucher?',
   unlimited: 'Unlimited',
   expired: 'Expired',
+  apply: 'Apply',
+  discount: 'Discount',
 
   // Agents
   agents: 'Agents',

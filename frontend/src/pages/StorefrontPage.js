@@ -48,6 +48,52 @@ const StorefrontPage = () => {
   const [checkoutForm, setCheckoutForm] = useState({
     customer_name: '', customer_phone: '', customer_email: '', customer_address: '', note: ''
   });
+  const [voucherCode, setVoucherCode] = useState('');
+  const [appliedVoucher, setAppliedVoucher] = useState(null);
+  const [voucherLoading, setVoucherLoading] = useState(false);
+  const [voucherError, setVoucherError] = useState('');
+
+  const discountAmount = (() => {
+    if (!appliedVoucher) return 0;
+    const { discount_type, discount_value, applicable_products } = appliedVoucher;
+    // Calculate applicable cart total
+    let applicableTotal = cartTotal;
+    if (applicable_products && applicable_products.length > 0) {
+      applicableTotal = cart.filter(i => applicable_products.includes(i.product_id)).reduce((sum, i) => sum + (i.price * i.quantity), 0);
+    }
+    if (discount_type === 'percentage') return Math.round(applicableTotal * discount_value / 100);
+    return Math.min(discount_value, applicableTotal);
+  })();
+  const finalTotal = Math.max(0, cartTotal - discountAmount);
+
+  const handleApplyVoucher = async () => {
+    if (!voucherCode.trim()) return;
+    setVoucherLoading(true);
+    setVoucherError('');
+    try {
+      const { data } = await axios.post(`${API}/shop/${slug}/voucher/validate`, { code: voucherCode });
+      // Check min order amount
+      if (data.min_order_amount && cartTotal < data.min_order_amount) {
+        setVoucherError(`Đơn hàng tối thiểu ${formatVND(data.min_order_amount)}`);
+        setAppliedVoucher(null);
+        return;
+      }
+      setAppliedVoucher(data);
+      setVoucherError('');
+    } catch (err) {
+      const msg = err.response?.data?.detail || 'Mã không hợp lệ';
+      setVoucherError(msg);
+      setAppliedVoucher(null);
+    } finally {
+      setVoucherLoading(false);
+    }
+  };
+
+  const handleRemoveVoucher = () => {
+    setAppliedVoucher(null);
+    setVoucherCode('');
+    setVoucherError('');
+  };
 
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [activeImage, setActiveImage] = useState(0);
@@ -233,11 +279,17 @@ const StorefrontPage = () => {
     e.preventDefault();
     try {
       const agentRef = sessionStorage.getItem(`agent_ref_${slug}`) || null;
-      const orderData = { ...checkoutForm, items: cart.map(item => ({ product_id: item.product_id, quantity: item.quantity })), agent_tracking_code: agentRef };
+      const orderData = {
+        ...checkoutForm,
+        items: cart.map(item => ({ product_id: item.product_id, quantity: item.quantity })),
+        agent_tracking_code: agentRef,
+        voucher_code: appliedVoucher?.code || null,
+      };
       const { data } = await axios.post(`${API}/shop/${slug}/orders`, orderData);
       emitNotification({ type: 'new_order', title: t.newOrder, message: `${checkoutForm.customer_name} - ${formatVND(data.total_amount)}`, order_id: data.id, shop_slug: slug });
       clearCart(); setShowCheckout(false); setShowCart(false);
       setCheckoutForm({ customer_name: '', customer_phone: '', customer_email: '', customer_address: '', note: '' });
+      setAppliedVoucher(null); setVoucherCode(''); setVoucherError('');
       navigate(`/shop/${slug}/thank-you`, { state: { order: data } });
     } catch { toast.error(t.orderFailed); }
   };
@@ -1293,17 +1345,67 @@ const StorefrontPage = () => {
                     ))}
                   </div>
                   <div className="border-t pt-4 space-y-2">
+                    {/* Voucher Code Input */}
+                    <div className="mb-3">
+                      <label className="text-xs font-medium text-[#334155] mb-1.5 block">{t.voucherCode || 'Mã giảm giá'}</label>
+                      {appliedVoucher ? (
+                        <div className="flex items-center justify-between p-2.5 bg-green-50 border border-green-200 rounded-lg">
+                          <div className="flex items-center gap-2">
+                            <span className="w-5 h-5 bg-green-500 text-white rounded-full flex items-center justify-center text-xs">✓</span>
+                            <div>
+                              <span className="font-mono font-bold text-sm text-green-700">{appliedVoucher.code}</span>
+                              <span className="text-xs text-green-600 ml-2">
+                                -{appliedVoucher.discount_type === 'percentage' ? `${appliedVoucher.discount_value}%` : formatVND(appliedVoucher.discount_value)}
+                              </span>
+                            </div>
+                          </div>
+                          <button onClick={handleRemoveVoucher} className="text-[#94A3B8] hover:text-red-500 transition-colors" data-testid="remove-voucher-btn">
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex gap-2">
+                          <Input
+                            value={voucherCode}
+                            onChange={(e) => { setVoucherCode(e.target.value.toUpperCase()); setVoucherError(''); }}
+                            placeholder="Nhập mã giảm giá..."
+                            className="text-sm font-mono flex-1"
+                            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleApplyVoucher(); } }}
+                            data-testid="voucher-code-input"
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={handleApplyVoucher}
+                            disabled={voucherLoading || !voucherCode.trim()}
+                            className="text-sm px-4 flex-shrink-0"
+                            style={{ borderColor: themeColor, color: themeColor }}
+                            data-testid="apply-voucher-btn"
+                          >
+                            {voucherLoading ? '...' : (t.apply || 'Áp dụng')}
+                          </Button>
+                        </div>
+                      )}
+                      {voucherError && <p className="text-xs text-red-500 mt-1" data-testid="voucher-error">{voucherError}</p>}
+                    </div>
+
                     <div className="flex justify-between text-sm">
                       <span className="text-[#64748B]">{t.subtotal}</span>
                       <span className="text-[#0F172A]">{formatVND(cartTotal)}</span>
                     </div>
+                    {discountAmount > 0 && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-green-600">{t.discount || 'Giảm giá'}</span>
+                        <span className="text-green-600 font-medium">-{formatVND(discountAmount)}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between text-sm">
                       <span className="text-[#64748B]">{t.shipping}</span>
                       <span className="text-green-500 font-medium">{t.freeShipping}</span>
                     </div>
                     <div className="flex justify-between text-lg font-bold pt-2 border-t">
                       <span className="text-[#0F172A]">{t.total}</span>
-                      <span style={{ color: themeColor }}>{formatVND(cartTotal)}</span>
+                      <span style={{ color: themeColor }}>{formatVND(finalTotal)}</span>
                     </div>
                   </div>
                   <Button form="checkout-form" type="submit" className="w-full hover:opacity-90 rounded-[5px] py-6 mt-6 text-base" style={{ backgroundColor: themeColor }} data-testid="place-order-btn">

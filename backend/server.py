@@ -330,6 +330,7 @@ class OrderCreate(BaseModel):
     items: List[dict]
     note: Optional[str] = ""
     agent_tracking_code: Optional[str] = None
+    voucher_code: Optional[str] = None
 
 class OrderStatusUpdate(BaseModel):
     status: str
@@ -2011,7 +2012,45 @@ async def create_order(slug: str, data: OrderCreate):
             total += sub
             items.append({"product_id": item["product_id"], "name": product["name"], "price": product["price"], "quantity": item["quantity"], "subtotal": sub, "image_url": product.get("image_url", "")})
     order_id = f"ORD-{secrets.token_hex(6).upper()}"
-    doc = {"id": order_id, "shop_id": shop_id, "customer_name": data.customer_name, "customer_phone": data.customer_phone, "customer_email": data.customer_email, "customer_address": data.customer_address, "items": items, "total_amount": total, "note": data.note, "status": "pending", "created_at": datetime.now(timezone.utc)}
+    # Apply voucher discount
+    discount_amount = 0
+    voucher_info = None
+    if data.voucher_code:
+        voucher = await db.vouchers.find_one({"shop_id": shop_id, "code": data.voucher_code.upper(), "is_active": True})
+        if voucher:
+            # Validate expiry
+            valid = True
+            if voucher.get("expiry_date"):
+                from dateutil.parser import parse as parse_date
+                expiry = parse_date(str(voucher["expiry_date"]))
+                if expiry.tzinfo is None:
+                    expiry = expiry.replace(tzinfo=timezone.utc)
+                if expiry < datetime.now(timezone.utc):
+                    valid = False
+            # Validate usage limit
+            if voucher.get("max_uses", 0) > 0 and voucher.get("used_count", 0) >= voucher["max_uses"]:
+                valid = False
+            # Validate min order amount
+            if voucher.get("min_order_amount", 0) > 0 and total < voucher["min_order_amount"]:
+                valid = False
+            if valid:
+                applicable_products = voucher.get("applicable_products", [])
+                if applicable_products:
+                    applicable_total = sum(i["subtotal"] for i in items if i["product_id"] in applicable_products)
+                else:
+                    applicable_total = total
+                if voucher["discount_type"] == "percentage":
+                    discount_amount = round(applicable_total * voucher["discount_value"] / 100)
+                else:
+                    discount_amount = min(voucher["discount_value"], applicable_total)
+                voucher_info = {"code": voucher["code"], "discount_type": voucher["discount_type"], "discount_value": voucher["discount_value"], "discount_amount": discount_amount}
+                # Increment used_count
+                await db.vouchers.update_one({"id": voucher["id"]}, {"$inc": {"used_count": 1}})
+    
+    final_total = max(0, total - discount_amount)
+    doc = {"id": order_id, "shop_id": shop_id, "customer_name": data.customer_name, "customer_phone": data.customer_phone, "customer_email": data.customer_email, "customer_address": data.customer_address, "items": items, "subtotal": total, "discount_amount": discount_amount, "total_amount": final_total, "note": data.note, "status": "pending", "created_at": datetime.now(timezone.utc)}
+    if voucher_info:
+        doc["voucher"] = voucher_info
     # Track agent referral if provided
     agent_id_for_order = None
     if data.agent_tracking_code:
@@ -2058,7 +2097,7 @@ async def create_order(slug: str, data: OrderCreate):
             except Exception as e:
                 logger.error(f"Email notification failed: {e}")
 
-    return {"id": order_id, "order_id": order_id, "total_amount": total, "items": items, "message": "Order placed successfully"}
+    return {"id": order_id, "order_id": order_id, "subtotal": total, "discount_amount": discount_amount, "total_amount": final_total, "voucher": voucher_info, "items": items, "message": "Order placed successfully"}
 
 @api_router.post("/shop/{slug}/contact")
 async def submit_contact(slug: str, data: ContactForm):
