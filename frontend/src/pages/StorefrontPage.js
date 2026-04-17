@@ -420,7 +420,7 @@ const StorefrontPage = () => {
         </button>
       )}
       <div className="aspect-square bg-[#F8FAFC] overflow-hidden">
-        <img src={product.image_url} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+        <img src={product.image_url || '/product-fallback.png'} alt={product.name} onError={(e) => { e.target.src = '/product-fallback.png'; }} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
       </div>
       <div className="p-3 sm:p-4 text-center">
         <h3 className="font-medium text-[#0F172A] text-sm sm:text-base line-clamp-2 mb-1">{product.name}</h3>
@@ -595,7 +595,7 @@ const StorefrontPage = () => {
 
   // Full-page product view
   if (selectedProduct) {
-    const images = selectedProduct.images?.length > 0 ? selectedProduct.images : [selectedProduct.image_url];
+    const images = selectedProduct.images?.length > 0 ? selectedProduct.images : [selectedProduct.image_url || '/product-fallback.png'];
     const ytMatch = selectedProduct.video_url?.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
     const embedUrl = ytMatch ? `https://www.youtube.com/embed/${ytMatch[1]}` : (selectedProduct.video_url || null);
     return (
@@ -723,7 +723,7 @@ const StorefrontPage = () => {
                       onClick={() => { setSelectedProduct(rp); setActiveImage(0); setShowVideo(null); setTimeout(() => { document.querySelector('[data-testid="product-fullpage"]')?.scrollTo({ top: 0, behavior: 'smooth' }); }, 50); }}
                       data-testid={`related-product-${rp.id}`}>
                       <div className="aspect-square bg-[#F8FAFC] overflow-hidden">
-                        <img src={rp.image_url} alt={rp.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                        <img src={rp.image_url || '/product-fallback.png'} alt={rp.name} onError={(e) => { e.target.src = '/product-fallback.png'; }} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                       </div>
                       <div className="p-3 text-center">
                         <h3 className="font-medium text-[#0F172A] text-sm line-clamp-2 mb-1">{rp.name}</h3>
@@ -969,7 +969,7 @@ const StorefrontPage = () => {
                                   >
                                     <div className="w-24 h-24 rounded-lg overflow-hidden bg-[#F8FAFC] mb-1">
                                       {p.image_url ? (
-                                        <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" />
+                                        <img src={p.image_url} alt={p.name} onError={(e) => { e.target.src = '/product-fallback.png'; }} className="w-full h-full object-cover" />
                                       ) : (
                                         <div className="w-full h-full flex items-center justify-center">
                                           <Grid3X3 className="w-6 h-6 text-[#CBD5E1]" />
@@ -1086,7 +1086,7 @@ const StorefrontPage = () => {
                                   className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-[#F8FAFC] cursor-pointer transition-colors"
                                   onClick={() => { scrollPosRef.current = window.scrollY; productFromMegaMenu.current = true; setSelectedProduct(p); setActiveImage(0); setShowVideo(null); }}
                                 >
-                                  <img src={p.image_url} alt={p.name} className="w-10 h-10 rounded-md object-cover shrink-0" />
+                                  <img src={p.image_url || '/product-fallback.png'} alt={p.name} onError={(e) => { e.target.src = '/product-fallback.png'; }} className="w-10 h-10 rounded-md object-cover shrink-0" />
                                   <div className="min-w-0">
                                     <p className="text-xs font-medium text-[#0F172A] truncate">{p.name}</p>
                                     <p className="text-xs font-bold" style={{ color: themeColor }}>{formatVND(p.price)}</p>
@@ -1320,7 +1320,7 @@ const StorefrontPage = () => {
                 <div className="space-y-4 py-4">
                   {cart.map((item) => (
                     <div key={item.product_id} className="flex gap-4 p-3 bg-[#F8FAFC] rounded-xl">
-                      <img src={item.image_url} alt={item.name} className="w-16 h-16 rounded-lg object-cover" />
+                      <img src={item.image_url || '/product-fallback.png'} alt={item.name} onError={(e) => { e.target.src = '/product-fallback.png'; }} className="w-16 h-16 rounded-lg object-cover" />
                       <div className="flex-1 min-w-0">
                         <h4 className="font-medium text-[#0F172A] text-sm truncate">{item.name}</h4>
                         <p className="font-semibold text-sm" style={{ color: themeColor }}>{formatVND(item.price)}</p>

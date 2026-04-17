@@ -1486,7 +1486,7 @@ const ShopOwnerDashboard = () => {
                       {filtered.map((product) => (
                         <div key={product.id} className="border rounded-[5px] overflow-hidden bg-white hover:shadow-lg transition-shadow">
                           <div className="aspect-square bg-[#F8FAFC] cursor-pointer relative" onClick={() => openProductDetail(product)}>
-                            <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
+                            <img src={product.image_url || '/product-fallback.png'} alt={product.name} onError={(e) => { e.target.src = '/product-fallback.png'; }} className="w-full h-full object-cover" />
                             {product.is_featured && (
                               <span className="absolute top-1 left-1 px-1.5 py-0.5 text-white text-[9px] font-bold rounded-[3px]" style={{ backgroundColor: themeColor }} data-testid={`featured-badge-${product.id}`}>
                                 <TrendingUp className="w-2.5 h-2.5 inline mr-0.5" />Featured
