@@ -801,16 +801,35 @@ async def get_all_users(request: Request):
     users = await db.users.find({}, {"password_hash": 0}).sort("created_at", -1).to_list(100)
     result = []
     for u in users:
-        shop_name = None
-        shop_slug = None
+        shop_data = None
         if u.get("shop_id"):
-            shop = await db.shops.find_one({"_id": ObjectId(u["shop_id"])}, {"name": 1, "slug": 1})
+            shop = await db.shops.find_one({"_id": ObjectId(u["shop_id"])})
             if shop:
-                shop_name = shop.get("name")
-                shop_slug = shop.get("slug")
+                sid = str(shop["_id"])
+                pc = await db.products.count_documents({"shop_id": sid})
+                oc = await db.orders.count_documents({"shop_id": sid})
+                cc = await db.categories.count_documents({"shop_id": sid})
+                shop_data = {
+                    "id": sid, "name": shop.get("name"), "slug": shop.get("slug"),
+                    "status": shop.get("status", "active"),
+                    "theme_color": shop.get("theme_color", "#0055FF"),
+                    "contact_phone": shop.get("contact_phone", ""),
+                    "contact_email": shop.get("contact_email", ""),
+                    "expiry_date": shop.get("expiry_date", ""),
+                    "product_count": pc, "order_count": oc, "category_count": cc,
+                    "max_products": shop.get("max_products", 100),
+                    "max_posts": shop.get("max_posts", 50),
+                    "max_pages": shop.get("max_pages", 20),
+                    "max_categories": shop.get("max_categories", 50),
+                    "agents_enabled": shop.get("agents_enabled", False),
+                }
         result.append({
             "id": str(u["_id"]), "email": u["email"], "name": u["name"], "role": u["role"],
-            "status": u.get("status", "active"), "shop_name": shop_name, "shop_slug": shop_slug, "shop_id": u.get("shop_id"),
+            "status": u.get("status", "active"),
+            "shop_name": shop_data["name"] if shop_data else None,
+            "shop_slug": shop_data["slug"] if shop_data else None,
+            "shop_id": u.get("shop_id"),
+            "shop": shop_data,
             "created_at": serialize_datetime(u.get("created_at"))
         })
     return result

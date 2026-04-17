@@ -173,8 +173,8 @@ const SuperAdminDashboard = () => {
     try {
       await axios.post(`${API}/admin/shops/${shopId}/expiry`, { expiry_date: expiryDate || null });
       toast.success(t.expiryUpdated);
-      // Targeted update: only update the specific shop in local state to avoid white screen
       setShops(prev => prev.map(s => s.id === shopId ? { ...s, expiry_date: expiryDate || '' } : s));
+      setUsers(prev => prev.map(u => u.shop?.id === shopId ? { ...u, shop: { ...u.shop, expiry_date: expiryDate || '' } } : u));
     } catch (err) {
       toast.error(t.failedToUpdate);
     }
@@ -184,8 +184,8 @@ const SuperAdminDashboard = () => {
     try {
       await axios.put(`${API}/admin/shops/${shopId}/limits`, { [field]: parseInt(value) || 0 });
       toast.success(t.limitsUpdated);
-      // Targeted update to avoid white screen
       setShops(prev => prev.map(s => s.id === shopId ? { ...s, [field]: parseInt(value) || 0 } : s));
+      setUsers(prev => prev.map(u => u.shop?.id === shopId ? { ...u, shop: { ...u.shop, [field]: parseInt(value) || 0 } } : u));
     } catch (err) {
       toast.error(t.failedToUpdate);
     }
@@ -222,7 +222,6 @@ const SuperAdminDashboard = () => {
 
   const menuItems = [
     { id: 'overview', label: t.overview, icon: LayoutDashboard },
-    { id: 'shops', label: t.shopManagement, icon: Store },
     { id: 'users', label: t.userManagement, icon: Users },
     ...(isSuperAdmin ? [{ id: 'security', label: 'Bảo mật', icon: Shield }] : []),
     ...(isSuperAdmin ? [{ id: 'maintenance', label: t.maintenance || 'Bảo trì', icon: Wrench }] : []),
@@ -289,7 +288,6 @@ const SuperAdminDashboard = () => {
               <div>
                 <h1 className="text-2xl lg:text-3xl font-bold text-[#0F172A]">
                   {activeTab === 'overview' && t.dashboardOverview}
-                  {activeTab === 'shops' && t.shopManagement}
                   {activeTab === 'users' && t.userManagement}
                   {activeTab === 'security' && 'Bảo mật hệ thống'}
                   {activeTab === 'maintenance' && (t.maintenance || 'Bảo trì hệ thống')}
@@ -363,307 +361,198 @@ const SuperAdminDashboard = () => {
             </div>
           )}
 
-          {/* Shops Tab */}
-          {activeTab === 'shops' && loading && (
-            <Card className="border-0 shadow-sm">
-              <CardContent className="p-6 space-y-4">
-                {[1,2,3].map(i => (
-                  <div key={i} className="h-20 bg-[#F1F5F9] rounded-xl animate-pulse" />
-                ))}
-              </CardContent>
-            </Card>
-          )}
-          {activeTab === 'shops' && !loading && (
-            <Card className="border-0 shadow-sm">
-              <CardHeader>
-                <div className="flex items-center justify-between flex-wrap gap-3">
-                  <CardTitle>{t.allShops}</CardTitle>
-                  <div className="flex items-center gap-2">
-                    <Input value={shopSearch} onChange={(e) => setShopSearch(e.target.value)} placeholder="Tìm tên, email, SĐT..." className="max-w-[200px] text-sm h-8" data-testid="shop-search-input" />
-                    <div className="flex items-center gap-2" data-testid="shop-sort-controls">
-                      <span className="text-xs text-[#64748B] font-medium">{t.sortBy || 'Sắp xếp'}:</span>
-                      <select
-                        value={shopSortBy}
-                        onChange={(e) => setShopSortBy(e.target.value)}
-                        className="text-xs border border-[#E2E8F0] rounded-lg px-3 py-1.5 bg-white text-[#0F172A] font-medium focus:outline-none focus:ring-2 focus:ring-[#0055FF]/20 cursor-pointer"
-                        data-testid="shop-sort-select"
-                      >
-                        <option value="product_count">{t.products} ↓</option>
-                        <option value="category_count">{t.categories} ↓</option>
-                        <option value="order_count">{t.orders} ↓</option>
-                        <option value="post_count">{t.posts} ↓</option>
-                        <option value="page_count">{t.pages} ↓</option>
-                        <option value="menu_item_count">{t.menuItems} ↓</option>
-                        <option value="mega_menu_count">Mega Menu ↓</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {[...shops].filter(shop => {
-                    if (!shopSearch.trim()) return true;
-                    const q = shopSearch.toLowerCase();
-                    return (shop.name || '').toLowerCase().includes(q) || (shop.owner?.email || '').toLowerCase().includes(q) || (shop.contact_phone || '').toLowerCase().includes(q);
-                  }).sort((a, b) => (b[shopSortBy] || 0) - (a[shopSortBy] || 0)).map((shop, rank) => (
-                    <div key={shop.id} className="border border-[#E2E8F0] rounded-xl p-4 hover:shadow-md transition-shadow" data-testid={`shop-card-${shop.id}`}>
-                      {/* Row 1: Shop name, status, actions */}
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-sm relative" style={{ backgroundColor: shop.theme_color || '#0055FF' }}>
-                            {shop.name?.[0]}
-                            {rank === 0 && <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-amber-400 text-[10px] font-bold text-white flex items-center justify-center shadow">#1</span>}
-                          </div>
-                          <div>
-                            <div className="font-semibold text-[#0F172A]">{shop.name}</div>
-                            <div className="text-xs text-[#94A3B8]">/{shop.slug} · {shop.owner?.email || '-'}</div>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${shop.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                            {shop.status}
-                          </span>
-                          {shop.expiry_date && new Date(shop.expiry_date) < new Date() && (
-                            <span className="px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700">{t.expired}</span>
-                          )}
-                          <Link to={`/dashboard?shop=${shop.id}`}>
-                            <Button variant="outline" size="sm" className="gap-1.5" data-testid={`view-shop-${shop.id}`}>
-                              <Eye className="w-3.5 h-3.5" /> {t.viewShop}
-                            </Button>
-                          </Link>
-                          <Button variant="outline" size="sm" onClick={() => handleShopStatus(shop.id, shop.status === 'active' ? 'suspended' : 'active')} data-testid={`toggle-shop-${shop.id}`}>
-                            {shop.status === 'active' ? t.suspend : t.activate}
-                          </Button>
-                        </div>
-                      </div>
-
-                      {/* Row 2: Count stats grid */}
-                      <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-7 gap-2 mb-3" data-testid={`shop-counts-${shop.id}`}>
-                        {[
-                          { key: 'product_count', label: t.products, value: shop.product_count || 0 },
-                          { key: 'category_count', label: t.categories, value: shop.category_count || 0 },
-                          { key: 'order_count', label: t.orders, value: shop.order_count || 0 },
-                          { key: 'post_count', label: t.posts, value: shop.post_count || 0 },
-                          { key: 'page_count', label: t.pages, value: shop.page_count || 0 },
-                          { key: 'menu_item_count', label: t.menuItems, value: shop.menu_item_count || 0 },
-                          { key: 'mega_menu_count', label: 'Mega Menu', value: shop.mega_menu_count || 0 }
-                        ].map(col => (
-                          <div key={col.key} className={`rounded-lg p-2.5 text-center transition-all ${shopSortBy === col.key ? 'bg-[#0055FF]/10 ring-1 ring-[#0055FF]/30' : 'bg-[#F8FAFC]'}`}>
-                            <div className={`text-lg font-bold ${shopSortBy === col.key ? 'text-[#0055FF]' : 'text-[#0F172A]'}`}>{col.value}</div>
-                            <div className={`text-[10px] font-medium uppercase tracking-wide ${shopSortBy === col.key ? 'text-[#0055FF]/70' : 'text-[#94A3B8]'}`}>{col.label}</div>
-                          </div>
-                        ))}
-                      </div>
-
-                      {/* Row 3: Contact Info */}
-                      <div className="flex items-center gap-5 mb-3 px-1 text-xs text-[#64748B]" data-testid={`shop-contact-${shop.id}`}>
-                        {shop.contact_phone && (
-                          <a href={`tel:${shop.contact_phone}`} className="flex items-center gap-1.5 hover:text-[#0F172A] transition-colors">
-                            <Phone className="w-3.5 h-3.5" />
-                            <span>{shop.contact_phone}</span>
-                          </a>
-                        )}
-                        {shop.contact_email && (
-                          <a href={`mailto:${shop.contact_email}`} className="flex items-center gap-1.5 hover:text-[#0F172A] transition-colors">
-                            <Mail className="w-3.5 h-3.5" />
-                            <span>{shop.contact_email}</span>
-                          </a>
-                        )}
-                        <a href={`/shop/${shop.slug}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 hover:text-[#0F172A] transition-colors">
-                          <Globe className="w-3.5 h-3.5" />
-                          <span>/shop/{shop.slug}</span>
-                        </a>
-                      </div>
-
-                      {/* Row 4: Limits + Expiry */}
-                      <div className="flex items-center gap-4 pt-2 border-t border-[#F1F5F9] text-xs text-[#64748B]">
-                        <div className="flex items-center gap-2">
-                          <span>{t.expiryDate}:</span>
-                          <input type="date"
-                            value={shop.expiry_date ? shop.expiry_date.split('T')[0] : ''}
-                            onChange={(e) => handleSetExpiry(shop.id, e.target.value ? new Date(e.target.value).toISOString() : null)}
-                            className="text-xs border rounded px-2 py-1 w-36"
-                            data-testid={`expiry-input-${shop.id}`} />
-                          {shop.expiry_date && (
-                            <button onClick={() => handleSetExpiry(shop.id, null)} className="text-red-500 hover:text-red-600">
-                              <X className="w-3.5 h-3.5" />
-                            </button>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span>{t.maxProducts}:</span>
-                          <input type="number" min="0" value={shop.max_products ?? 100}
-                            onChange={(e) => handleSetLimits(shop.id, 'max_products', e.target.value)}
-                            className="text-xs border rounded px-1 py-0.5 w-16 text-center"
-                            data-testid={`max-products-${shop.id}`} />
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span>{t.maxPosts}:</span>
-                          <input type="number" min="0" value={shop.max_posts ?? 50}
-                            onChange={(e) => handleSetLimits(shop.id, 'max_posts', e.target.value)}
-                            className="text-xs border rounded px-1 py-0.5 w-16 text-center"
-                            data-testid={`max-posts-${shop.id}`} />
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span>{t.maxPages}:</span>
-                          <input type="number" min="0" value={shop.max_pages ?? 20}
-                            onChange={(e) => handleSetLimits(shop.id, 'max_pages', e.target.value)}
-                            className="text-xs border rounded px-1 py-0.5 w-16 text-center"
-                            data-testid={`max-pages-${shop.id}`} />
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span>{t.maxCategories}:</span>
-                          <input type="number" min="0" value={shop.max_categories ?? 50}
-                            onChange={(e) => handleSetLimits(shop.id, 'max_categories', e.target.value)}
-                            className="text-xs border rounded px-1 py-0.5 w-16 text-center"
-                            data-testid={`max-categories-${shop.id}`} />
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span>{t.agentsFeature || 'Đại lý'}:</span>
-                          <button
-                            onClick={async () => {
-                              try {
-                                const newVal = !shop.agents_enabled;
-                                await axios.put(`${API}/admin/shops/${shop.id}/agents-toggle`, { agents_enabled: newVal });
-                                setShops(shops.map(s => s.id === shop.id ? {...s, agents_enabled: newVal} : s));
-                                toast.success(newVal ? (t.agentsEnabled || 'Agents enabled') : (t.agentsDisabled || 'Agents disabled'));
-                              } catch { toast.error('Error'); }
-                            }}
-                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold transition-colors ${shop.agents_enabled ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
-                            data-testid={`agents-toggle-${shop.id}`}>
-                            {shop.agents_enabled ? 'ON' : 'OFF'}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Users Tab */}
+          {/* Users & Shops Merged Tab */}
           {activeTab === 'users' && loading && (
             <Card className="border-0 shadow-sm">
               <CardContent className="p-6 space-y-4">
                 {[1,2,3].map(i => (
-                  <div key={i} className="h-16 bg-[#F1F5F9] rounded-xl animate-pulse" />
+                  <div key={i} className="h-28 bg-[#F1F5F9] rounded-xl animate-pulse" />
                 ))}
               </CardContent>
             </Card>
           )}
           {activeTab === 'users' && !loading && (
             <div className="space-y-6">
-              <div className="flex justify-end gap-2">
-                {isSuperAdmin && <Button variant="outline" onClick={() => { setShowBulkModal(true); setBulkResults([]); setBulkText(''); }} data-testid="bulk-create-btn">
-                  Tạo hàng loạt
-                </Button>}
-                {isSuperAdmin && <Button onClick={() => setShowCreateModal(true)} className="bg-[#0055FF] hover:bg-[#0040CC]" data-testid="create-owner-btn">
-                  + {t.createShopOwner}
-                </Button>}
+              <div className="flex items-center justify-between flex-wrap gap-3">
+                <Input value={userSearch} onChange={(e) => setUserSearch(e.target.value)} placeholder="Tìm theo tên, email, cửa hàng..." className="max-w-xs text-sm" data-testid="user-search-input" />
+                <div className="flex gap-2">
+                  {isSuperAdmin && <Button variant="outline" onClick={() => { setShowBulkModal(true); setBulkResults([]); setBulkText(''); }} data-testid="bulk-create-btn">
+                    Tạo hàng loạt
+                  </Button>}
+                  {isSuperAdmin && <Button onClick={() => setShowCreateModal(true)} className="bg-[#0055FF] hover:bg-[#0040CC]" data-testid="create-owner-btn">
+                    + {t.createShopOwner}
+                  </Button>}
+                </div>
               </div>
-              <Card className="border-0 shadow-sm">
-                <CardHeader>
-                  <div className="flex items-center justify-between gap-4">
-                    <CardTitle>{t.allUsers}</CardTitle>
-                    <Input value={userSearch} onChange={(e) => setUserSearch(e.target.value)} placeholder="Tìm theo tên, email, cửa hàng..." className="max-w-xs text-sm" data-testid="user-search-input" />
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="overflow-x-auto">
-                    <table className="w-full" data-testid="users-table">
-                      <thead>
-                        <tr className="border-b">
-                          <th className="text-left py-3 px-4 font-medium text-[#64748B]">{t.name}</th>
-                          <th className="text-left py-3 px-4 font-medium text-[#64748B]">{t.email}</th>
-                          <th className="text-left py-3 px-4 font-medium text-[#64748B]">{t.role}</th>
-                          <th className="text-left py-3 px-4 font-medium text-[#64748B]">{t.shopName}</th>
-                          <th className="text-left py-3 px-4 font-medium text-[#64748B]">{t.status}</th>
-                          <th className="text-left py-3 px-4 font-medium text-[#64748B]">{t.actions}</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {users.filter(u => {
-                          if (!userSearch.trim()) return true;
-                          const q = userSearch.toLowerCase();
-                          return (u.name || '').toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q) || (u.shop_name || '').toLowerCase().includes(q);
-                        }).map((u) => (
-                          <tr key={u.id} className="border-b hover:bg-[#F8FAFC]">
-                            <td className="py-3 px-4 font-medium text-[#0F172A]">{u.name}</td>
-                            <td className="py-3 px-4 text-[#64748B]">{u.email}</td>
-                            <td className="py-3 px-4">
-                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${u.role === 'super_admin' ? 'bg-purple-100 text-purple-700' : u.role === 'shop_owner' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}`}>
-                                {u.role}
-                              </span>
-                            </td>
-                            <td className="py-3 px-4 text-[#64748B]">{u.shop_name || '-'}</td>
-                            <td className="py-3 px-4">
-                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${u.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                {u.status}
-                              </span>
-                            </td>
-                            <td className="py-3 px-4">
-                              {u.role !== 'super_admin' && u.role !== 'sub_admin' && (
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button variant="outline" size="sm" data-testid={`user-actions-${u.id}`}>
-                                      <MoreHorizontal className="w-4 h-4" />
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end" className="bg-white w-48">
-                                    <DropdownMenuItem onClick={async () => {
-                                      const info = `Tên: ${u.name}\nEmail: ${u.email}\nMật khẩu: iLoveProID@`;
-                                      try {
-                                        await navigator.clipboard.writeText(info);
-                                        toast.success('Đã copy thông tin đăng nhập');
-                                      } catch {
-                                        const ta = document.createElement('textarea');
-                                        ta.value = info; ta.style.position = 'fixed'; ta.style.opacity = '0';
-                                        document.body.appendChild(ta); ta.select(); document.execCommand('copy');
-                                        document.body.removeChild(ta);
-                                        toast.success('Đã copy thông tin đăng nhập');
-                                      }
-                                    }} data-testid={`copy-login-${u.id}`} className="cursor-pointer">
-                                      <Copy className="w-4 h-4 mr-2" /> Copy đăng nhập
-                                    </DropdownMenuItem>
-                                    {u.shop_slug && (
-                                      <DropdownMenuItem onClick={() => window.open(`/shop/${u.shop_slug}`, '_blank')} data-testid={`view-shop-${u.id}`} className="cursor-pointer">
-                                        <Eye className="w-4 h-4 mr-2" /> Xem cửa hàng
-                                      </DropdownMenuItem>
-                                    )}
-                                    <DropdownMenuItem onClick={async () => {
-                                      try {
-                                        await axios.post(`${API}/admin/users/${u.id}/send-login-email`);
-                                        toast.success(`Đã gửi email đến ${u.email}`);
-                                      } catch (err) {
-                                        toast.error(err.response?.data?.detail || 'Gửi email thất bại');
-                                      }
-                                    }} data-testid={`send-email-${u.id}`} className="cursor-pointer">
-                                      <Send className="w-4 h-4 mr-2" /> Gửi email đăng nhập
-                                    </DropdownMenuItem>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem onClick={() => handleBlockUser(u.id)} data-testid={`block-user-${u.id}`} className="cursor-pointer">
-                                      <Lock className="w-4 h-4 mr-2" /> {u.status === 'blocked' ? t.unblock : t.block}
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => handleResetPassword(u.id)} data-testid={`reset-pwd-${u.id}`} className="cursor-pointer">
-                                      <Settings className="w-4 h-4 mr-2" /> {t.resetPwd}
-                                    </DropdownMenuItem>
-                                    {isSuperAdmin && <><DropdownMenuSeparator />
-                                    <DropdownMenuItem onClick={() => handleDeleteUser(u.id)} data-testid={`delete-user-${u.id}`} className="cursor-pointer text-red-600 focus:text-red-600">
-                                      <Trash2 className="w-4 h-4 mr-2" /> {t.delete}
-                                    </DropdownMenuItem></>}
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
+
+              <div className="space-y-4">
+                {users.filter(u => {
+                  if (!userSearch.trim()) return true;
+                  const q = userSearch.toLowerCase();
+                  return (u.name || '').toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q) || (u.shop_name || '').toLowerCase().includes(q);
+                }).map((u) => (
+                  <Card key={u.id} className="border-0 shadow-sm" data-testid={`user-card-${u.id}`}>
+                    <CardContent className="p-4">
+                      {/* User Info Row */}
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm" style={{ backgroundColor: u.shop?.theme_color || '#64748B' }}>
+                            {(u.name || '?')[0].toUpperCase()}
+                          </div>
+                          <div>
+                            <div className="font-semibold text-[#0F172A]">{u.name}</div>
+                            <div className="text-xs text-[#94A3B8]">{u.email}</div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${u.role === 'super_admin' ? 'bg-purple-100 text-purple-700' : u.role === 'sub_admin' ? 'bg-indigo-100 text-indigo-700' : u.role === 'shop_owner' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}`}>
+                            {u.role}
+                          </span>
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${u.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                            {u.status}
+                          </span>
+                          {u.role !== 'super_admin' && u.role !== 'sub_admin' && (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="outline" size="sm" data-testid={`user-actions-${u.id}`}>
+                                  <MoreHorizontal className="w-4 h-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="bg-white w-48">
+                                <DropdownMenuItem onClick={async () => {
+                                  const info = `Tên: ${u.name}\nEmail: ${u.email}\nMật khẩu: iLoveProID@`;
+                                  try { await navigator.clipboard.writeText(info); toast.success('Đã copy thông tin đăng nhập'); }
+                                  catch { const ta = document.createElement('textarea'); ta.value = info; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); toast.success('Đã copy thông tin đăng nhập'); }
+                                }} data-testid={`copy-login-${u.id}`} className="cursor-pointer">
+                                  <Copy className="w-4 h-4 mr-2" /> Copy đăng nhập
+                                </DropdownMenuItem>
+                                {u.shop_slug && (
+                                  <DropdownMenuItem onClick={() => window.open(`/shop/${u.shop_slug}`, '_blank')} data-testid={`view-storefront-${u.id}`} className="cursor-pointer">
+                                    <Eye className="w-4 h-4 mr-2" /> Xem cửa hàng
+                                  </DropdownMenuItem>
+                                )}
+                                {u.shop_id && (
+                                  <DropdownMenuItem onClick={() => window.open(`/dashboard?shop=${u.shop_id}`, '_blank')} data-testid={`manage-shop-${u.id}`} className="cursor-pointer">
+                                    <Store className="w-4 h-4 mr-2" /> Quản lý shop
+                                  </DropdownMenuItem>
+                                )}
+                                <DropdownMenuItem onClick={async () => {
+                                  try { await axios.post(`${API}/admin/users/${u.id}/send-login-email`); toast.success(`Đã gửi email đến ${u.email}`); }
+                                  catch (err) { toast.error(err.response?.data?.detail || 'Gửi email thất bại'); }
+                                }} data-testid={`send-email-${u.id}`} className="cursor-pointer">
+                                  <Send className="w-4 h-4 mr-2" /> Gửi email đăng nhập
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => handleBlockUser(u.id)} data-testid={`block-user-${u.id}`} className="cursor-pointer">
+                                  <Lock className="w-4 h-4 mr-2" /> {u.status === 'blocked' ? t.unblock : t.block}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleResetPassword(u.id)} data-testid={`reset-pwd-${u.id}`} className="cursor-pointer">
+                                  <Settings className="w-4 h-4 mr-2" /> {t.resetPwd}
+                                </DropdownMenuItem>
+                                {isSuperAdmin && <><DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => handleDeleteUser(u.id)} data-testid={`delete-user-${u.id}`} className="cursor-pointer text-red-600 focus:text-red-600">
+                                  <Trash2 className="w-4 h-4 mr-2" /> {t.delete}
+                                </DropdownMenuItem></>}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Shop Info (if user has a shop) */}
+                      {u.shop && (
+                        <div className="border-t border-[#F1F5F9] pt-3 mt-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Store className="w-4 h-4 text-[#64748B]" />
+                            <span className="text-sm font-semibold text-[#0F172A]">{u.shop.name}</span>
+                            <span className="text-xs text-[#94A3B8]">/{u.shop.slug}</span>
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${u.shop.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                              {u.shop.status}
+                            </span>
+                            {u.shop.expiry_date && new Date(u.shop.expiry_date) < new Date() && (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-orange-100 text-orange-700">{t.expired}</span>
+                            )}
+                          </div>
+
+                          {/* Stats */}
+                          <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 mb-3">
+                            {[
+                              { label: t.products, value: u.shop.product_count },
+                              { label: t.orders, value: u.shop.order_count },
+                              { label: t.categories, value: u.shop.category_count },
+                            ].map(s => (
+                              <div key={s.label} className="bg-[#F8FAFC] rounded-lg p-2 text-center">
+                                <div className="text-lg font-bold text-[#0F172A]">{s.value}</div>
+                                <div className="text-[10px] text-[#94A3B8] uppercase">{s.label}</div>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Limits + Expiry */}
+                          <div className="flex flex-wrap items-center gap-3 text-xs text-[#64748B]">
+                            <div className="flex items-center gap-1.5">
+                              <span>Hạn:</span>
+                              <input type="date"
+                                value={u.shop.expiry_date ? u.shop.expiry_date.split('T')[0] : ''}
+                                onChange={(e) => handleSetExpiry(u.shop.id, e.target.value ? new Date(e.target.value).toISOString() : null)}
+                                className="text-xs border rounded px-2 py-1 w-36"
+                                data-testid={`expiry-input-${u.shop.id}`} />
+                              {u.shop.expiry_date && (
+                                <button onClick={() => handleSetExpiry(u.shop.id, null)} className="text-red-500 hover:text-red-600">
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
                               )}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </CardContent>
-              </Card>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <span>SP:</span>
+                              <input type="number" min="0" value={u.shop.max_products ?? 100}
+                                onChange={(e) => handleSetLimits(u.shop.id, 'max_products', e.target.value)}
+                                className="text-xs border rounded px-1 py-0.5 w-14 text-center" />
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <span>Bài:</span>
+                              <input type="number" min="0" value={u.shop.max_posts ?? 50}
+                                onChange={(e) => handleSetLimits(u.shop.id, 'max_posts', e.target.value)}
+                                className="text-xs border rounded px-1 py-0.5 w-14 text-center" />
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <span>DM:</span>
+                              <input type="number" min="0" value={u.shop.max_categories ?? 50}
+                                onChange={(e) => handleSetLimits(u.shop.id, 'max_categories', e.target.value)}
+                                className="text-xs border rounded px-1 py-0.5 w-14 text-center" />
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <span>Đại lý:</span>
+                              <button
+                                onClick={async () => {
+                                  try {
+                                    const newVal = !u.shop.agents_enabled;
+                                    await axios.put(`${API}/admin/shops/${u.shop.id}/agents-toggle`, { agents_enabled: newVal });
+                                    setUsers(prev => prev.map(usr => usr.id === u.id ? {...usr, shop: {...usr.shop, agents_enabled: newVal}} : usr));
+                                    toast.success(newVal ? 'Agents enabled' : 'Agents disabled');
+                                  } catch { toast.error('Error'); }
+                                }}
+                                className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${u.shop.agents_enabled ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}
+                                data-testid={`agents-toggle-${u.shop.id}`}>
+                                {u.shop.agents_enabled ? 'ON' : 'OFF'}
+                              </button>
+                            </div>
+                            <button
+                              onClick={() => {
+                                const newStatus = u.shop.status === 'active' ? 'suspended' : 'active';
+                                handleShopStatus(u.shop.id, newStatus);
+                                setUsers(prev => prev.map(usr => usr.id === u.id ? {...usr, shop: {...usr.shop, status: newStatus}} : usr));
+                              }}
+                              className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${u.shop.status === 'active' ? 'bg-orange-100 text-orange-600 hover:bg-orange-200' : 'bg-green-100 text-green-600 hover:bg-green-200'}`}>
+                              {u.shop.status === 'active' ? t.suspend : t.activate}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
             </div>
           )}
 
