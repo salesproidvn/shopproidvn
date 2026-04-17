@@ -1222,17 +1222,23 @@ const StorefrontPage = () => {
 
       {/* Bottom Contact Bar */}
       <div className="fixed bottom-0 left-0 right-0 z-40 shadow-[0_-4px_20px_rgba(0,0,0,0.12)] sm:bottom-4 sm:left-1/2 sm:-translate-x-1/2 sm:right-auto sm:w-auto sm:rounded-full sm:shadow-[0_4px_24px_rgba(0,0,0,0.18)] sm:px-2" style={{ backgroundColor: themeColor }} data-testid="bottom-bar">
-        <div className="grid grid-cols-4 h-14 max-w-7xl mx-auto sm:flex sm:h-11 sm:gap-0">
+        <div className="grid grid-cols-5 h-14 max-w-7xl mx-auto sm:flex sm:h-11 sm:gap-0">
           {shop.contact_phone ? (
-            <a href={`tel:${shop.contact_phone}`} className="flex flex-col items-center justify-center gap-0.5 text-white/80 hover:text-white active:bg-white/10 transition-colors sm:px-4 sm:rounded-full sm:h-full" data-testid="bottom-call">
+            <a href={`tel:${shop.contact_phone}`} className="flex flex-col items-center justify-center gap-0.5 text-white/80 hover:text-white active:bg-white/10 transition-colors sm:px-4 sm:rounded-full sm:h-full sm:flex-row sm:gap-1.5" data-testid="bottom-call">
               <Phone className="w-5 h-5 sm:w-4 sm:h-4" />
-              <span className="text-[10px] font-bold whitespace-nowrap sm:hidden">{t.call}</span>
+              <span className="text-[10px] font-bold whitespace-nowrap sm:text-xs">{t.call}</span>
             </a>
           ) : <div />}
           {shop.contact_phone ? (
-            <a href={`https://zalo.me/${shop.contact_phone.replace(/\s/g, '')}`} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center justify-center gap-0.5 text-white/80 hover:text-white active:bg-white/10 transition-colors sm:px-4 sm:rounded-full sm:h-full" data-testid="bottom-message">
+            <a href={`https://zalo.me/${shop.contact_phone.replace(/\s/g, '')}`} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center justify-center gap-0.5 text-white/80 hover:text-white active:bg-white/10 transition-colors sm:px-4 sm:rounded-full sm:h-full sm:flex-row sm:gap-1.5" data-testid="bottom-message">
               <MessageCircle className="w-5 h-5 sm:w-4 sm:h-4" />
-              <span className="text-[10px] font-bold whitespace-nowrap sm:hidden">{t.message}</span>
+              <span className="text-[10px] font-bold whitespace-nowrap sm:text-xs">{t.message}</span>
+            </a>
+          ) : <div />}
+          {shop.address ? (
+            <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(shop.address)}`} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center justify-center gap-0.5 text-white/80 hover:text-white active:bg-white/10 transition-colors sm:px-4 sm:rounded-full sm:h-full sm:flex-row sm:gap-1.5" data-testid="bottom-map">
+              <Map className="w-5 h-5 sm:w-4 sm:h-4" />
+              <span className="text-[10px] font-bold whitespace-nowrap sm:text-xs">{t.map || 'Bản đồ'}</span>
             </a>
           ) : <div />}
           <button onClick={() => {
@@ -1272,13 +1278,13 @@ const StorefrontPage = () => {
             const a = document.createElement('a');
             a.href = blobUrl; a.download = `${shop.name || 'contact'}.vcf`;
             a.click(); URL.revokeObjectURL(blobUrl);
-          }} className="flex flex-col items-center justify-center gap-0.5 text-white/80 hover:text-white active:bg-white/10 transition-colors sm:px-4 sm:rounded-full sm:h-full" data-testid="bottom-save-contact">
+          }} className="flex flex-col items-center justify-center gap-0.5 text-white/80 hover:text-white active:bg-white/10 transition-colors sm:px-4 sm:rounded-full sm:h-full sm:flex-row sm:gap-1.5" data-testid="bottom-save-contact">
             <Download className="w-5 h-5 sm:w-4 sm:h-4" />
-            <span className="text-[10px] font-bold whitespace-nowrap sm:hidden">Lưu liên hệ</span>
+            <span className="text-[10px] font-bold whitespace-nowrap sm:text-xs">Lưu liên hệ</span>
           </button>
-          <button onClick={() => setShowCategoryMenu(!showCategoryMenu)} className="flex flex-col items-center justify-center gap-0.5 text-white/80 hover:text-white active:bg-white/10 transition-colors relative sm:px-4 sm:rounded-full sm:h-full" data-testid="bottom-categories">
+          <button onClick={() => setShowCategoryMenu(!showCategoryMenu)} className="flex flex-col items-center justify-center gap-0.5 text-white/80 hover:text-white active:bg-white/10 transition-colors relative sm:px-4 sm:rounded-full sm:h-full sm:flex-row sm:gap-1.5" data-testid="bottom-categories">
             <Grid3X3 className="w-5 h-5 sm:w-4 sm:h-4" />
-            <span className="text-[10px] font-bold whitespace-nowrap sm:hidden">Danh mục</span>
+            <span className="text-[10px] font-bold whitespace-nowrap sm:text-xs">Danh mục</span>
           </button>
         </div>
       </div>

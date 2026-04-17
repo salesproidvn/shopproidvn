@@ -214,6 +214,7 @@ export const vi = {
   shopNotFound: 'Cửa hàng không tồn tại',
   call: 'Gọi điện',
   message: 'Nhắn tin',
+  map: 'Bản đồ',
   info: 'Thông tin',
   backToHome: 'Về trang chủ',
   backToShop: 'Về cửa hàng',
