@@ -2553,6 +2553,41 @@ const ShopOwnerDashboard = () => {
           {/* Settings Tab */}
           {activeTab === 'settings' && shop && (
             <div className="space-y-6">
+              {/* Change Password Card */}
+              <Card className="border-0 shadow-sm" data-testid="change-password-card">
+                <CardHeader className="p-4">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Lock className="w-4 h-4" style={{ color: themeColor }} />
+                    {t.changePassword || 'Đổi mật khẩu'}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 pt-0">
+                  <form onSubmit={async (e) => {
+                    e.preventDefault();
+                    const newPwd = e.target.newPassword.value;
+                    const confirmPwd = e.target.confirmPassword.value;
+                    if (newPwd.length < 6) { toast.error('Mật khẩu phải có ít nhất 6 ký tự'); return; }
+                    if (newPwd !== confirmPwd) { toast.error('Mật khẩu xác nhận không khớp'); return; }
+                    try {
+                      await axios.post(`${API}/auth/change-password`, { new_password: newPwd });
+                      toast.success('Đổi mật khẩu thành công');
+                      e.target.reset();
+                    } catch (err) { toast.error(err.response?.data?.detail || 'Lỗi'); }
+                  }} className="space-y-3 max-w-sm">
+                    <div>
+                      <label className="text-xs font-medium text-[#334155] block mb-1">Mật khẩu mới</label>
+                      <input name="newPassword" type="password" required minLength={6} placeholder="Nhập mật khẩu mới" className="w-full h-10 rounded-lg border border-[#E2E8F0] px-3 text-sm bg-[#F8FAFC] focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20" data-testid="new-password-input" />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-[#334155] block mb-1">Xác nhận mật khẩu</label>
+                      <input name="confirmPassword" type="password" required minLength={6} placeholder="Nhập lại mật khẩu" className="w-full h-10 rounded-lg border border-[#E2E8F0] px-3 text-sm bg-[#F8FAFC] focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20" data-testid="confirm-password-input" />
+                    </div>
+                    <Button type="submit" className="h-9 text-sm rounded-lg" style={{ backgroundColor: themeColor }} data-testid="change-password-btn">
+                      Đổi mật khẩu
+                    </Button>
+                  </form>
+                </CardContent>
+              </Card>
               {/* Push Notifications Card */}
               <Card className="border-0 shadow-sm" data-testid="notification-settings-card">
                 <CardHeader className="p-4">

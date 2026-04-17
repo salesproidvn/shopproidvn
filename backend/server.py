@@ -717,19 +717,19 @@ async def reset_password(data: ResetPasswordRequest):
     return {"message": "Password has been reset successfully"}
 
 @api_router.post("/auth/change-password")
-async def change_password(data: ChangePasswordRequest, request: Request):
-    """Change password for the currently logged-in user."""
+async def change_password(request: Request):
+    """Change password for the currently logged-in user. Old password not required."""
     user = await get_current_user(request)
+    body = await request.json()
+    new_password = body.get("new_password", "")
+    if len(new_password) < 6:
+        raise HTTPException(status_code=400, detail="Mật khẩu mới phải có ít nhất 6 ký tự")
     user_doc = await db.users.find_one({"_id": ObjectId(user["_id"])})
     if not user_doc:
         raise HTTPException(status_code=404, detail="User not found")
-    if not verify_password(data.current_password, user_doc["password_hash"]):
-        raise HTTPException(status_code=400, detail="Current password is incorrect")
-    if len(data.new_password) < 6:
-        raise HTTPException(status_code=400, detail="New password must be at least 6 characters")
-    new_hash = hash_password(data.new_password)
+    new_hash = hash_password(new_password)
     await db.users.update_one({"_id": ObjectId(user["_id"])}, {"$set": {"password_hash": new_hash}})
-    return {"message": "Password changed successfully"}
+    return {"message": "Đổi mật khẩu thành công"}
 
 # ==================== SUPER ADMIN ENDPOINTS ====================
 
