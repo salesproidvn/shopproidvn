@@ -378,6 +378,7 @@ const ShopOwnerDashboard = () => {
 
   // Business Card state
   const [businessCard, setBusinessCard] = useState(null);
+  const [cardProductSearch, setCardProductSearch] = useState('');
 
   const fetchBusinessCard = async () => {
     try {
@@ -1101,7 +1102,7 @@ const ShopOwnerDashboard = () => {
     { id: 'menu', label: t.menuManager, icon: Navigation },
     { id: 'layout', label: t.displayLayout, icon: LayoutGrid },
     { id: 'vouchers', label: t.vouchers || 'Voucher', icon: Ticket },
-    ...(shop?.agents_enabled ? [{ id: 'agents', label: t.agents || 'Đại lý', icon: Users }] : []),
+    { id: 'agents', label: t.agents || 'Đại lý', icon: Users },
     { id: 'card', label: t.businessCard || 'Danh thiếp', icon: Globe },
     { id: 'settings', label: t.settings, icon: Settings },
   ];
@@ -1305,7 +1306,7 @@ const ShopOwnerDashboard = () => {
                 <Plus className="w-4 h-4 mr-2" /> {t.createVoucher}
               </Button>
             )}
-            {activeTab === 'agents' && agents.length < 100 && (
+            {activeTab === 'agents' && shop?.agents_enabled && agents.length < 100 && (
               <Button onClick={() => { setEditingAgent(null); setAgentForm({ name: '', email: '', password: '', phone: '', level: 1, parent_agent_id: '' }); setShowAgentModal(true); }} style={{ backgroundColor: themeColor }} className="hover:opacity-90 text-sm" data-testid="add-agent-btn">
                 <Plus className="w-4 h-4 mr-2" /> {t.createAgent}
               </Button>
@@ -2165,8 +2166,18 @@ const ShopOwnerDashboard = () => {
 
 
           {/* Agents Tab */}
-          {activeTab === 'agents' && shop?.agents_enabled && (
+          {activeTab === 'agents' && (
             <div className="space-y-4" data-testid="agents-tab">
+              {!shop?.agents_enabled ? (
+                <Card className="border-0 shadow-sm">
+                  <CardContent className="p-8 text-center">
+                    <Users className="w-12 h-12 mx-auto mb-3 text-[#CBD5E1]" />
+                    <p className="text-[#64748B] text-sm mb-2">{t.agentsFeature || 'Tính năng đại lý'}</p>
+                    <p className="text-[#94A3B8] text-xs">Tính năng này chưa được kích hoạt. Vui lòng liên hệ quản trị viên (Super Admin) để bật tính năng đại lý cho cửa hàng của bạn.</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <>
               {/* Sales Overview */}
               {agentSalesData && (
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -2257,6 +2268,8 @@ const ShopOwnerDashboard = () => {
                   })}
                 </div>
               )}
+              </>
+              )}
             </div>
           )}
 
@@ -2329,9 +2342,15 @@ const ShopOwnerDashboard = () => {
                   {/* Product Selection */}
                   <div>
                     <label className="text-xs font-medium text-[#334155] mb-1 block">{t.applicableProducts || 'Sản phẩm hiển thị'}</label>
-                    <div className="border border-[#E2E8F0] rounded-[5px] p-3 max-h-40 overflow-y-auto">
-                      <div className="space-y-1.5">
-                        {products.map(p => (
+                    <div className="border border-[#E2E8F0] rounded-[5px] overflow-hidden">
+                      <div className="p-2 border-b border-[#F1F5F9]">
+                        <div className="relative">
+                          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#94A3B8]" />
+                          <Input placeholder="Tìm sản phẩm..." value={cardProductSearch} onChange={(e) => setCardProductSearch(e.target.value)} className="pl-8 h-8 text-xs" data-testid="card-product-search" />
+                        </div>
+                      </div>
+                      <div className="p-3 max-h-40 overflow-y-auto space-y-1.5">
+                        {products.filter(p => !cardProductSearch || p.name.toLowerCase().includes(cardProductSearch.toLowerCase())).map(p => (
                           <label key={p.id} className="flex items-center gap-2 cursor-pointer">
                             <input type="checkbox" checked={(businessCard.selected_products || []).includes(p.id)}
                               onChange={(e) => {
