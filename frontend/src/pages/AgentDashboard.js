@@ -14,19 +14,20 @@ import { toast } from 'sonner';
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 const AgentDashboard = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, loading: authLoading } = useAuth();
   const { t } = useLanguage();
   const navigate = useNavigate();
   const [dashData, setDashData] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (authLoading) return; // Wait for auth to finish loading
     if (!user || user.role !== 'agent') {
       navigate('/');
       return;
     }
     fetchDashboard();
-  }, [user]);
+  }, [user, authLoading]);
 
   const fetchDashboard = async () => {
     try {
@@ -39,7 +40,7 @@ const AgentDashboard = () => {
     }
   };
 
-  if (loading) return <div className="flex items-center justify-center min-h-screen"><div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full" /></div>;
+  if (authLoading || loading) return <div className="flex items-center justify-center min-h-screen"><div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full" /></div>;
   if (!dashData) return <div className="flex items-center justify-center min-h-screen"><p className="text-gray-500">No data available</p></div>;
 
   const { agent, shop, sales, total_sales, total_orders, parent_info } = dashData;
