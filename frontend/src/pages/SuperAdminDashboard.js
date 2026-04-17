@@ -229,7 +229,7 @@ const SuperAdminDashboard = () => {
     { id: 'settings', label: t.settings || 'Cài đặt', icon: Settings },
   ];
 
-  if (authLoading || loading) {
+  if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC]">
         <div className="animate-spin w-8 h-8 border-4 border-[#0055FF] border-t-transparent rounded-full" />
@@ -305,7 +305,23 @@ const SuperAdminDashboard = () => {
           </div>
 
           {/* Overview Tab */}
-          {activeTab === 'overview' && stats && (
+          {activeTab === 'overview' && loading && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+              {[1,2,3,4].map(i => (
+                <Card key={i} className="border-0 shadow-sm">
+                  <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <div className="h-4 w-24 bg-[#E2E8F0] rounded animate-pulse" />
+                    <div className="h-5 w-5 bg-[#E2E8F0] rounded animate-pulse" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-8 w-20 bg-[#E2E8F0] rounded animate-pulse mb-2" />
+                    <div className="h-3 w-32 bg-[#F1F5F9] rounded animate-pulse" />
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+          {activeTab === 'overview' && !loading && stats && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
               <Card className="border-0 shadow-sm" data-testid="stat-shops">
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -348,7 +364,16 @@ const SuperAdminDashboard = () => {
           )}
 
           {/* Shops Tab */}
-          {activeTab === 'shops' && (
+          {activeTab === 'shops' && loading && (
+            <Card className="border-0 shadow-sm">
+              <CardContent className="p-6 space-y-4">
+                {[1,2,3].map(i => (
+                  <div key={i} className="h-20 bg-[#F1F5F9] rounded-xl animate-pulse" />
+                ))}
+              </CardContent>
+            </Card>
+          )}
+          {activeTab === 'shops' && !loading && (
             <Card className="border-0 shadow-sm">
               <CardHeader>
                 <div className="flex items-center justify-between flex-wrap gap-3">
@@ -519,7 +544,16 @@ const SuperAdminDashboard = () => {
           )}
 
           {/* Users Tab */}
-          {activeTab === 'users' && (
+          {activeTab === 'users' && loading && (
+            <Card className="border-0 shadow-sm">
+              <CardContent className="p-6 space-y-4">
+                {[1,2,3].map(i => (
+                  <div key={i} className="h-16 bg-[#F1F5F9] rounded-xl animate-pulse" />
+                ))}
+              </CardContent>
+            </Card>
+          )}
+          {activeTab === 'users' && !loading && (
             <div className="space-y-6">
               <div className="flex justify-end gap-2">
                 {isSuperAdmin && <Button variant="outline" onClick={() => { setShowBulkModal(true); setBulkResults([]); setBulkText(''); }} data-testid="bulk-create-btn">

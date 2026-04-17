@@ -47,14 +47,13 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem(TOKEN_KEY, data.token);
     }
     setUser(data);
-    if (data.role === 'super_admin') {
-      window.location.href = '/admin';
+    // Return redirect path - let caller handle navigation via React Router (no page reload)
+    if (data.role === 'super_admin' || data.role === 'sub_admin') {
+      return { ...data, redirectTo: '/admin' };
     } else if (data.role === 'shop_owner') {
-      window.location.href = '/dashboard';
+      return { ...data, redirectTo: '/dashboard' };
     } else if (data.role === 'agent') {
-      window.location.href = '/agent';
-    } else if (data.role === 'sub_admin') {
-      window.location.href = '/admin';
+      return { ...data, redirectTo: '/agent' };
     }
     return data;
   };

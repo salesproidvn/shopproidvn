@@ -55,7 +55,10 @@ const LoginPage = () => {
     setLoading(true);
     try {
       if (mode === 'login') {
-        await login(email, password);
+        const result = await login(email, password);
+        if (result?.redirectTo) {
+          navigate(result.redirectTo);
+        }
       } else if (mode === 'register') {
         await register(email, password, name);
         navigate('/dashboard');
