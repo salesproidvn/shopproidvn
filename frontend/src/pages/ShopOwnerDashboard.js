@@ -17,7 +17,7 @@ import {
   LogOut, Menu, X, Plus, Pencil, Trash2, TrendingUp, Clock, Eye, Palette, Upload, ExternalLink,
   Bold, Italic, List, ChevronUp, ChevronDown, Play, FileText, Image, Calendar, Search, LayoutGrid, GripVertical,
   Globe, Navigation, Link2, Video, Type, ArrowUp, ArrowDown, EyeOff, Copy, Grid3X3,
-  Bell, BellOff, Smartphone, Download, Mail, Loader2, Check, Ticket, Users
+  Bell, BellOff, Smartphone, Download, Mail, Loader2, Check, Ticket, Users, Lock
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
