@@ -39,14 +39,23 @@ Multi-tenant e-commerce platform allowing shop owners to create and manage onlin
 - **White Screen Fix**: Targeted state updates for expiry/limits (no full fetchData reload)
 - **Uncategorized Products**: "Chưa phân loại" section on storefront + filter dropdown option
 
+### Phase 5 - Services + Bookings (April 18, 2026)
+- **Product type field**: Products can now be marked as `type: "product"` (default) or `type: "service"`
+- **Shop Owner Dashboard**: Product modal has "Loại" toggle (Sản phẩm/Dịch vụ); service items show black "Dịch vụ" badge in product grid
+- **Public Storefront**: "Sản phẩm / Dịch vụ" tab toggle appears when shop has both types; services display Calendar icon button instead of "+"
+- **Booking flow**: Simple modal form (Họ tên, SĐT, Email, Ngày/giờ, Ghi chú) on both storefront grid and product detail page
+- **Dashboard Bookings**: New "Đơn đặt lịch dịch vụ" section under Orders tab with status workflow (pending → confirmed → completed / cancelled), call & delete actions
+- **Agent tracking**: Bookings carry `agent_tracking_code` if referral is present (same as orders)
+- **Business Card**: Instagram replaced with **TikTok** on the business card form and public card page; other pages (Storefront/Contact) keep Instagram unchanged
+
 ## DB Collections
-users, shops, products, categories, orders, posts, pages, vouchers, agents, agent_sales, business_cards, push_subscriptions, password_resets, contacts
+users, shops, products (+ type field), categories, orders, bookings (new), posts, pages, vouchers, agents, agent_sales, business_cards, push_subscriptions, password_resets, contacts
 
 ## Key API Endpoints
 - Auth: `/api/auth/login`, `/api/auth/me`, `/api/auth/register`
 - Admin: `/api/admin/shops`, `/api/admin/users`, `/api/admin/security/dashboard`
-- Dashboard: `/api/dashboard/products`, `/api/dashboard/posts`, `/api/dashboard/vouchers`
-- Public: `/api/shop/{slug}`, `/api/card/{slug}`, `/api/security/status`
+- Dashboard: `/api/dashboard/products`, `/api/dashboard/posts`, `/api/dashboard/vouchers`, `/api/dashboard/bookings`
+- Public: `/api/shop/{slug}`, `/api/shop/{slug}/products?type=service`, `/api/shop/{slug}/bookings`, `/api/card/{slug}`, `/api/security/status`
 
 ## Pending Issues
 - P2: "Không thể lưu" error - needs user clarification
@@ -55,3 +64,4 @@ users, shops, products, categories, orders, posts, pages, vouchers, agents, agen
 - P1: Sales analytics charts
 - P1: Automated commission for Agent/Dealer (L1:10%, L2:7%, L3:5%)
 - P0: Refactor server.py, ShopOwnerDashboard.js, StorefrontPage.js
+- Nice-to-have: Dedicated booking email template (currently reuses order email)
