@@ -20,8 +20,8 @@ import {
   Bell, BellOff, Smartphone, Download, Mail, Loader2, Check, Ticket, Users, Lock
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
-import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
+import { DndContext, closestCenter, PointerSensor, TouchSensor, KeyboardSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import NotificationBell from '../components/NotificationBell';
 import MediaLibrary from '../components/MediaLibrary';
@@ -948,13 +948,17 @@ const ShopOwnerDashboard = () => {
     const newIndex = sorted.findIndex(c => c.id === over.id);
     if (oldIndex === -1 || newIndex === -1) return;
     const reordered = arrayMove(sorted, oldIndex, newIndex).map((c, i) => ({ ...c, position: i }));
+    // Optimistic update - show new order immediately
+    setCategories(reordered);
     try {
       await axios.put(`${API}/dashboard/categories/positions`, {
         positions: reordered.map(c => ({ id: c.id, position: c.position }))
       });
       toast.success(t.positionSaved);
-      fetchCategoriesOnly();
-    } catch { toast.error(t.failedToUpdate); }
+    } catch {
+      toast.error(t.failedToUpdate);
+      fetchCategoriesOnly(); // revert on error
+    }
   };
 
   // Post methods
@@ -1143,7 +1147,11 @@ const ShopOwnerDashboard = () => {
     } catch { toast.error(t.failedToSave); }
   };
 
-  const dndSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+  const dndSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
 
   const handleLayoutDragEnd = async (event) => {
     const { active, over } = event;
