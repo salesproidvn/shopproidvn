@@ -37,7 +37,6 @@ const StorefrontPage = () => {
   const [categories, setCategories] = useState([]);
   const [posts, setPosts] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const [viewMode, setViewMode] = useState('product'); // 'product' | 'service'
   const [bookingProduct, setBookingProduct] = useState(null);
   const [bookingForm, setBookingForm] = useState({ customer_name: '', customer_phone: '', customer_email: '', preferred_datetime: '', note: '' });
   const [bookingSubmitting, setBookingSubmitting] = useState(false);
@@ -199,8 +198,8 @@ const StorefrontPage = () => {
 
   useEffect(() => {
     let result = [...products];
-    // Filter by type (product vs service); treat missing type as "product"
-    result = result.filter(p => (viewMode === 'service' ? p.type === 'service' : p.type !== 'service'));
+    // Exclude services — they render in a dedicated section above
+    result = result.filter(p => p.type !== 'service');
     if (selectedCategory === 'uncategorized') {
       const allCatIds = categories.map(c => c.id);
       result = result.filter(p => !p.category_id || !allCatIds.includes(p.category_id));
@@ -226,7 +225,7 @@ const StorefrontPage = () => {
     }
     if (searchQuery) { const q = searchQuery.toLowerCase(); result = result.filter(p => p.name.toLowerCase().includes(q)); }
     setFilteredProducts(result);
-  }, [selectedCategory, searchQuery, products, categories, viewMode]);
+  }, [selectedCategory, searchQuery, products, categories]);
 
   const addToCart = (product) => {
     ctxAddToCart(product.id, product, 1);
@@ -522,7 +521,7 @@ const StorefrontPage = () => {
   // Featured Products Section
   const FeaturedProducts = () => {
     if (!isSectionEnabled('featured')) return null;
-    const featured = products.filter(p => p.is_featured && (viewMode === 'service' ? p.type === 'service' : p.type !== 'service'));
+    const featured = products.filter(p => p.is_featured && p.type !== 'service');
     if (!featured.length) return null;
     return (
       <div className="mb-8" data-testid="featured-products">
@@ -534,29 +533,38 @@ const StorefrontPage = () => {
     );
   };
 
+  // Services Section (rendered on its own, above Products)
+  const ServicesSection = () => {
+    const services = products.filter(p => p.type === 'service');
+    if (!services.length) return null;
+    const q = (searchQuery || '').toLowerCase();
+    const filtered = q ? services.filter(s => s.name.toLowerCase().includes(q)) : services;
+    if (!filtered.length) return null;
+    return (
+      <div className="mb-10" data-testid="services-section">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 rounded-full flex items-center justify-center text-white" style={{ backgroundColor: themeColor }}>
+            <Calendar className="w-5 h-5" />
+          </div>
+          <div>
+            <h3 className="text-xl sm:text-2xl font-bold text-[#0F172A]">Dịch vụ</h3>
+            <p className="text-xs text-[#64748B]">Đặt lịch nhanh — nhân viên sẽ liên hệ xác nhận</p>
+          </div>
+          <div className="flex-1 h-px bg-[#E2E8F0]" />
+          <span className="text-sm text-[#94A3B8]">{filtered.length}</span>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 lg:gap-5">
+          {filtered.map((product) => (<ProductCard key={product.id} product={product} />))}
+        </div>
+      </div>
+    );
+  };
+
   // Products Section
   const ProductsSection = () => {
     if (!isSectionEnabled('products')) return null;
-    const hasServices = products.some(p => p.type === 'service');
-    const hasProducts = products.some(p => p.type !== 'service');
     return (
       <>
-        {(hasServices && hasProducts) && (
-          <div className="flex items-center justify-center gap-2 mb-6" data-testid="product-type-toggle">
-            <button type="button" onClick={() => setViewMode('product')}
-              className={`px-5 py-2 rounded-full text-sm font-medium border transition-all ${viewMode === 'product' ? 'text-white border-transparent shadow' : 'bg-white text-[#64748B] border-[#E2E8F0]'}`}
-              style={viewMode === 'product' ? { backgroundColor: themeColor } : {}}
-              data-testid="storefront-tab-products">
-              Sản phẩm
-            </button>
-            <button type="button" onClick={() => setViewMode('service')}
-              className={`px-5 py-2 rounded-full text-sm font-medium border transition-all inline-flex items-center gap-1.5 ${viewMode === 'service' ? 'text-white border-transparent shadow' : 'bg-white text-[#64748B] border-[#E2E8F0]'}`}
-              style={viewMode === 'service' ? { backgroundColor: themeColor } : {}}
-              data-testid="storefront-tab-services">
-              <Calendar className="w-3.5 h-3.5" /> Dịch vụ
-            </button>
-          </div>
-        )}
         {filteredProducts.length === 0 ? (
           <div className="text-center py-24"><p className="text-[#64748B] text-lg">{t.noProducts}</p></div>
         ) : selectedCategory === 'all' && !searchQuery ? (
@@ -1115,6 +1123,9 @@ const StorefrontPage = () => {
             </Select>
           </div>
         </div>
+
+        {/* Services section (above products) */}
+        <ServicesSection />
 
         {/* Products section */}
         <ProductsSection />
