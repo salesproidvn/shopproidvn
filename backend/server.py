@@ -584,6 +584,7 @@ class BusinessCardUpdate(BaseModel):
     logo_url: Optional[str] = None
     social_facebook: Optional[str] = None
     social_instagram: Optional[str] = None
+    social_tiktok: Optional[str] = None
     social_zalo: Optional[str] = None
     website: Optional[str] = None
     selected_products: Optional[List[str]] = None
@@ -1868,7 +1869,7 @@ async def get_business_card(request: Request):
             "phone": shop.get("contact_phone", ""), "email": shop.get("contact_email", ""),
             "address": shop.get("address", ""), "avatar_url": "", "logo_url": shop.get("logo_url", ""),
             "social_facebook": shop.get("social_facebook", ""), "social_instagram": shop.get("social_instagram", ""),
-            "social_zalo": "", "website": "",
+            "social_tiktok": "", "social_zalo": "", "website": "",
             "selected_products": [], "theme_color": shop.get("theme_color", "#0055FF"),
         }
     card.pop("created_at", None)
@@ -1882,7 +1883,7 @@ async def update_business_card(request: Request):
     body = await request.json()
     card = await db.business_cards.find_one({"owner_id": user["_id"], "owner_type": "shop_owner"})
     update_fields = {}
-    for key in ["display_name", "title", "phone", "email", "address", "avatar_url", "logo_url", "social_facebook", "social_instagram", "social_zalo", "website", "selected_products", "theme_color"]:
+    for key in ["display_name", "title", "phone", "email", "address", "avatar_url", "logo_url", "social_facebook", "social_instagram", "social_tiktok", "social_zalo", "website", "selected_products", "theme_color"]:
         if key in body:
             update_fields[key] = body[key]
     if not card:
@@ -1922,7 +1923,7 @@ async def get_agent_business_card(request: Request):
             "display_name": agent.get("name", ""), "title": "",
             "phone": agent.get("phone", ""), "email": agent.get("email", ""),
             "address": "", "avatar_url": "", "logo_url": shop.get("logo_url", "") if shop else "",
-            "social_facebook": "", "social_instagram": "", "social_zalo": "", "website": "",
+            "social_facebook": "", "social_instagram": "", "social_tiktok": "", "social_zalo": "", "website": "",
             "selected_products": [], "theme_color": shop.get("theme_color", "#0055FF") if shop else "#0055FF",
         }
     card.pop("created_at", None)
@@ -1946,7 +1947,7 @@ async def update_agent_business_card(request: Request):
     body = await request.json()
     card = await db.business_cards.find_one({"owner_id": agent_id, "owner_type": "agent"})
     update_fields = {}
-    for key in ["display_name", "title", "phone", "email", "address", "avatar_url", "logo_url", "social_facebook", "social_instagram", "social_zalo", "website", "selected_products", "theme_color"]:
+    for key in ["display_name", "title", "phone", "email", "address", "avatar_url", "logo_url", "social_facebook", "social_instagram", "social_tiktok", "social_zalo", "website", "selected_products", "theme_color"]:
         if key in body:
             update_fields[key] = body[key]
     if not card:
@@ -1979,7 +1980,7 @@ async def get_public_business_card(card_slug: str):
                 "email": shop.get("contact_email", ""), "address": shop.get("address", ""),
                 "avatar_url": "", "logo_url": shop.get("logo_url", ""),
                 "social_facebook": shop.get("social_facebook", ""), "social_instagram": shop.get("social_instagram", ""),
-                "social_zalo": "", "website": "",
+                "social_tiktok": "", "social_zalo": "", "website": "",
                 "selected_products": [], "theme_color": shop.get("theme_color", "#0055FF"),
             }
         # Fetch selected products
@@ -2002,7 +2003,7 @@ async def get_public_business_card(card_slug: str):
                 "display_name": agent.get("name", ""), "title": "",
                 "phone": agent.get("phone", ""), "email": agent.get("email", ""),
                 "address": "", "avatar_url": "", "logo_url": shop.get("logo_url", "") if shop else "",
-                "social_facebook": "", "social_instagram": "", "social_zalo": "", "website": "",
+                "social_facebook": "", "social_instagram": "", "social_tiktok": "", "social_zalo": "", "website": "",
                 "selected_products": [], "theme_color": shop.get("theme_color", "#0055FF") if shop else "#0055FF",
             }
         products = []

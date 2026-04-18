@@ -2522,8 +2522,8 @@ const ShopOwnerDashboard = () => {
                       <Input value={businessCard.social_facebook || ''} onChange={(e) => setBusinessCard({...businessCard, social_facebook: e.target.value})} className="text-sm" />
                     </div>
                     <div>
-                      <label className="text-xs font-medium text-[#334155] mb-1 block">Instagram</label>
-                      <Input value={businessCard.social_instagram || ''} onChange={(e) => setBusinessCard({...businessCard, social_instagram: e.target.value})} className="text-sm" />
+                      <label className="text-xs font-medium text-[#334155] mb-1 block">TikTok</label>
+                      <Input value={businessCard.social_tiktok || ''} onChange={(e) => setBusinessCard({...businessCard, social_tiktok: e.target.value})} placeholder="https://tiktok.com/@..." className="text-sm" data-testid="card-tiktok-input" />
                     </div>
                     <div>
                       <label className="text-xs font-medium text-[#334155] mb-1 block">Zalo</label>

@@ -4,11 +4,17 @@ import axios from 'axios';
 import { useLanguage } from '../context/LanguageContext';
 import { formatVND } from '../utils/format';
 import { Button } from '../components/ui/button';
-import { Phone, Mail, MapPin, Facebook, Instagram, Globe, Download, MessageCircle, Share2, X, QrCode } from 'lucide-react';
+import { Phone, Mail, MapPin, Facebook, Globe, Download, MessageCircle, Share2, X, QrCode } from 'lucide-react';
 import { toast } from 'sonner';
 import { QRCodeSVG } from 'qrcode.react';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+
+const TikTokIcon = ({ className }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5.8 20.1a6.34 6.34 0 0 0 10.86-4.43V8.87a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1.84-.3z"/>
+  </svg>
+);
 
 const BusinessCardPage = () => {
   const { cardSlug } = useParams();
@@ -223,16 +229,16 @@ const BusinessCardPage = () => {
             <a href={card.website} target="_blank" rel="noopener noreferrer" className="text-sm text-[#334155] hover:underline break-all">{card.website}</a>
           </div>
         )}
-        {(card.social_facebook || card.social_instagram || card.social_zalo) && (
+        {(card.social_facebook || card.social_tiktok || card.social_zalo) && (
           <div className="bg-white rounded-xl p-3 flex items-center gap-4 shadow-sm justify-center">
             {card.social_facebook && (
               <a href={card.social_facebook} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-[#F1F5F9] transition-colors" data-testid="card-facebook">
                 <Facebook className="w-5 h-5 text-[#1877F2]" />
               </a>
             )}
-            {card.social_instagram && (
-              <a href={card.social_instagram} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-[#F1F5F9] transition-colors" data-testid="card-instagram">
-                <Instagram className="w-5 h-5 text-[#E4405F]" />
+            {card.social_tiktok && (
+              <a href={card.social_tiktok} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-[#F1F5F9] transition-colors" data-testid="card-tiktok">
+                <TikTokIcon className="w-5 h-5 text-[#0F172A]" />
               </a>
             )}
             {card.social_zalo && (
