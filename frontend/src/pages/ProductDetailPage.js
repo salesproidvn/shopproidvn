@@ -218,7 +218,7 @@ const ProductDetailPage = () => {
               ) : (
                 <Button className="flex-1 hover:opacity-90 py-4 sm:py-6 text-sm sm:text-base rounded-[5px]"
                   style={{ backgroundColor: themeColor }}
-                  onClick={() => addToCart(product)} data-testid="product-add-cart">
+                  onClick={() => { addToCart(product.id, product, 1); toast.success(t.addedToCart || 'Đã thêm vào giỏ'); }} data-testid="product-add-cart">
                   <ShoppingCart className="w-5 h-5 mr-2" /> {t.addToCart}
                 </Button>
               )}
@@ -240,11 +240,19 @@ const ProductDetailPage = () => {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 lg:gap-5">
               {relatedProducts.map(rp => (
                 <Link key={rp.id} to={`/shop/${slug}/product/${rp.id}`} className="group bg-white border border-[#E2E8F0] rounded-[5px] overflow-hidden hover:shadow-lg transition-all relative" data-testid={`related-product-${rp.id}`}>
-                  <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); addToCart(rp); }}
-                    className="absolute top-2 right-2 z-10 w-7 h-7 rounded-full flex items-center justify-center shadow-md text-white opacity-80 hover:opacity-100 hover:scale-110 transition-all"
-                    style={{ backgroundColor: themeColor }}>
-                    <Plus className="w-3.5 h-3.5" />
-                  </button>
+                  {rp.type === 'service' ? (
+                    <Link to={`/shop/${slug}/product/${rp.id}`} onClick={(e) => e.stopPropagation()}
+                      className="absolute top-2 right-2 z-10 w-7 h-7 rounded-full flex items-center justify-center shadow-md text-white opacity-90 hover:opacity-100 hover:scale-110 transition-all"
+                      style={{ backgroundColor: themeColor }} title="Đặt lịch">
+                      <Calendar className="w-3.5 h-3.5" />
+                    </Link>
+                  ) : (
+                    <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); addToCart(rp.id, rp, 1); toast.success(t.addedToCart || 'Đã thêm vào giỏ'); }}
+                      className="absolute top-2 right-2 z-10 w-7 h-7 rounded-full flex items-center justify-center shadow-md text-white opacity-80 hover:opacity-100 hover:scale-110 transition-all"
+                      style={{ backgroundColor: themeColor }}>
+                      <Plus className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                   <div className="aspect-square bg-[#F8FAFC] overflow-hidden">
                     <img src={rp.image_url || '/product-fallback.png'} alt={rp.name} onError={(e) => { e.target.src = '/product-fallback.png'; }} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                   </div>
