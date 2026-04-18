@@ -28,7 +28,7 @@ const SingleCategoryPage = () => {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [activeImage, setActiveImage] = useState(0);
 
-  useEffect(() => { fetchData(); }, [slug, categoryId]);
+  useEffect(() => { fetchData(); window.scrollTo(0, 0); }, [slug, categoryId]);
 
   const fetchData = async () => {
     try {
