@@ -1,0 +1,83 @@
+{
+  "summary": "Tested new Services + Bookings feature and TikTok business-card field end-to-end. Backend: 15/15 pytest tests passed. Frontend: storefront tabs, booking modal, booking submission, product detail, dashboard orders+bookings section, and Danh thiếp TikTok field all verified.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "features_tested": {
+    "service_product_crud": {
+      "status": "PASS",
+      "details": "POST /api/dashboard/products with type='service' creates service; service appears only in ?type=service; product filter excludes services. Legacy products without 'type' field correctly included under ?type=product."
+    },
+    "booking_create_public": {
+      "status": "PASS",
+      "details": "POST /api/shop/fashion-pro-store/bookings returns 200 with booking_id (BK-...) for a valid service_id. Returns 404 when service_id references a regular product or an unknown id."
+    },
+    "booking_dashboard_list": {
+      "status": "PASS",
+      "details": "GET /api/dashboard/bookings returns shop-owner bookings sorted by created_at desc; fields include id, shop_id, service_id, customer_*, preferred_datetime, status, created_at."
+    },
+    "booking_status_transitions": {
+      "status": "PASS",
+      "details": "PUT /api/dashboard/bookings/{id}/status transitions pending->confirmed->completed; invalid status returns 400."
+    },
+    "booking_delete": {
+      "status": "PASS",
+      "details": "DELETE /api/dashboard/bookings/{id} removes booking; second DELETE returns 404."
+    },
+    "business_card_tiktok": {
+      "status": "PASS",
+      "details": "GET/PUT /api/dashboard/business-card returns and persists social_tiktok. Public GET /api/card/fashion-pro-store returns social_tiktok field correctly."
+    },
+    "storefront_ui": {
+      "status": "PASS",
+      "details": "data-testid='storefront-tab-products' and 'storefront-tab-services' both present. Clicking Dịch vụ filters to services only; 'Dịch vụ' badges visible; 2 book-service-{id} buttons rendered."
+    },
+    "booking_modal_ui": {
+      "status": "PASS",
+      "details": "Modal has data-testid='booking-modal' with correct input testids: booking-name-input, booking-phone-input, booking-email-input, booking-datetime-input, booking-note-input and booking-submit-button. Submit POSTs to /api/shop/fashion-pro-store/bookings and shows success toast 'Đã gửi yêu cầu đặt lịch!'. Modal closes after success."
+    },
+    "product_detail_page": {
+      "status": "PASS",
+      "details": "Service product shows data-testid='product-book-service' with label 'Đặt lịch' and opens booking modal; regular product shows data-testid='product-add-cart' with label 'Thêm vào giỏ'."
+    },
+    "dashboard_orders_bookings_section": {
+      "status": "PASS",
+      "details": "Orders tab contains 'Đơn đặt lịch dịch vụ' section (data-testid='bookings-section') with booking-row-BK-*, confirm-booking-*, cancel-booking-*, call-booking-*, delete-booking-* action buttons and 'Chờ xác nhận' status chip displayed."
+    },
+    "business_card_tiktok_ui": {
+      "status": "PASS",
+      "details": "Danh thiếp tab contains data-testid='card-tiktok-input' with placeholder 'https://tiktok.com/@...'. No Instagram input present (replaced)."
+    }
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_services_bookings.py",
+    "/app/test_reports/pytest/pytest_services_bookings.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Booking email notification reuses send_order_email with booking data packed as an order (customer_address holds service name+datetime). Works but semantically misleading—consider dedicated send_booking_email template.",
+    "Public card response only returns keys present in the stored card doc, so if a shop never saved social_instagram the key is absent in the response (not returned as empty string). Frontend must tolerate missing keys (already does). Minor consistency issue."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_services_bookings.py"
+  ],
+  "success_rate": {
+    "backend": "100% (15/15 tests passed)",
+    "frontend": "100% (all UI flows verified for Services + Bookings + TikTok)"
+  },
+  "test_credentials": {
+    "shop_owner_fashion": "fashion@proid.vn / iLoveProID@",
+    "super_admin": "daominhhai129@gmail.com / admin123",
+    "shop_slug": "fashion-pro-store"
+  },
+  "seed_data_creation": "Created TEST_SRV_* service and TEST_PRD_* product in fashion-pro-store during tests (auto-cleaned via DELETE /api/dashboard/products/{id}). Created one booking from the Playwright test (BK-7D682462D73E) which remains in DB as test data.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Services + Bookings feature fully working. Service products stored with type='service' in db.products; bookings in db.bookings with id 'BK-...'. Storefront URL for fashion shop: /shop/fashion-pro-store. Public card: /api/card/fashion-pro-store. All data-testid attributes confirmed present. If re-running, backend_test: set REACT_APP_BACKEND_URL env var before pytest."
+}

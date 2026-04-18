@@ -17,7 +17,7 @@ import {
   LogOut, Menu, X, Plus, Pencil, Trash2, TrendingUp, Clock, Eye, Palette, Upload, ExternalLink,
   Bold, Italic, List, ChevronUp, ChevronDown, Play, FileText, Image, Calendar, Search, LayoutGrid, GripVertical,
   Globe, Navigation, Link2, Video, Type, ArrowUp, ArrowDown, EyeOff, Copy, Grid3X3,
-  Bell, BellOff, Smartphone, Download, Mail, Loader2, Check, Ticket, Users, Lock
+  Bell, BellOff, Smartphone, Download, Mail, Loader2, Check, Ticket, Users, Lock, Phone
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { DndContext, closestCenter, PointerSensor, TouchSensor, KeyboardSensor, useSensor, useSensors } from '@dnd-kit/core';
@@ -271,6 +271,7 @@ const ShopOwnerDashboard = () => {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [orders, setOrders] = useState([]);
+  const [bookings, setBookings] = useState([]);
   const [activeTab, setActiveTab] = useState(() => searchParams.get('tab') || 'overview');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -293,7 +294,7 @@ const ShopOwnerDashboard = () => {
   const [detailShowVideo, setDetailShowVideo] = useState(false);
   const [posts, setPosts] = useState([]);
 
-  const [productForm, setProductForm] = useState({ name: '', price: '', category_id: '', description: '', image_url: '', images: [], stock: '', position: '', video_url: '', video_links: [], sku: '', is_featured: false });
+  const [productForm, setProductForm] = useState({ name: '', price: '', category_id: '', description: '', image_url: '', images: [], stock: '', position: '', video_url: '', video_links: [], sku: '', is_featured: false, type: 'product' });
   const [categoryForm, setCategoryForm] = useState({ name: '', description: '', parent_id: '', image_url: '' });
   const [shopForm, setShopForm] = useState({});
   const [postForm, setPostForm] = useState({ title: '', description: '', thumbnail: '', images: [], attached_products: [] });
@@ -588,12 +589,13 @@ const ShopOwnerDashboard = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [statsRes, shopRes, productsRes, categoriesRes, ordersRes, postsRes, pagesRes, menuRes, megaMenuRes] = await Promise.all([
+      const [statsRes, shopRes, productsRes, categoriesRes, ordersRes, bookingsRes, postsRes, pagesRes, menuRes, megaMenuRes] = await Promise.all([
         axios.get(`${API}/dashboard/stats${shopQuery}`),
         axios.get(`${API}/dashboard/shop${shopQuery}`),
         axios.get(`${API}/dashboard/products${shopQuery}`),
         axios.get(`${API}/dashboard/categories${shopQuery}`),
         axios.get(`${API}/dashboard/orders${shopQuery}`),
+        axios.get(`${API}/dashboard/bookings${shopQuery}`).catch(() => ({ data: [] })),
         axios.get(`${API}/dashboard/posts${shopQuery}`),
         axios.get(`${API}/dashboard/pages${shopQuery}`),
         axios.get(`${API}/dashboard/menu${shopQuery}`),
@@ -606,6 +608,7 @@ const ShopOwnerDashboard = () => {
       setProducts(productsRes.data);
       setCategories(categoriesRes.data);
       setOrders(ordersRes.data);
+      setBookings(bookingsRes.data || []);
       setPosts(postsRes.data || []);
       setCustomPages(pagesRes.data || []);
       setShopMenuItems(menuRes.data || []);
@@ -640,6 +643,13 @@ const ShopOwnerDashboard = () => {
     try {
       const { data } = await axios.get(`${API}/dashboard/orders${shopQuery}`);
       setOrders(data);
+    } catch { }
+  };
+
+  const fetchBookingsOnly = async () => {
+    try {
+      const { data } = await axios.get(`${API}/dashboard/bookings${shopQuery}`);
+      setBookings(data || []);
     } catch { }
   };
 
@@ -776,7 +786,8 @@ const ShopOwnerDashboard = () => {
       video_url: product.video_url || '',
       video_links: product.video_links || [],
       sku: product.sku || '',
-      is_featured: product.is_featured || false
+      is_featured: product.is_featured || false,
+      type: product.type || 'product'
     });
     setShowProductModal(true);
   };
@@ -790,7 +801,7 @@ const ShopOwnerDashboard = () => {
 
   const resetProductForm = () => {
     setEditingProduct(null);
-    setProductForm({ name: '', price: '', category_id: '', description: '', image_url: '', images: [], stock: '', position: '', video_url: '', video_links: [], sku: '', is_featured: false });
+    setProductForm({ name: '', price: '', category_id: '', description: '', image_url: '', images: [], stock: '', position: '', video_url: '', video_links: [], sku: '', is_featured: false, type: 'product' });
   };
 
   const handleSaveCategory = async (e) => {
@@ -853,6 +864,27 @@ const ShopOwnerDashboard = () => {
       if (shop?.agents_enabled) fetchAgentSales();
     } catch (err) {
       toast.error(t.failedToUpdate);
+    }
+  };
+
+  const handleBookingStatus = async (bookingId, status) => {
+    try {
+      await axios.put(`${API}/dashboard/bookings/${bookingId}/status`, { status });
+      toast.success('Đã cập nhật trạng thái đặt lịch');
+      fetchBookingsOnly();
+    } catch (err) {
+      toast.error(t.failedToUpdate);
+    }
+  };
+
+  const handleDeleteBooking = async (bookingId) => {
+    if (!window.confirm('Xóa đơn đặt lịch này?')) return;
+    try {
+      await axios.delete(`${API}/dashboard/bookings/${bookingId}`);
+      toast.success('Đã xóa đơn đặt lịch');
+      fetchBookingsOnly();
+    } catch (err) {
+      toast.error(t.failedToDelete);
     }
   };
 
@@ -1515,6 +1547,11 @@ const ShopOwnerDashboard = () => {
                                 <TrendingUp className="w-2.5 h-2.5 inline mr-0.5" />Featured
                               </span>
                             )}
+                            {product.type === 'service' && (
+                              <span className="absolute top-1 right-1 px-1.5 py-0.5 bg-[#0F172A] text-white text-[9px] font-bold rounded-[3px]" data-testid={`service-badge-${product.id}`}>
+                                Dịch vụ
+                              </span>
+                            )}
                           </div>
                           <div className="p-2 lg:p-3">
                             <h3 className="font-medium text-[#0F172A] text-xs lg:text-sm truncate cursor-pointer hover:text-[#0055FF]" onClick={() => openProductDetail(product)}>{product.name}</h3>
@@ -1668,6 +1705,10 @@ const ShopOwnerDashboard = () => {
 
               <Card className="border-0 shadow-sm">
                 <CardContent className="p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-bold text-[#0F172A]">Đơn hàng sản phẩm</h3>
+                    <span className="text-xs text-[#94A3B8]">{orders.length}</span>
+                  </div>
                   {orders.length === 0 ? (
                     <div className="text-center py-12">
                       <ShoppingCart className="w-12 h-12 text-[#E2E8F0] mx-auto mb-4" />
@@ -1712,6 +1753,101 @@ const ShopOwnerDashboard = () => {
                           </div>
                         </div>
                       ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Bookings Section */}
+              <Card className="border-0 shadow-sm" data-testid="bookings-section">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-bold text-[#0F172A]">Đơn đặt lịch dịch vụ</h3>
+                    <span className="text-xs text-[#94A3B8]">{bookings.length}</span>
+                  </div>
+                  {bookings.length === 0 ? (
+                    <div className="text-center py-10">
+                      <Calendar className="w-10 h-10 text-[#E2E8F0] mx-auto mb-3" />
+                      <p className="text-[#64748B] text-sm">Chưa có đơn đặt lịch nào</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {bookings.map((bk) => {
+                        const bkStatusColors = {
+                          pending: 'bg-amber-100 text-amber-700',
+                          confirmed: 'bg-blue-100 text-blue-700',
+                          completed: 'bg-green-100 text-green-700',
+                          cancelled: 'bg-red-100 text-red-700',
+                        };
+                        const bkStatusLabels = {
+                          pending: 'Chờ xác nhận',
+                          confirmed: 'Đã xác nhận',
+                          completed: 'Hoàn thành',
+                          cancelled: 'Đã hủy',
+                        };
+                        return (
+                          <div key={bk.id} className="p-3 border rounded-lg bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-3" data-testid={`booking-row-${bk.id}`}>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <p className="font-medium text-[#0F172A] text-sm">{bk.id}</p>
+                                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[#0F172A] text-white font-medium">Dịch vụ</span>
+                                {bk.agent_name && (
+                                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 font-bold border border-blue-200">
+                                    Đại lý: {bk.agent_name}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-xs text-[#0F172A] mt-1 font-medium">{bk.service_name} · {formatVND(bk.service_price || 0)}</p>
+                              <p className="text-xs text-[#64748B] mt-0.5">{bk.customer_name} - {bk.customer_phone}</p>
+                              <p className="text-[11px] text-[#64748B]">
+                                <Calendar className="w-3 h-3 inline mr-1" />
+                                {(() => {
+                                  try {
+                                    const d = new Date(bk.preferred_datetime);
+                                    if (!isNaN(d.getTime())) return d.toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' });
+                                  } catch { }
+                                  return bk.preferred_datetime;
+                                })()}
+                              </p>
+                              {bk.note && <p className="text-[11px] text-[#94A3B8] mt-0.5 italic line-clamp-2">Ghi chú: {bk.note}</p>}
+                            </div>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${bkStatusColors[bk.status] || 'bg-gray-100 text-gray-700'}`}>
+                                {bkStatusLabels[bk.status] || bk.status}
+                              </span>
+                              {bk.status === 'pending' && (
+                                <Button size="sm" className="h-7 text-xs text-white" style={{ backgroundColor: '#22C55E' }}
+                                  onClick={() => handleBookingStatus(bk.id, 'confirmed')}
+                                  data-testid={`confirm-booking-${bk.id}`}>
+                                  <Check className="w-3 h-3 mr-1" /> Duyệt
+                                </Button>
+                              )}
+                              {bk.status === 'confirmed' && (
+                                <Button size="sm" className="h-7 text-xs text-white" style={{ backgroundColor: themeColor }}
+                                  onClick={() => handleBookingStatus(bk.id, 'completed')}
+                                  data-testid={`complete-booking-${bk.id}`}>
+                                  Hoàn thành
+                                </Button>
+                              )}
+                              {(bk.status === 'pending' || bk.status === 'confirmed') && (
+                                <Button size="sm" variant="outline" className="h-7 text-xs"
+                                  onClick={() => handleBookingStatus(bk.id, 'cancelled')}
+                                  data-testid={`cancel-booking-${bk.id}`}>
+                                  Hủy
+                                </Button>
+                              )}
+                              {bk.customer_phone && (
+                                <a href={`tel:${bk.customer_phone}`} className="inline-flex items-center justify-center h-7 w-7 rounded border border-[#E2E8F0] hover:bg-[#F8FAFC]" data-testid={`call-booking-${bk.id}`}>
+                                  <Phone className="w-3 h-3 text-[#0F172A]" />
+                                </a>
+                              )}
+                              <Button variant="destructive" size="sm" className="h-7 w-7 p-0" onClick={() => handleDeleteBooking(bk.id)} data-testid={`delete-booking-${bk.id}`}>
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </CardContent>
@@ -3053,6 +3189,26 @@ const ShopOwnerDashboard = () => {
             <div>
               <label className="block text-xs font-medium mb-1">{t.productName} *</label>
               <Input value={productForm.name} onChange={(e) => setProductForm({ ...productForm, name: e.target.value })} required className="text-sm" data-testid="product-name-input" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium mb-1">Loại</label>
+              <div className="grid grid-cols-2 gap-2">
+                <button type="button" onClick={() => setProductForm({ ...productForm, type: 'product' })}
+                  className={`text-sm py-2 rounded-[5px] border transition-colors ${productForm.type !== 'service' ? 'border-transparent text-white' : 'border-[#E2E8F0] bg-white text-[#64748B]'}`}
+                  style={productForm.type !== 'service' ? { backgroundColor: themeColor } : {}}
+                  data-testid="product-type-product-btn">
+                  Sản phẩm
+                </button>
+                <button type="button" onClick={() => setProductForm({ ...productForm, type: 'service' })}
+                  className={`text-sm py-2 rounded-[5px] border transition-colors ${productForm.type === 'service' ? 'border-transparent text-white' : 'border-[#E2E8F0] bg-white text-[#64748B]'}`}
+                  style={productForm.type === 'service' ? { backgroundColor: themeColor } : {}}
+                  data-testid="product-type-service-btn">
+                  Dịch vụ
+                </button>
+              </div>
+              {productForm.type === 'service' && (
+                <p className="text-[11px] text-[#64748B] mt-1">Khách sẽ thấy nút "Đặt lịch" thay vì "Thêm vào giỏ".</p>
+              )}
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <div>

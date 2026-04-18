@@ -37,6 +37,10 @@ const StorefrontPage = () => {
   const [categories, setCategories] = useState([]);
   const [posts, setPosts] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [viewMode, setViewMode] = useState('product'); // 'product' | 'service'
+  const [bookingProduct, setBookingProduct] = useState(null);
+  const [bookingForm, setBookingForm] = useState({ customer_name: '', customer_phone: '', customer_email: '', preferred_datetime: '', note: '' });
+  const [bookingSubmitting, setBookingSubmitting] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -195,6 +199,8 @@ const StorefrontPage = () => {
 
   useEffect(() => {
     let result = [...products];
+    // Filter by type (product vs service); treat missing type as "product"
+    result = result.filter(p => (viewMode === 'service' ? p.type === 'service' : p.type !== 'service'));
     if (selectedCategory === 'uncategorized') {
       const allCatIds = categories.map(c => c.id);
       result = result.filter(p => !p.category_id || !allCatIds.includes(p.category_id));
@@ -220,11 +226,48 @@ const StorefrontPage = () => {
     }
     if (searchQuery) { const q = searchQuery.toLowerCase(); result = result.filter(p => p.name.toLowerCase().includes(q)); }
     setFilteredProducts(result);
-  }, [selectedCategory, searchQuery, products, categories]);
+  }, [selectedCategory, searchQuery, products, categories, viewMode]);
 
   const addToCart = (product) => {
     ctxAddToCart(product.id, product, 1);
     toast.success(t.addedToCart);
+  };
+
+  const openBooking = (product) => {
+    setBookingProduct(product);
+    setBookingForm({ customer_name: '', customer_phone: '', customer_email: '', preferred_datetime: '', note: '' });
+  };
+
+  const closeBooking = () => {
+    setBookingProduct(null);
+  };
+
+  const submitBooking = async (e) => {
+    e.preventDefault();
+    if (!bookingProduct) return;
+    if (!bookingForm.customer_name.trim() || !bookingForm.customer_phone.trim() || !bookingForm.preferred_datetime) {
+      toast.error('Vui lòng điền đầy đủ Họ tên, SĐT và Thời gian mong muốn');
+      return;
+    }
+    setBookingSubmitting(true);
+    try {
+      const trackingCode = new URLSearchParams(window.location.search).get('ref') || localStorage.getItem(`agent_ref_${slug}`) || null;
+      await axios.post(`${API}/shop/${slug}/bookings`, {
+        service_id: bookingProduct.id,
+        customer_name: bookingForm.customer_name.trim(),
+        customer_phone: bookingForm.customer_phone.trim(),
+        customer_email: bookingForm.customer_email.trim(),
+        preferred_datetime: bookingForm.preferred_datetime,
+        note: bookingForm.note.trim(),
+        agent_tracking_code: trackingCode,
+      });
+      toast.success('Đã gửi yêu cầu đặt lịch! Chúng tôi sẽ liên hệ xác nhận sớm.');
+      setBookingProduct(null);
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Gửi yêu cầu thất bại');
+    } finally {
+      setBookingSubmitting(false);
+    }
   };
 
   const updateCartQuantity = (productId, delta) => {
@@ -440,7 +483,9 @@ const StorefrontPage = () => {
   };
 
   // Product Card
-  const ProductCard = ({ product }) => (
+  const ProductCard = ({ product }) => {
+    const isService = product.type === 'service';
+    return (
     <Link to={`/shop/${slug}/product/${product.id}`} className="group bg-white border border-[#E2E8F0] rounded-[5px] overflow-hidden hover:shadow-lg transition-all cursor-pointer relative block"
       data-testid={`product-${product.id}`}>
       {isOwner && (
@@ -450,12 +495,19 @@ const StorefrontPage = () => {
           <Pencil className="w-3.5 h-3.5 text-[#475569]" />
         </button>
       )}
-      <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); addToCart(product); }}
-        className="absolute top-2 right-2 z-10 w-8 h-8 rounded-full flex items-center justify-center shadow-md text-white transition-all opacity-80 hover:opacity-100 hover:scale-110"
+      <button type="button" onClick={(e) => {
+          e.preventDefault(); e.stopPropagation();
+          if (isService) { openBooking(product); } else { addToCart(product); }
+        }}
+        className="absolute top-2 right-2 z-10 w-8 h-8 rounded-full flex items-center justify-center shadow-md text-white transition-all opacity-90 hover:opacity-100 hover:scale-110"
         style={{ backgroundColor: themeColor }}
-        data-testid={`add-cart-${product.id}`}>
-        <Plus className="w-4 h-4" />
+        data-testid={isService ? `book-service-${product.id}` : `add-cart-${product.id}`}
+        title={isService ? 'Đặt lịch' : 'Thêm vào giỏ'}>
+        {isService ? <Calendar className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
       </button>
+      {isService && (
+        <span className="absolute top-2 left-2 z-10 px-1.5 py-0.5 text-[10px] font-bold rounded bg-[#0F172A] text-white">Dịch vụ</span>
+      )}
       <div className="aspect-square bg-[#F8FAFC] overflow-hidden">
         <img src={product.image_url || '/product-fallback.png'} alt={product.name} onError={(e) => { e.target.src = '/product-fallback.png'; }} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
       </div>
@@ -464,12 +516,13 @@ const StorefrontPage = () => {
         <p className="text-base sm:text-lg font-bold mb-2" style={{ color: themeColor }}>{formatVND(product.price)}</p>
       </div>
     </Link>
-  );
+    );
+  };
 
   // Featured Products Section
   const FeaturedProducts = () => {
     if (!isSectionEnabled('featured')) return null;
-    const featured = products.filter(p => p.is_featured);
+    const featured = products.filter(p => p.is_featured && (viewMode === 'service' ? p.type === 'service' : p.type !== 'service'));
     if (!featured.length) return null;
     return (
       <div className="mb-8" data-testid="featured-products">
@@ -484,8 +537,26 @@ const StorefrontPage = () => {
   // Products Section
   const ProductsSection = () => {
     if (!isSectionEnabled('products')) return null;
+    const hasServices = products.some(p => p.type === 'service');
+    const hasProducts = products.some(p => p.type !== 'service');
     return (
       <>
+        {(hasServices && hasProducts) && (
+          <div className="flex items-center justify-center gap-2 mb-6" data-testid="product-type-toggle">
+            <button type="button" onClick={() => setViewMode('product')}
+              className={`px-5 py-2 rounded-full text-sm font-medium border transition-all ${viewMode === 'product' ? 'text-white border-transparent shadow' : 'bg-white text-[#64748B] border-[#E2E8F0]'}`}
+              style={viewMode === 'product' ? { backgroundColor: themeColor } : {}}
+              data-testid="storefront-tab-products">
+              Sản phẩm
+            </button>
+            <button type="button" onClick={() => setViewMode('service')}
+              className={`px-5 py-2 rounded-full text-sm font-medium border transition-all inline-flex items-center gap-1.5 ${viewMode === 'service' ? 'text-white border-transparent shadow' : 'bg-white text-[#64748B] border-[#E2E8F0]'}`}
+              style={viewMode === 'service' ? { backgroundColor: themeColor } : {}}
+              data-testid="storefront-tab-services">
+              <Calendar className="w-3.5 h-3.5" /> Dịch vụ
+            </button>
+          </div>
+        )}
         {filteredProducts.length === 0 ? (
           <div className="text-center py-24"><p className="text-[#64748B] text-lg">{t.noProducts}</p></div>
         ) : selectedCategory === 'all' && !searchQuery ? (
@@ -1486,6 +1557,56 @@ const StorefrontPage = () => {
         multiple={editMediaTarget === 'product'}
         maxSelect={editMediaTarget === 'product' ? 8 - (editProduct?.images?.length || 0) : 1}
       />
+
+      {/* Booking Modal */}
+      <Dialog open={!!bookingProduct} onOpenChange={(v) => { if (!v) closeBooking(); }}>
+        <DialogContent className="sm:max-w-md bg-white" data-testid="booking-modal">
+          <DialogHeader>
+            <DialogTitle className="text-base">Đặt lịch dịch vụ</DialogTitle>
+            <DialogDescription className="text-sm">
+              {bookingProduct ? `${bookingProduct.name} · ${formatVND(bookingProduct.price)}` : ''}
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={submitBooking} className="space-y-3">
+            <div>
+              <label className="block text-xs font-medium text-[#334155] mb-1">Họ tên *</label>
+              <Input value={bookingForm.customer_name} onChange={(e) => setBookingForm({ ...bookingForm, customer_name: e.target.value })}
+                required className="text-sm" data-testid="booking-name-input" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-[#334155] mb-1">Số điện thoại *</label>
+              <Input type="tel" value={bookingForm.customer_phone} onChange={(e) => setBookingForm({ ...bookingForm, customer_phone: e.target.value })}
+                required className="text-sm" data-testid="booking-phone-input" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-[#334155] mb-1">Email (không bắt buộc)</label>
+              <Input type="email" value={bookingForm.customer_email} onChange={(e) => setBookingForm({ ...bookingForm, customer_email: e.target.value })}
+                className="text-sm" data-testid="booking-email-input" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-[#334155] mb-1">Ngày & giờ mong muốn *</label>
+              <Input type="datetime-local" value={bookingForm.preferred_datetime}
+                onChange={(e) => setBookingForm({ ...bookingForm, preferred_datetime: e.target.value })}
+                required className="text-sm" data-testid="booking-datetime-input" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-[#334155] mb-1">Ghi chú</label>
+              <textarea value={bookingForm.note} onChange={(e) => setBookingForm({ ...bookingForm, note: e.target.value })}
+                rows={3} className="w-full text-sm border border-[#E2E8F0] rounded-[5px] px-3 py-2 focus:outline-none focus:ring-1 focus:ring-[#0055FF]"
+                placeholder="Yêu cầu đặc biệt (nếu có)" data-testid="booking-note-input" />
+            </div>
+            <div className="flex gap-2 pt-2">
+              <Button type="button" variant="outline" className="flex-1" onClick={closeBooking} data-testid="booking-cancel-btn">
+                Hủy
+              </Button>
+              <Button type="submit" className="flex-1 text-white" style={{ backgroundColor: themeColor }}
+                disabled={bookingSubmitting} data-testid="booking-submit-btn">
+                {bookingSubmitting ? 'Đang gửi...' : 'Gửi yêu cầu'}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
