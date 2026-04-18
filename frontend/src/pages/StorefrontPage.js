@@ -278,13 +278,25 @@ const StorefrontPage = () => {
 
   const themeColor = shop?.theme_color || '#0055FF';
 
-  const layoutSections = shop?.layout_sections?.length ? shop.layout_sections : [
-    { id: 'banner', enabled: true },
-    { id: 'categories', enabled: true },
-    { id: 'blog', enabled: true },
-    { id: 'featured', enabled: true },
-    { id: 'products', enabled: true }
-  ];
+  const layoutSections = (() => {
+    const defaults = [
+      { id: 'banner', enabled: true },
+      { id: 'categories', enabled: true },
+      { id: 'blog', enabled: true },
+      { id: 'featured', enabled: true },
+      { id: 'services', enabled: true },
+      { id: 'products', enabled: true }
+    ];
+    const existing = shop?.layout_sections?.length ? [...shop.layout_sections] : null;
+    if (!existing) return defaults;
+    // Auto-inject 'services' before 'products' if missing (backward compat)
+    if (!existing.some(s => s.id === 'services')) {
+      const prodIdx = existing.findIndex(s => s.id === 'products');
+      const insertAt = prodIdx >= 0 ? prodIdx : existing.length;
+      existing.splice(insertAt, 0, { id: 'services', enabled: true });
+    }
+    return existing;
+  })();
 
   const isSectionEnabled = (id) => {
     const section = layoutSections.find(s => s.id === id);
@@ -691,6 +703,7 @@ const StorefrontPage = () => {
       case 'categories': return <CategoryGrid key="categories" />;
       case 'blog': return <PostCarousel key="blog" />;
       case 'featured': return <FeaturedProducts key="featured" />;
+      case 'services': return <ServicesSection key="services" />;
       case 'products': return null; // products rendered separately below filters
       default: return null;
     }
@@ -1123,9 +1136,6 @@ const StorefrontPage = () => {
             </Select>
           </div>
         </div>
-
-        {/* Services section (above products) */}
-        <ServicesSection />
 
         {/* Products section */}
         <ProductsSection />

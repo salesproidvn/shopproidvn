@@ -1131,6 +1131,7 @@ const ShopOwnerDashboard = () => {
     categories: t.categories,
     blog: t.sectionBlog,
     featured: t.sectionFeatured,
+    services: 'Dịch vụ',
     products: t.sectionProducts,
   };
 
@@ -1139,20 +1140,29 @@ const ShopOwnerDashboard = () => {
     categories: FolderOpen,
     blog: FileText,
     featured: TrendingUp,
+    services: Calendar,
     products: Package,
   };
 
-  const VALID_SECTION_IDS = ['banner', 'categories', 'blog', 'featured', 'products'];
+  const VALID_SECTION_IDS = ['banner', 'categories', 'blog', 'featured', 'services', 'products'];
   const getLayoutSections = () => {
     const sections = shopForm.layout_sections;
     if (sections && sections.length > 0) {
-      return sections.filter(s => VALID_SECTION_IDS.includes(s.id));
+      // Filter invalid + append 'services' if missing (migrate existing shops)
+      const valid = sections.filter(s => VALID_SECTION_IDS.includes(s.id));
+      if (!valid.some(s => s.id === 'services')) {
+        const prodIdx = valid.findIndex(s => s.id === 'products');
+        const insertAt = prodIdx >= 0 ? prodIdx : valid.length;
+        valid.splice(insertAt, 0, { id: 'services', label: 'Dịch vụ', enabled: true });
+      }
+      return valid;
     }
     return [
       { id: 'banner', label: 'Banner', enabled: true },
       { id: 'categories', label: 'Categories', enabled: true },
       { id: 'blog', label: 'Blog', enabled: true },
       { id: 'featured', label: 'Featured Products', enabled: true },
+      { id: 'services', label: 'Dịch vụ', enabled: true },
       { id: 'products', label: 'Products', enabled: true }
     ];
   };
