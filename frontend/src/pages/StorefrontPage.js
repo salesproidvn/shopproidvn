@@ -333,7 +333,7 @@ const StorefrontPage = () => {
         {/* Skeleton Products */}
         <div className="max-w-7xl mx-auto px-4 py-8">
           <div className="h-7 w-40 bg-[#E2E8F0] rounded animate-pulse mb-6" />
-          <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 lg:gap-5">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 lg:gap-5">
             {[1,2,3,4,5,6,7,8,9,10].map(i => (
               <div key={i} className="rounded-xl overflow-hidden bg-white shadow-sm">
                 <div className="aspect-square bg-[#F1F5F9] animate-pulse" />
@@ -403,7 +403,7 @@ const StorefrontPage = () => {
           <h3 className="text-xl sm:text-2xl font-bold text-[#0F172A]">{t.latestPosts}</h3>
           <Link to={`/shop/${slug}/posts`}><Button variant="ghost" size="sm" className="text-sm rounded-[5px]" style={{ color: themeColor }}>{t.readMore} &rarr;</Button></Link>
         </div>
-        <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 lg:gap-5" data-testid="post-grid">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 lg:gap-5" data-testid="post-grid">
           {posts.slice(0, 5).map(post => (
             <Link key={post.id} to={`/shop/${slug}/posts/${post.id}`}
               className="group bg-white border border-[#E2E8F0] rounded-[5px] overflow-hidden hover:shadow-lg transition-all relative"
@@ -474,7 +474,7 @@ const StorefrontPage = () => {
     return (
       <div className="mb-8" data-testid="featured-products">
         <h3 className="text-xl sm:text-2xl font-bold text-[#0F172A] mb-4">{t.featuredProducts}</h3>
-        <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 lg:gap-5">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 lg:gap-5">
           {featured.map((product) => (<ProductCard key={product.id} product={product} />))}
         </div>
       </div>
@@ -518,7 +518,7 @@ const StorefrontPage = () => {
                       ))}
                     </div>
                   )}
-                  <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 lg:gap-5">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 lg:gap-5">
                     {visibleProducts.map((product) => (<ProductCard key={product.id} product={product} />))}
                   </div>
                   {catProducts.length > PRODUCTS_PER_CATEGORY && (
@@ -547,7 +547,7 @@ const StorefrontPage = () => {
                     <div className="flex-1 h-px bg-[#E2E8F0]" />
                     <span className="text-sm text-[#94A3B8]">{uncategorized.length}</span>
                   </div>
-                  <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 lg:gap-5">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 lg:gap-5">
                     {visible.map((product) => (<ProductCard key={product.id} product={product} />))}
                   </div>
                   {uncategorized.length > PRODUCTS_PER_CATEGORY && (
@@ -562,7 +562,7 @@ const StorefrontPage = () => {
             })()}
           </div>
         ) : (
-          <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 lg:gap-5" data-testid="product-grid">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 lg:gap-5" data-testid="product-grid">
             {filteredProducts.map((product) => (<ProductCard key={product.id} product={product} />))}
           </div>
         )}
@@ -1197,7 +1197,7 @@ const StorefrontPage = () => {
         <>
           <div className="fixed inset-0 z-[41]" onClick={() => setShowCategoryMenu(false)} />
           <div className="fixed bottom-[60px] left-0 right-0 z-[42] bg-white border-t border-[#E2E8F0] shadow-xl p-4 max-h-64 overflow-y-auto sm:bottom-20 sm:left-1/2 sm:-translate-x-1/2 sm:right-auto sm:w-[90vw] sm:max-w-md sm:rounded-xl sm:border sm:border-[#E2E8F0]" data-testid="category-menu-popup">
-            <div className="max-w-7xl mx-auto grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <div className="max-w-7xl mx-auto grid grid-cols-3 sm:grid-cols-3 gap-2">
               {categories.filter(c => !c.parent_id).map(cat => (
                 <Link key={cat.id} to={`/shop/${slug}/category/${cat.id}`} onClick={() => setShowCategoryMenu(false)} className="text-left p-3 bg-[#F8FAFC] hover:bg-[#EFF6FF] rounded-lg transition-colors text-sm font-medium text-[#0F172A]" data-testid={`cat-menu-${cat.id}`}>
                   {cat.name}
