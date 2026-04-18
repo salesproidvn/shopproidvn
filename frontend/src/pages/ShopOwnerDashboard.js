@@ -3045,9 +3045,9 @@ const ShopOwnerDashboard = () => {
             <DialogDescription className="text-sm">{t.fillProductDetails}</DialogDescription>
           </DialogHeader>
           <button type="button" onClick={() => setShowProductModal(false)}
-            className="absolute top-3 right-3 w-8 h-8 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-md transition-colors z-10"
+            className="absolute top-3 right-3 w-9 h-9 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-lg ring-2 ring-white transition-colors z-10"
             data-testid="product-modal-close-btn">
-            <X className="w-4 h-4" />
+            <X className="w-5 h-5 stroke-[2.5]" />
           </button>
           <form onSubmit={handleSaveProduct} className="space-y-4">
             <div>
