@@ -808,7 +808,7 @@ const StorefrontPage = () => {
       <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-lg border-b border-[#E2E8F0]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-14">
-            <Link to={`/shop/${slug}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+            <a href={`/shop/${slug}`} onClick={(e) => { const homePath = `/shop/${slug}`; if (window.location.pathname === homePath || window.location.pathname === homePath + '/') { e.preventDefault(); window.location.reload(); } }} className="flex items-center gap-3 hover:opacity-80 transition-opacity cursor-pointer">
               {shop.logo_url ? (
                 <img src={shop.logo_url} alt={shop.name} className="w-9 h-9 rounded-full object-cover" />
               ) : (
@@ -817,7 +817,7 @@ const StorefrontPage = () => {
                 </div>
               )}
               <span className="font-bold text-base text-[#0F172A]">{shop.name}</span>
-            </Link>
+            </a>
 
             {/* Desktop Menu - Dynamic */}
             <nav className="hidden md:flex items-center gap-1" data-testid="storefront-menu-bar">
@@ -878,10 +878,10 @@ const StorefrontPage = () => {
           <div className="lg:hidden fixed inset-0 z-[60] bg-white overflow-y-auto" data-testid="mobile-mega-menu">
             {/* Header */}
             <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 border-b border-[#E2E8F0] bg-white">
-              <Link to={`/shop/${slug}`} className="flex items-center gap-2 hover:opacity-80 transition-opacity" onClick={() => { setMobileMenuOpen(false); setMobileExpandedCat(null); }}>
+              <a href={`/shop/${slug}`} onClick={(e) => { setMobileMenuOpen(false); setMobileExpandedCat(null); const homePath = `/shop/${slug}`; if (window.location.pathname === homePath || window.location.pathname === homePath + '/') { e.preventDefault(); window.location.reload(); } }} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
                 {shop.logo_url && <img src={shop.logo_url} alt="" className="w-7 h-7 rounded-lg object-cover" />}
                 <span className="font-bold text-[#0F172A] text-sm">{shop.name}</span>
-              </Link>
+              </a>
               <button onClick={() => { setMobileMenuOpen(false); setMobileExpandedCat(null); }} className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-[#F1F5F9]" data-testid="mobile-menu-close">
                 <X className="w-5 h-5 text-[#475569]" />
               </button>
