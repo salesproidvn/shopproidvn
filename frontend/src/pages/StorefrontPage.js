@@ -445,11 +445,17 @@ const StorefrontPage = () => {
       onClick={() => { scrollPosRef.current = window.scrollY; setSelectedProduct(product); setActiveImage(0); setShowVideo(null); }} data-testid={`product-${product.id}`}>
       {isOwner && (
         <button type="button" onClick={(e) => { e.stopPropagation(); setEditProduct({...product}); }}
-          className="absolute top-2 right-2 z-10 w-8 h-8 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
+          className="absolute top-2 left-2 z-10 w-8 h-8 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
           data-testid={`edit-product-storefront-${product.id}`}>
           <Pencil className="w-3.5 h-3.5 text-[#475569]" />
         </button>
       )}
+      <button type="button" onClick={(e) => { e.stopPropagation(); addToCart(product); }}
+        className="absolute top-2 right-2 z-10 w-8 h-8 rounded-full flex items-center justify-center shadow-md text-white transition-all opacity-80 hover:opacity-100 hover:scale-110"
+        style={{ backgroundColor: themeColor }}
+        data-testid={`add-cart-${product.id}`}>
+        <Plus className="w-4 h-4" />
+      </button>
       <div className="aspect-square bg-[#F8FAFC] overflow-hidden">
         <img src={product.image_url || '/product-fallback.png'} alt={product.name} onError={(e) => { e.target.src = '/product-fallback.png'; }} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
       </div>
