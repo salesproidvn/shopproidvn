@@ -852,7 +852,7 @@ const StorefrontPage = () => {
                   </Button>
                 </Link>
               ) : !user && (
-                <Link to="/" data-testid="storefront-login-btn">
+                <Link to="/" data-testid="storefront-login-btn" className="hidden md:inline-flex">
                   <Button size="sm" className="rounded-full text-xs text-white" style={{ backgroundColor: themeColor }}>
                     {t.login || 'Đăng nhập'}
                   </Button>
@@ -1019,6 +1019,20 @@ const StorefrontPage = () => {
                   );
                 });
               })()}
+            </div>
+
+            {/* Login / Dashboard Button */}
+            <div className="px-4 py-3 border-t border-[#F1F5F9]">
+              {user ? (
+                <Link to={user.role === 'super_admin' || user.role === 'sub_admin' ? '/admin' : user.role === 'agent' ? '/agent' : '/dashboard'} onClick={() => { setMobileMenuOpen(false); setMobileExpandedCat(null); }} className="flex items-center gap-3 py-2.5 text-sm font-medium" style={{ color: themeColor }} data-testid="mobile-menu-dashboard">
+                  <LayoutDashboard className="w-4 h-4" />
+                  {t.dashboard}
+                </Link>
+              ) : (
+                <Link to="/" onClick={() => { setMobileMenuOpen(false); setMobileExpandedCat(null); }} className="flex items-center justify-center gap-2 py-2.5 rounded-xl text-white text-sm font-semibold" style={{ backgroundColor: themeColor }} data-testid="mobile-menu-login">
+                  {t.login || 'Đăng nhập'}
+                </Link>
+              )}
             </div>
 
             {/* Footer contact */}
