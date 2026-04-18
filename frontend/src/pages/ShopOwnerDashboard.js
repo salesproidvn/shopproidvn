@@ -272,6 +272,7 @@ const ShopOwnerDashboard = () => {
   const [categories, setCategories] = useState([]);
   const [orders, setOrders] = useState([]);
   const [bookings, setBookings] = useState([]);
+  const [expandedOrderId, setExpandedOrderId] = useState(null);
   const [activeTab, setActiveTab] = useState(() => searchParams.get('tab') || 'overview');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -1726,43 +1727,134 @@ const ShopOwnerDashboard = () => {
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      {orders.map((order) => (
-                        <div key={order.id} className={`p-3 border rounded-lg bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${order.agent_name ? 'border-l-4 border-l-blue-400' : ''}`}>
-                          <div className="flex-1 min-w-0 cursor-pointer" onClick={() => openOrderDetail(order)} data-testid={`order-row-${order.id}`}>
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <p className="font-medium text-[#0F172A] text-sm hover:text-[#0055FF] transition-colors">{order.id}</p>
-                              {order.agent_name && (
-                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 font-bold border border-blue-200" data-testid={`order-agent-${order.id}`}>
-                                  Đại lý: {order.agent_name}
-                                </span>
-                              )}
-                              {order.voucher && (
-                                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-50 text-green-600 font-medium">
-                                  {order.voucher.code}
-                                </span>
-                              )}
+                      {orders.map((order) => {
+                        const isExpanded = expandedOrderId === order.id;
+                        return (
+                        <div key={order.id} className={`border rounded-lg bg-white ${order.agent_name ? 'border-l-4 border-l-blue-400' : ''}`} data-testid={`order-card-${order.id}`}>
+                          <div className="p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div className="flex-1 min-w-0 cursor-pointer" onClick={() => setExpandedOrderId(isExpanded ? null : order.id)} data-testid={`order-row-${order.id}`}>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <p className="font-medium text-[#0F172A] text-sm hover:text-[#0055FF] transition-colors">{order.id}</p>
+                                {order.agent_name && (
+                                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 font-bold border border-blue-200" data-testid={`order-agent-${order.id}`}>
+                                    Đại lý: {order.agent_name}
+                                  </span>
+                                )}
+                                {order.voucher && (
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-50 text-green-600 font-medium">
+                                    {order.voucher.code}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-xs text-[#64748B] mt-0.5">{order.customer_name} - {order.customer_phone}</p>
+                              <p className="text-[10px] text-[#94A3B8]">{order.items?.length || 0} {t.items} - {new Date(order.created_at).toLocaleDateString('vi-VN')} {new Date(order.created_at).toLocaleTimeString('vi-VN', {hour:'2-digit',minute:'2-digit'})}</p>
                             </div>
-                            <p className="text-xs text-[#64748B] mt-0.5">{order.customer_name} - {order.customer_phone}</p>
-                            <p className="text-[10px] text-[#94A3B8]">{order.items?.length || 0} {t.items} - {new Date(order.created_at).toLocaleDateString('vi-VN')} {new Date(order.created_at).toLocaleTimeString('vi-VN', {hour:'2-digit',minute:'2-digit'})}</p>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <p className="font-bold text-sm" style={{ color: themeColor }}>{formatVND(order.total_amount)}</p>
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[order.status]}`}>
-                              {statusLabels[order.status] || order.status}
-                            </span>
-                            {order.status === 'pending' && (
-                              <Button size="sm" className="h-7 text-xs text-white" style={{ backgroundColor: '#22C55E' }}
-                                onClick={(e) => { e.stopPropagation(); handleOrderStatus(order.id, 'confirmed'); }}
-                                data-testid={`approve-order-${order.id}`}>
-                                <Check className="w-3 h-3 mr-1" /> Duyệt
+                            <div className="flex items-center gap-2">
+                              <p className="font-bold text-sm" style={{ color: themeColor }}>{formatVND(order.total_amount)}</p>
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[order.status]}`}>
+                                {statusLabels[order.status] || order.status}
+                              </span>
+                              {order.status === 'pending' && (
+                                <Button size="sm" className="h-7 text-xs text-white" style={{ backgroundColor: '#22C55E' }}
+                                  onClick={(e) => { e.stopPropagation(); handleOrderStatus(order.id, 'confirmed'); }}
+                                  data-testid={`approve-order-${order.id}`}>
+                                  <Check className="w-3 h-3 mr-1" /> Duyệt
+                                </Button>
+                              )}
+                              <Button variant="outline" size="sm" className="h-7 gap-1" onClick={() => setExpandedOrderId(isExpanded ? null : order.id)} data-testid={`toggle-order-${order.id}`}>
+                                {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                                <span className="text-[11px] hidden sm:inline">{isExpanded ? 'Ẩn' : 'Chi tiết'}</span>
                               </Button>
-                            )}
-                            <Button variant="outline" size="sm" className="h-7" onClick={() => openOrderDetail(order)} data-testid={`view-order-${order.id}`}>
-                              <Eye className="w-3 h-3" />
-                            </Button>
+                            </div>
                           </div>
+
+                          {isExpanded && (
+                            <div className="border-t border-[#E2E8F0] bg-[#F8FAFC] p-4 space-y-4" data-testid={`order-details-${order.id}`}>
+                              {/* Customer Info */}
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div className="bg-white rounded-lg p-3 border border-[#E2E8F0]">
+                                  <p className="text-[10px] font-semibold text-[#94A3B8] uppercase mb-2">Thông tin khách hàng</p>
+                                  <div className="space-y-1.5 text-sm">
+                                    <p className="text-[#0F172A]"><span className="text-[#64748B]">Tên:</span> <span className="font-medium">{order.customer_name}</span></p>
+                                    <p className="text-[#0F172A]">
+                                      <span className="text-[#64748B]">SĐT:</span>{' '}
+                                      <a href={`tel:${order.customer_phone}`} className="font-medium hover:underline" style={{ color: themeColor }}>{order.customer_phone}</a>
+                                    </p>
+                                    {order.customer_email && (
+                                      <p className="text-[#0F172A] break-all">
+                                        <span className="text-[#64748B]">Email:</span>{' '}
+                                        <a href={`mailto:${order.customer_email}`} className="font-medium hover:underline" style={{ color: themeColor }}>{order.customer_email}</a>
+                                      </p>
+                                    )}
+                                    {order.customer_address && (
+                                      <p className="text-[#0F172A]"><span className="text-[#64748B]">Địa chỉ:</span> <span className="font-medium">{order.customer_address}</span></p>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="bg-white rounded-lg p-3 border border-[#E2E8F0]">
+                                  <p className="text-[10px] font-semibold text-[#94A3B8] uppercase mb-2">Thanh toán</p>
+                                  <div className="space-y-1.5 text-sm">
+                                    <div className="flex justify-between">
+                                      <span className="text-[#64748B]">Tạm tính:</span>
+                                      <span className="font-medium text-[#0F172A]">{formatVND(order.subtotal || order.total_amount)}</span>
+                                    </div>
+                                    {order.discount_amount > 0 && (
+                                      <div className="flex justify-between">
+                                        <span className="text-[#64748B]">Giảm giá{order.voucher?.code ? ` (${order.voucher.code})` : ''}:</span>
+                                        <span className="font-medium text-red-500">-{formatVND(order.discount_amount)}</span>
+                                      </div>
+                                    )}
+                                    <div className="flex justify-between border-t border-[#F1F5F9] pt-1.5">
+                                      <span className="text-[#0F172A] font-semibold">Tổng cộng:</span>
+                                      <span className="font-bold" style={{ color: themeColor }}>{formatVND(order.total_amount)}</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Items list */}
+                              <div className="bg-white rounded-lg p-3 border border-[#E2E8F0]">
+                                <p className="text-[10px] font-semibold text-[#94A3B8] uppercase mb-2">Sản phẩm ({order.items?.length || 0})</p>
+                                <div className="space-y-2" data-testid={`order-items-${order.id}`}>
+                                  {(order.items || []).map((item, idx) => (
+                                    <div key={idx} className="flex items-center gap-3 p-2 rounded bg-[#F8FAFC]">
+                                      <img src={item.image_url || '/product-fallback.png'} alt={item.name} onError={(e) => { e.target.src = '/product-fallback.png'; }} className="w-12 h-12 rounded object-cover flex-shrink-0" />
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-medium text-[#0F172A] truncate">{item.name}</p>
+                                        <p className="text-xs text-[#64748B]">{formatVND(item.price)} × {item.quantity}</p>
+                                      </div>
+                                      <p className="text-sm font-semibold" style={{ color: themeColor }}>{formatVND(item.subtotal)}</p>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+
+                              {/* Note */}
+                              {order.note && (
+                                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                                  <p className="text-[10px] font-semibold text-amber-700 uppercase mb-1">Ghi chú của khách</p>
+                                  <p className="text-sm text-[#0F172A] italic">{order.note}</p>
+                                </div>
+                              )}
+
+                              {/* Status action bar */}
+                              <div className="flex flex-wrap gap-2 pt-1">
+                                {['pending', 'confirmed', 'processing', 'shipped', 'completed', 'cancelled'].map(s => (
+                                  <Button key={s} size="sm" variant={order.status === s ? 'default' : 'outline'}
+                                    className={`h-7 text-xs ${order.status === s ? 'text-white' : ''}`}
+                                    style={order.status === s ? { backgroundColor: themeColor } : {}}
+                                    disabled={order.status === s}
+                                    onClick={() => handleOrderStatus(order.id, s)}
+                                    data-testid={`set-status-${s}-${order.id}`}>
+                                    {statusLabels[s] || s}
+                                  </Button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </CardContent>
