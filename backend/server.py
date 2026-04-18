@@ -1526,7 +1526,33 @@ async def get_mega_menu(request: Request):
     user = await require_shop_owner(request)
     shop_id = await resolve_shop_id(request, user)
     shop = await db.shops.find_one({"_id": ObjectId(shop_id)}, {"mega_menu_categories": 1})
-    return shop.get("mega_menu_categories", []) if shop else []
+    saved = shop.get("mega_menu_categories", []) if shop else []
+    # Get all parent categories for this shop
+    parent_cats = await db.categories.find({"shop_id": shop_id, "parent_id": None}, {"_id": 0}).sort("position", 1).to_list(200)
+    cat_map = {c["id"]: c for c in parent_cats}
+    # Build enriched list from saved config
+    result = []
+    seen_ids = set()
+    for item in saved:
+        cat = cat_map.get(item.get("category_id"))
+        if cat:
+            result.append({
+                "category_id": cat["id"], "name": cat["name"],
+                "image_url": cat.get("image_url", ""),
+                "enabled": item.get("enabled", True),
+                "position": item.get("position", len(result)),
+            })
+            seen_ids.add(cat["id"])
+    # Add any new categories not in saved config
+    for cat in parent_cats:
+        if cat["id"] not in seen_ids:
+            result.append({
+                "category_id": cat["id"], "name": cat["name"],
+                "image_url": cat.get("image_url", ""),
+                "enabled": True,
+                "position": len(result),
+            })
+    return result
 
 @api_router.put("/dashboard/mega-menu")
 async def update_mega_menu(data: MegaMenuUpdate, request: Request):
