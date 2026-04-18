@@ -123,7 +123,7 @@ const ProductDetailPage = () => {
       <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-lg border-b border-[#E2E8F0]">
         <div className="max-w-5xl mx-auto px-4">
           <div className="flex items-center justify-between h-14">
-            <button onClick={() => navigate(-1)}
+            <button onClick={() => navigate(`/shop/${slug}`)}
               className="flex items-center gap-2 text-base font-semibold text-[#0F172A] hover:opacity-70 transition-opacity px-3 py-2 -ml-3 rounded-lg"
               data-testid="product-back-btn">
               <ArrowLeft className="w-5 h-5" /> {t.back || 'Quay lại'}
