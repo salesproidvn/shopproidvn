@@ -1,0 +1,222 @@
+import React, { useState, useEffect } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import { toast } from 'sonner';
+import { useCart } from '../context/CartContext';
+import { useLanguage } from '../context/LanguageContext';
+import { ArrowLeft, ShoppingCart, Share2, Play, Plus } from 'lucide-react';
+import { Button } from '../components/ui/button';
+
+const API = process.env.REACT_APP_BACKEND_URL + '/api';
+
+const formatVND = (price) => {
+  if (!price && price !== 0) return '';
+  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
+};
+
+const getVideoEmbed = (url) => {
+  if (!url) return null;
+  const ytMatch = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+  if (ytMatch) return { type: 'youtube', embed: `https://www.youtube.com/embed/${ytMatch[1]}` };
+  const ttMatch = url.match(/tiktok\.com\/@[^/]+\/video\/(\d+)/);
+  if (ttMatch) return { type: 'tiktok', embed: `https://www.tiktok.com/embed/v2/${ttMatch[1]}` };
+  return null;
+};
+
+const ProductDetailPage = () => {
+  const { slug, productId } = useParams();
+  const navigate = useNavigate();
+  const { addToCart } = useCart();
+  const { t } = useLanguage();
+  const [product, setProduct] = useState(null);
+  const [shop, setShop] = useState(null);
+  const [relatedProducts, setRelatedProducts] = useState([]);
+  const [activeImage, setActiveImage] = useState(0);
+  const [showVideo, setShowVideo] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const [shopRes, productsRes] = await Promise.all([
+          axios.get(`${API}/shop/${slug}`),
+          axios.get(`${API}/shop/${slug}/products`),
+        ]);
+        setShop(shopRes.data);
+        const found = productsRes.data.find(p => p.id === productId);
+        if (found) {
+          setProduct(found);
+          setRelatedProducts(productsRes.data.filter(p => p.category_id === found.category_id && p.id !== found.id).slice(0, 4));
+          document.title = `${found.name} - ${shopRes.data.name}`;
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+    window.scrollTo(0, 0);
+  }, [slug, productId]);
+
+  const themeColor = shop?.theme_color || '#0055FF';
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white">
+        <header className="sticky top-0 z-40 bg-white border-b border-[#E2E8F0]">
+          <div className="max-w-5xl mx-auto px-4 flex items-center h-14">
+            <div className="h-5 w-20 bg-[#E2E8F0] rounded animate-pulse" />
+            <div className="flex-1" />
+            <div className="h-5 w-24 bg-[#E2E8F0] rounded animate-pulse" />
+          </div>
+        </header>
+        <div className="max-w-5xl mx-auto px-4 py-6">
+          <div className="flex flex-col md:grid md:grid-cols-2 gap-6">
+            <div className="aspect-square bg-[#F1F5F9] rounded-lg animate-pulse" />
+            <div className="space-y-4">
+              <div className="h-8 w-3/4 bg-[#E2E8F0] rounded animate-pulse" />
+              <div className="h-10 w-1/3 bg-[#E2E8F0] rounded animate-pulse" />
+              <div className="h-12 w-full bg-[#F1F5F9] rounded animate-pulse" />
+              <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="h-4 bg-[#F1F5F9] rounded animate-pulse" />)}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!product || !shop) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC]">
+        <div className="text-center">
+          <p className="text-[#64748B] mb-4">Sản phẩm không tồn tại</p>
+          <Link to={`/shop/${slug}`}><Button>Quay lại cửa hàng</Button></Link>
+        </div>
+      </div>
+    );
+  }
+
+  const images = product.images?.length > 0 ? product.images : [product.image_url || '/product-fallback.png'];
+  const allVideos = [];
+  const ytMatch = product.video_url?.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+  if (ytMatch) allVideos.push({ type: 'youtube', embed: `https://www.youtube.com/embed/${ytMatch[1]}` });
+  (product.video_links || []).forEach(vl => {
+    const parsed = getVideoEmbed(vl);
+    if (parsed) allVideos.push(parsed);
+  });
+  const activeVid = showVideo !== null ? allVideos[showVideo] : null;
+
+  const handleShare = () => {
+    const ogUrl = `${process.env.REACT_APP_BACKEND_URL}/api/og/shop/${slug}/product/${product.id}`;
+    if (navigator.share) {
+      navigator.share({ title: product.name, text: `${product.name} - ${formatVND(product.price)}`, url: ogUrl });
+    } else {
+      navigator.clipboard.writeText(ogUrl);
+      toast.success(t.linkCopied || 'Link copied!');
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-white" data-testid="product-detail-page">
+      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-lg border-b border-[#E2E8F0]">
+        <div className="max-w-5xl mx-auto px-4">
+          <div className="flex items-center justify-between h-14">
+            <button onClick={() => navigate(-1)}
+              className="flex items-center gap-2 text-base font-semibold text-[#0F172A] hover:opacity-70 transition-opacity px-3 py-2 -ml-3 rounded-lg"
+              data-testid="product-back-btn">
+              <ArrowLeft className="w-5 h-5" /> {t.back || 'Quay lại'}
+            </button>
+            <Link to={`/shop/${slug}`} className="font-bold text-[#0F172A] text-base truncate max-w-[200px] hover:opacity-70 transition-opacity">{shop.name}</Link>
+            <button onClick={handleShare} className="flex items-center text-[#334155] hover:text-[#0F172A] transition-colors" data-testid="product-share-btn">
+              <Share2 className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <div className="max-w-5xl mx-auto px-3 sm:px-4 py-4 sm:py-8">
+        <div className="flex flex-col md:grid md:grid-cols-2 gap-4 sm:gap-8">
+          {/* Image Gallery */}
+          <div className="flex flex-col w-full">
+            <div className="aspect-square bg-[#F8FAFC] relative overflow-hidden rounded-lg" data-testid="product-main-image">
+              {activeVid ? (
+                <iframe src={activeVid.embed} title="Product video" className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowFullScreen style={activeVid.type === 'tiktok' ? { maxWidth: '325px', margin: '0 auto' } : {}} />
+              ) : (
+                <img src={images[activeImage]} alt={product.name} className="w-full h-full object-contain" loading="eager" />
+              )}
+            </div>
+            {(images.length > 1 || allVideos.length > 0) && (
+              <div className="flex gap-1.5 sm:gap-2 mt-2 sm:mt-3 overflow-x-auto pb-1 scrollbar-hide" data-testid="product-thumbnails">
+                {images.map((img, idx) => (
+                  <button key={`img-${idx}`} onClick={() => { setActiveImage(idx); setShowVideo(null); }}
+                    className={`w-14 h-14 sm:w-16 sm:h-16 rounded overflow-hidden flex-shrink-0 border-2 transition-all ${showVideo === null && activeImage === idx ? 'ring-1' : 'border-transparent hover:border-[#E2E8F0]'}`}
+                    style={showVideo === null && activeImage === idx ? { borderColor: themeColor } : {}}>
+                    <img src={img} alt="" className="w-full h-full object-cover" loading="eager" />
+                  </button>
+                ))}
+                {allVideos.map((vid, idx) => (
+                  <button key={`vid-${idx}`} onClick={() => setShowVideo(idx)}
+                    className={`w-14 h-14 sm:w-16 sm:h-16 rounded flex-shrink-0 border-2 transition-all flex items-center justify-center bg-[#0F172A] ${showVideo === idx ? 'ring-1' : 'border-transparent hover:border-[#E2E8F0]'}`}
+                    style={showVideo === idx ? { borderColor: themeColor } : {}}>
+                    <Play className="w-5 h-5 text-white fill-white" />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Product Info */}
+          <div className="flex flex-col min-w-0 overflow-hidden w-full">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-[#0F172A] mb-2 sm:mb-3 break-words" data-testid="product-name">{product.name}</h1>
+            <p className="text-2xl sm:text-3xl font-bold mb-2" style={{ color: themeColor }} data-testid="product-price">{formatVND(product.price)}</p>
+            {product.sku && <p className="text-xs text-[#94A3B8] mb-2">SKU: {product.sku}</p>}
+            {product.category && <p className="text-sm text-[#94A3B8] mb-4">{product.category}</p>}
+            <div className="flex gap-2 sm:gap-3 mb-4 sm:mb-6">
+              <Button className="flex-1 hover:opacity-90 py-4 sm:py-6 text-sm sm:text-base rounded-[5px]"
+                style={{ backgroundColor: themeColor }}
+                onClick={() => addToCart(product)} data-testid="product-add-cart">
+                <ShoppingCart className="w-5 h-5 mr-2" /> {t.addToCart}
+              </Button>
+              <Button variant="outline" className="py-6 px-4 rounded-[5px]" onClick={handleShare}>
+                <Share2 className="w-5 h-5" />
+              </Button>
+            </div>
+            {product.description && (
+              <div className="text-[#334155] text-sm sm:text-base leading-relaxed mb-4 sm:mb-6 prose prose-sm max-w-none break-words overflow-hidden [&_img]:max-w-full [&_pre]:overflow-x-auto [&_table]:overflow-x-auto [&_ol]:list-decimal [&_ol]:pl-6 [&_ul]:list-disc [&_ul]:pl-6"
+                data-testid="product-description" dangerouslySetInnerHTML={{ __html: product.description }} />
+            )}
+          </div>
+        </div>
+
+        {/* Related Products */}
+        {relatedProducts.length > 0 && (
+          <div className="mt-10 border-t border-[#E2E8F0] pt-8" data-testid="related-products-section">
+            <h2 className="text-xl font-bold text-[#0F172A] mb-4">{t.relatedProductsTitle}</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 lg:gap-5">
+              {relatedProducts.map(rp => (
+                <Link key={rp.id} to={`/shop/${slug}/product/${rp.id}`} className="group bg-white border border-[#E2E8F0] rounded-[5px] overflow-hidden hover:shadow-lg transition-all relative" data-testid={`related-product-${rp.id}`}>
+                  <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); addToCart(rp); }}
+                    className="absolute top-2 right-2 z-10 w-7 h-7 rounded-full flex items-center justify-center shadow-md text-white opacity-80 hover:opacity-100 hover:scale-110 transition-all"
+                    style={{ backgroundColor: themeColor }}>
+                    <Plus className="w-3.5 h-3.5" />
+                  </button>
+                  <div className="aspect-square bg-[#F8FAFC] overflow-hidden">
+                    <img src={rp.image_url || '/product-fallback.png'} alt={rp.name} onError={(e) => { e.target.src = '/product-fallback.png'; }} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                  </div>
+                  <div className="p-3 text-center">
+                    <h3 className="font-medium text-[#0F172A] text-sm line-clamp-2 mb-1">{rp.name}</h3>
+                    <p className="text-base font-bold" style={{ color: themeColor }}>{formatVND(rp.price)}</p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default ProductDetailPage;

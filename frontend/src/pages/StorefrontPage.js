@@ -152,7 +152,7 @@ const StorefrontPage = () => {
     const productParam = searchParams.get('product');
     if (productParam && products.length > 0) {
       const found = products.find(p => p.id === productParam);
-      if (found) { productFromUrl.current = true; setSelectedProduct(found); setActiveImage(0); setShowVideo(null); }
+      if (found) { navigate(`/shop/${slug}/product/${found.id}`, { replace: true }); }
     }
     const categoryParam = searchParams.get('category');
     if (categoryParam && categories.length > 0) {
@@ -441,16 +441,16 @@ const StorefrontPage = () => {
 
   // Product Card
   const ProductCard = ({ product }) => (
-    <div className="group bg-white border border-[#E2E8F0] rounded-[5px] overflow-hidden hover:shadow-lg transition-all cursor-pointer relative"
-      onClick={() => { scrollPosRef.current = window.scrollY; setSelectedProduct(product); setActiveImage(0); setShowVideo(null); }} data-testid={`product-${product.id}`}>
+    <Link to={`/shop/${slug}/product/${product.id}`} className="group bg-white border border-[#E2E8F0] rounded-[5px] overflow-hidden hover:shadow-lg transition-all cursor-pointer relative block"
+      data-testid={`product-${product.id}`}>
       {isOwner && (
-        <button type="button" onClick={(e) => { e.stopPropagation(); setEditProduct({...product}); }}
+        <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setEditProduct({...product}); }}
           className="absolute top-2 left-2 z-10 w-8 h-8 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
           data-testid={`edit-product-storefront-${product.id}`}>
           <Pencil className="w-3.5 h-3.5 text-[#475569]" />
         </button>
       )}
-      <button type="button" onClick={(e) => { e.stopPropagation(); addToCart(product); }}
+      <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); addToCart(product); }}
         className="absolute top-2 right-2 z-10 w-8 h-8 rounded-full flex items-center justify-center shadow-md text-white transition-all opacity-80 hover:opacity-100 hover:scale-110"
         style={{ backgroundColor: themeColor }}
         data-testid={`add-cart-${product.id}`}>
@@ -463,7 +463,7 @@ const StorefrontPage = () => {
         <h3 className="font-medium text-[#0F172A] text-sm sm:text-base line-clamp-2 mb-1">{product.name}</h3>
         <p className="text-base sm:text-lg font-bold mb-2" style={{ color: themeColor }}>{formatVND(product.price)}</p>
       </div>
-    </div>
+    </Link>
   );
 
   // Featured Products Section
@@ -628,153 +628,6 @@ const StorefrontPage = () => {
     if (ttMatch) return { type: 'tiktok', embed: `https://www.tiktok.com/embed/v2/${ttMatch[1]}` };
     return null;
   };
-
-  // Full-page product view
-  if (selectedProduct) {
-    const images = selectedProduct.images?.length > 0 ? selectedProduct.images : [selectedProduct.image_url || '/product-fallback.png'];
-    const ytMatch = selectedProduct.video_url?.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-    const embedUrl = ytMatch ? `https://www.youtube.com/embed/${ytMatch[1]}` : (selectedProduct.video_url || null);
-    return (
-      <div className="fixed inset-0 z-50 bg-white overflow-y-auto" data-testid="product-fullpage">
-        <header className="sticky top-0 z-[60] bg-white/90 backdrop-blur-lg border-b border-[#E2E8F0]">
-          <div className="max-w-5xl mx-auto px-4">
-            <div className="flex items-center justify-between h-14">
-              <button onClick={() => {
-                  if (productFromUrl.current) {
-                    productFromUrl.current = false;
-                    navigate(-1);
-                  } else if (productFromMegaMenu.current) {
-                    productFromMegaMenu.current = false;
-                    setSelectedProduct(null); setActiveImage(0); setShowVideo(null);
-                    setMobileMenuOpen(true);
-                  } else {
-                    const pos = scrollPosRef.current; setSelectedProduct(null); setActiveImage(0); setShowVideo(null); if (searchParams.get('product')) { searchParams.delete('product'); setSearchParams(searchParams, { replace: true }); } setTimeout(() => window.scrollTo(0, pos), 0);
-                  }
-                }}
-                className="flex items-center gap-2 text-base font-semibold text-[#0F172A] hover:opacity-70 transition-opacity px-3 py-2 -ml-3 rounded-lg"
-                data-testid="product-close-btn">
-                <ArrowLeft className="w-5 h-5" /> {t.back || 'Quay lại'}
-              </button>
-              <Link to={`/shop/${slug}`} className="font-bold text-[#0F172A] text-base truncate max-w-[200px] hover:opacity-70 transition-opacity" data-testid="product-header-shop-name">{shop?.name}</Link>
-              <button onClick={() => {
-                const ogUrl = `${process.env.REACT_APP_BACKEND_URL}/api/og/shop/${slug}/product/${selectedProduct.id}`;
-                const directUrl = `${window.location.origin}/shop/${slug}?product=${selectedProduct.id}`;
-                if (navigator.share) {
-                  navigator.share({ title: selectedProduct.name, text: `${selectedProduct.name} - ${formatVND(selectedProduct.price)}`, url: ogUrl });
-                } else {
-                  navigator.clipboard.writeText(ogUrl);
-                  toast.success(t.linkCopied || 'Link copied!');
-                }
-              }} className="flex items-center gap-2 text-sm text-[#334155] hover:text-[#0F172A] transition-colors" data-testid="product-share-top-btn">
-                <Share2 className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        </header>
-        <div className="max-w-5xl mx-auto px-3 sm:px-4 py-4 sm:py-8">
-          <div className="flex flex-col md:grid md:grid-cols-2 gap-4 sm:gap-8">
-            <div className="flex flex-col w-full">
-              {(() => {
-                const allVideos = [];
-                if (embedUrl) allVideos.push({ embed: embedUrl, type: 'youtube' });
-                (selectedProduct.video_links || []).forEach(vl => {
-                  const parsed = getVideoEmbed(vl);
-                  if (parsed) allVideos.push(parsed);
-                });
-                const activeVid = showVideo !== null ? allVideos[showVideo] : null;
-                return (
-                  <>
-                    {/* Preload all images into browser cache */}
-                    {images.length > 1 && images.map((img, idx) => idx !== activeImage && (
-                      <link key={`preload-${idx}`} rel="preload" as="image" href={img} />
-                    ))}
-                    <div className="aspect-square bg-[#F8FAFC] relative overflow-hidden rounded-lg" data-testid="product-main-image">
-                      {activeVid ? (
-                        <iframe src={activeVid.embed} title="Product video" className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowFullScreen />
-                      ) : (
-                        <img src={images[activeImage]} alt={selectedProduct.name} className="w-full h-full object-contain" loading="eager" />
-                      )}
-                    </div>
-                    {(images.length > 1 || allVideos.length > 0) && (
-                      <div className="flex gap-1.5 sm:gap-2 mt-2 sm:mt-3 overflow-x-auto pb-1 scrollbar-hide" data-testid="product-thumbnails">
-                        {images.map((img, idx) => (
-                          <button key={`img-${idx}`} onClick={() => { setActiveImage(idx); setShowVideo(null); }}
-                            className={`w-14 h-14 sm:w-16 sm:h-16 rounded overflow-hidden flex-shrink-0 border-2 transition-all ${showVideo === null && activeImage === idx ? 'ring-1' : 'border-transparent hover:border-[#E2E8F0]'}`}
-                            style={showVideo === null && activeImage === idx ? { borderColor: themeColor, '--tw-ring-color': themeColor } : {}}
-                            data-testid={`thumb-${idx}`}>
-                            <img src={img} alt="" className="w-full h-full object-cover" loading="eager" />
-                          </button>
-                        ))}
-                        {allVideos.map((vid, idx) => (
-                          <button key={`vid-${idx}`} onClick={() => setShowVideo(idx)}
-                            className={`w-14 h-14 sm:w-16 sm:h-16 rounded flex-shrink-0 border-2 transition-all flex items-center justify-center bg-[#0F172A] ${showVideo === idx ? 'ring-1' : 'border-transparent hover:border-[#E2E8F0]'}`}
-                            style={showVideo === idx ? { borderColor: themeColor, '--tw-ring-color': themeColor } : {}}
-                            data-testid={`thumb-video-${idx}`}>
-                            <Play className="w-5 h-5 text-white fill-white" />
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </>
-                );
-              })()}
-            </div>
-            <div className="flex flex-col min-w-0 overflow-hidden w-full">
-              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-[#0F172A] mb-2 sm:mb-3 break-words" data-testid="product-name">{selectedProduct.name}</h1>
-              <p className="text-2xl sm:text-3xl font-bold mb-2" style={{ color: themeColor }} data-testid="product-price">{formatVND(selectedProduct.price)}</p>
-              {selectedProduct.sku && <p className="text-xs text-[#94A3B8] mb-2" data-testid="product-sku">SKU: {selectedProduct.sku}</p>}
-              {selectedProduct.category && <p className="text-sm text-[#94A3B8] mb-4">{selectedProduct.category}</p>}
-              <div className="flex gap-2 sm:gap-3 mb-4 sm:mb-6">
-                <Button className="flex-1 hover:opacity-90 py-4 sm:py-6 text-sm sm:text-base rounded-[5px]"
-                  style={{ backgroundColor: themeColor }}
-                  onClick={() => { addToCart(selectedProduct); }} data-testid="product-add-cart">
-                  <ShoppingCart className="w-5 h-5 mr-2" /> {t.addToCart}
-                </Button>
-                <Button variant="outline" className="py-6 px-4 rounded-[5px]"
-                  onClick={() => {
-                    const ogUrl = `${process.env.REACT_APP_BACKEND_URL}/api/og/shop/${slug}/product/${selectedProduct.id}`;
-                    if (navigator.share) {
-                      navigator.share({ title: selectedProduct.name, text: `${selectedProduct.name} - ${formatVND(selectedProduct.price)}`, url: ogUrl });
-                    } else {
-                      navigator.clipboard.writeText(ogUrl);
-                      toast.success(t.linkCopied || 'Link copied!');
-                    }
-                  }} data-testid="product-share-btn">
-                  <Share2 className="w-5 h-5" />
-                </Button>
-              </div>
-              {selectedProduct.description && <div className="text-[#334155] text-sm sm:text-base leading-relaxed mb-4 sm:mb-6 prose prose-sm max-w-none break-words overflow-hidden [&_img]:max-w-full [&_pre]:overflow-x-auto [&_table]:overflow-x-auto [&_ol]:list-decimal [&_ol]:pl-6 [&_ul]:list-disc [&_ul]:pl-6" data-testid="product-description" dangerouslySetInnerHTML={{ __html: selectedProduct.description }} />}
-            </div>
-          </div>
-          {/* Related Products */}
-          {(() => {
-            const related = products.filter(p => p.category_id === selectedProduct.category_id && p.id !== selectedProduct.id).slice(0, 4);
-            if (related.length === 0) return null;
-            return (
-              <div className="mt-10 border-t border-[#E2E8F0] pt-8" data-testid="related-products-section">
-                <h2 className="text-xl font-bold text-[#0F172A] mb-4">{t.relatedProductsTitle}</h2>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 lg:gap-5">
-                  {related.map(rp => (
-                    <div key={rp.id} className="group bg-white border border-[#E2E8F0] rounded-[5px] overflow-hidden hover:shadow-lg transition-all cursor-pointer"
-                      onClick={() => { setSelectedProduct(rp); setActiveImage(0); setShowVideo(null); setTimeout(() => { document.querySelector('[data-testid="product-fullpage"]')?.scrollTo({ top: 0, behavior: 'smooth' }); }, 50); }}
-                      data-testid={`related-product-${rp.id}`}>
-                      <div className="aspect-square bg-[#F8FAFC] overflow-hidden">
-                        <img src={rp.image_url || '/product-fallback.png'} alt={rp.name} onError={(e) => { e.target.src = '/product-fallback.png'; }} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
-                      </div>
-                      <div className="p-3 text-center">
-                        <h3 className="font-medium text-[#0F172A] text-sm line-clamp-2 mb-1">{rp.name}</h3>
-                        <p className="text-base font-bold" style={{ color: themeColor }}>{formatVND(rp.price)}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            );
-          })()}
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-white pb-14" data-testid="storefront-page" style={{ '--tc': themeColor }}>
@@ -1000,7 +853,7 @@ const StorefrontPage = () => {
                                   <div
                                     key={p.id}
                                     className="flex-shrink-0 w-24 cursor-pointer"
-                                    onClick={() => { setMobileMenuOpen(false); setMobileExpandedCat(null); scrollPosRef.current = window.scrollY; productFromMegaMenu.current = true; setSelectedProduct(p); setActiveImage(0); setShowVideo(null); }}
+                                    onClick={() => { setMobileMenuOpen(false); setMobileExpandedCat(null); navigate(`/shop/${slug}/product/${p.id}`); }}
                                     data-testid={`mobile-mega-prod-${p.id}`}
                                   >
                                     <div className="w-24 h-24 rounded-lg overflow-hidden bg-[#F8FAFC] mb-1">
@@ -1134,7 +987,7 @@ const StorefrontPage = () => {
                                 <div
                                   key={p.id}
                                   className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-[#F8FAFC] cursor-pointer transition-colors"
-                                  onClick={() => { scrollPosRef.current = window.scrollY; productFromMegaMenu.current = true; setSelectedProduct(p); setActiveImage(0); setShowVideo(null); }}
+                                  onClick={() => { navigate(`/shop/${slug}/product/${p.id}`); }}
                                 >
                                   <img src={p.image_url || '/product-fallback.png'} alt={p.name} onError={(e) => { e.target.src = '/product-fallback.png'; }} className="w-10 h-10 rounded-md object-cover shrink-0" />
                                   <div className="min-w-0">

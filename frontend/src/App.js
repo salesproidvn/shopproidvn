@@ -20,6 +20,7 @@ import SingleCategoryPage from "./pages/SingleCategoryPage";
 import CustomPage from "./pages/CustomPage";
 import AgentDashboard from "./pages/AgentDashboard";
 import BusinessCardPage from "./pages/BusinessCardPage";
+import ProductDetailPage from "./pages/ProductDetailPage";
 
 function App() {
   return (
@@ -37,6 +38,7 @@ function App() {
                 <Route path="/agent" element={<AgentDashboard />} />
                 <Route path="/card/:cardSlug" element={<BusinessCardPage />} />
                 <Route path="/shop/:slug" element={<StorefrontPage />} />
+                <Route path="/shop/:slug/product/:productId" element={<ProductDetailPage />} />
                 <Route path="/shop/:slug/categories" element={<CategoryPage />} />
                 <Route path="/shop/:slug/category/:categoryId" element={<SingleCategoryPage />} />
                 <Route path="/shop/:slug/page/:pageSlug" element={<CustomPage />} />
