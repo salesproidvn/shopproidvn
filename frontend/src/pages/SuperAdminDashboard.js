@@ -455,6 +455,15 @@ const SuperAdminDashboard = () => {
                                     <Eye className="w-4 h-4 mr-2" /> Xem cửa hàng
                                   </DropdownMenuItem>
                                 )}
+                                {u.shop_slug && (
+                                  <DropdownMenuItem onClick={async () => {
+                                    const link = `${window.location.origin}/shop/${u.shop_slug}`;
+                                    try { await navigator.clipboard.writeText(link); } catch { const ta = document.createElement('textarea'); ta.value = link; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); }
+                                    toast.success('Đã copy link cửa hàng');
+                                  }} data-testid={`copy-shop-link-${u.id}`} className="cursor-pointer">
+                                    <Globe className="w-4 h-4 mr-2" /> Copy link shop
+                                  </DropdownMenuItem>
+                                )}
                                 {u.shop_id && (
                                   <DropdownMenuItem onClick={() => window.open(`/dashboard?shop=${u.shop_id}`, '_blank')} data-testid={`manage-shop-${u.id}`} className="cursor-pointer">
                                     <Store className="w-4 h-4 mr-2" /> Quản lý shop
