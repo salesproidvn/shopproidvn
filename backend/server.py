@@ -1214,6 +1214,16 @@ async def create_category(data: CategoryCreate, request: Request):
     await db.categories.insert_one(doc)
     return {"id": cat_id, "name": data.name, "description": data.description, "position": max_pos + 1, "parent_id": data.parent_id or None, "image_url": data.image_url or ""}
 
+@api_router.put("/dashboard/categories/positions")
+async def update_category_positions(request: Request):
+    user = await require_shop_owner(request)
+    shop_id = await resolve_shop_id(request, user)
+    body = await request.json()
+    positions = body.get("positions", [])
+    for item in positions:
+        await db.categories.update_one({"id": item["id"], "shop_id": shop_id}, {"$set": {"position": item["position"]}})
+    return {"message": "Positions updated"}
+
 @api_router.put("/dashboard/categories/{cat_id}")
 async def update_category(cat_id: str, data: CategoryCreate, request: Request):
     user = await require_shop_owner(request)
@@ -1232,16 +1242,6 @@ async def delete_category(cat_id: str, request: Request):
         raise HTTPException(status_code=404, detail="Category not found")
     await db.products.update_many({"shop_id": shop_id, "category_id": cat_id}, {"$set": {"category_id": None, "category": ""}})
     return {"message": "Category deleted"}
-
-@api_router.put("/dashboard/categories/positions")
-async def update_category_positions(request: Request):
-    user = await require_shop_owner(request)
-    shop_id = await resolve_shop_id(request, user)
-    body = await request.json()
-    positions = body.get("positions", [])
-    for item in positions:
-        await db.categories.update_one({"id": item["id"], "shop_id": shop_id}, {"$set": {"position": item["position"]}})
-    return {"message": "Positions updated"}
 
 # ==================== DASHBOARD - PRODUCTS ====================
 
