@@ -333,7 +333,7 @@ const StorefrontPage = () => {
         {/* Skeleton Products */}
         <div className="max-w-7xl mx-auto px-4 py-8">
           <div className="h-7 w-40 bg-[#E2E8F0] rounded animate-pulse mb-6" />
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 lg:gap-5">
+          <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 lg:gap-5">
             {[1,2,3,4,5,6,7,8,9,10].map(i => (
               <div key={i} className="rounded-xl overflow-hidden bg-white shadow-sm">
                 <div className="aspect-square bg-[#F1F5F9] animate-pulse" />
@@ -403,7 +403,7 @@ const StorefrontPage = () => {
           <h3 className="text-xl sm:text-2xl font-bold text-[#0F172A]">{t.latestPosts}</h3>
           <Link to={`/shop/${slug}/posts`}><Button variant="ghost" size="sm" className="text-sm rounded-[5px]" style={{ color: themeColor }}>{t.readMore} &rarr;</Button></Link>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 lg:gap-5" data-testid="post-grid">
+        <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 lg:gap-5" data-testid="post-grid">
           {posts.slice(0, 5).map(post => (
             <Link key={post.id} to={`/shop/${slug}/posts/${post.id}`}
               className="group bg-white border border-[#E2E8F0] rounded-[5px] overflow-hidden hover:shadow-lg transition-all relative"
@@ -474,7 +474,7 @@ const StorefrontPage = () => {
     return (
       <div className="mb-8" data-testid="featured-products">
         <h3 className="text-xl sm:text-2xl font-bold text-[#0F172A] mb-4">{t.featuredProducts}</h3>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 lg:gap-5">
+        <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 lg:gap-5">
           {featured.map((product) => (<ProductCard key={product.id} product={product} />))}
         </div>
       </div>
@@ -518,7 +518,7 @@ const StorefrontPage = () => {
                       ))}
                     </div>
                   )}
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 lg:gap-5">
+                  <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 lg:gap-5">
                     {visibleProducts.map((product) => (<ProductCard key={product.id} product={product} />))}
                   </div>
                   {catProducts.length > PRODUCTS_PER_CATEGORY && (
@@ -547,7 +547,7 @@ const StorefrontPage = () => {
                     <div className="flex-1 h-px bg-[#E2E8F0]" />
                     <span className="text-sm text-[#94A3B8]">{uncategorized.length}</span>
                   </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 lg:gap-5">
+                  <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 lg:gap-5">
                     {visible.map((product) => (<ProductCard key={product.id} product={product} />))}
                   </div>
                   {uncategorized.length > PRODUCTS_PER_CATEGORY && (
@@ -562,7 +562,7 @@ const StorefrontPage = () => {
             })()}
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 lg:gap-5" data-testid="product-grid">
+          <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 lg:gap-5" data-testid="product-grid">
             {filteredProducts.map((product) => (<ProductCard key={product.id} product={product} />))}
           </div>
         )}

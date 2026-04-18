@@ -165,7 +165,7 @@ const SingleCategoryPage = () => {
             <p className="text-sm">{t.noProducts}</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 lg:gap-5" data-testid="category-products-grid">
+          <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 lg:gap-5" data-testid="category-products-grid">
             {filteredProducts.map(product => (
               <div key={product.id} className="bg-white border border-[#E2E8F0] rounded-[5px] overflow-hidden hover:shadow-lg transition-all group" data-testid={`cat-product-${product.id}`}>
                 <div className="cursor-pointer" onClick={() => { setSelectedProduct(product); setActiveImage(0); }}>

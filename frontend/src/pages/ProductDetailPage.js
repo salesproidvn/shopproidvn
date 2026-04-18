@@ -194,7 +194,7 @@ const ProductDetailPage = () => {
         {relatedProducts.length > 0 && (
           <div className="mt-10 border-t border-[#E2E8F0] pt-8" data-testid="related-products-section">
             <h2 className="text-xl font-bold text-[#0F172A] mb-4">{t.relatedProductsTitle}</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 lg:gap-5">
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 lg:gap-5">
               {relatedProducts.map(rp => (
                 <Link key={rp.id} to={`/shop/${slug}/product/${rp.id}`} className="group bg-white border border-[#E2E8F0] rounded-[5px] overflow-hidden hover:shadow-lg transition-all relative" data-testid={`related-product-${rp.id}`}>
                   <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); addToCart(rp); }}
