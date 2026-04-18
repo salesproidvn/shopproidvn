@@ -127,14 +127,8 @@ const BusinessCardPage = () => {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center" data-testid="business-card-page">
-      {/* Card Header */}
-      <div className="w-full" style={{ background: `linear-gradient(135deg, ${themeColor}, ${themeColor}dd)` }}>
-        <div className="max-w-md mx-auto px-6 pt-10 pb-20 text-center text-white">
-        </div>
-      </div>
-
-      {/* Profile Avatar - overlapping header */}
-      <div className="max-w-md mx-auto w-full flex flex-col items-center -mt-16 relative z-10">
+      {/* Profile Section */}
+      <div className="max-w-md mx-auto w-full flex flex-col items-center pt-10 relative z-10">
         {(card.avatar_url || card.logo_url) && (
           <img src={card.avatar_url || card.logo_url} alt="" className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg bg-white" data-testid="card-avatar" />
         )}
