@@ -807,6 +807,7 @@ const ShopOwnerDashboard = () => {
       setShowCategoryModal(false);
       resetCategoryForm();
       await fetchCategoriesOnly();
+      await fetchMenuOnly();
       requestAnimationFrame(() => window.scrollTo(0, savedScrollY));
     } catch (err) {
       toast.error(t.failedToSave);
@@ -819,6 +820,7 @@ const ShopOwnerDashboard = () => {
       await axios.delete(`${API}/dashboard/categories/${catId}`);
       toast.success(t.categoryDeleted);
       fetchCategoriesOnly();
+      fetchMenuOnly();
     } catch (err) {
       toast.error(t.failedToDelete);
     }
