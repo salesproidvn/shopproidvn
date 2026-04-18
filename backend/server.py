@@ -1651,10 +1651,15 @@ async def validate_voucher(slug: str, request: Request):
         raise HTTPException(status_code=404, detail="Invalid voucher code")
     # Check expiry
     if voucher.get("expiry_date"):
-        from dateutil.parser import parse as parse_date
-        expiry = parse_date(voucher["expiry_date"])
-        if expiry < datetime.now(timezone.utc):
-            raise HTTPException(status_code=400, detail="Voucher has expired")
+        try:
+            from dateutil.parser import parse as parse_date
+            expiry = parse_date(str(voucher["expiry_date"]))
+            if expiry.tzinfo is None:
+                expiry = expiry.replace(tzinfo=timezone.utc)
+            if expiry < datetime.now(timezone.utc):
+                raise HTTPException(status_code=400, detail="Voucher has expired")
+        except (ValueError, TypeError):
+            pass
     # Check usage limit
     if voucher.get("max_uses", 0) > 0 and voucher.get("used_count", 0) >= voucher["max_uses"]:
         raise HTTPException(status_code=400, detail="Voucher usage limit reached")
