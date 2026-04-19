@@ -2508,7 +2508,7 @@ async def get_shop_by_slug(slug: str):
     }
 
 @api_router.get("/shop/{slug}/products")
-async def get_shop_products_public(slug: str, category: Optional[str] = None, search: Optional[str] = None, type: Optional[str] = None, light: bool = True):
+async def get_shop_products_public(slug: str, category: Optional[str] = None, search: Optional[str] = None, type: Optional[str] = None):
     shop = await db.shops.find_one({"slug": slug, "status": "active"}, {"_id": 1})
     if not shop:
         raise HTTPException(status_code=404, detail="Shop not found")
@@ -2524,11 +2524,7 @@ async def get_shop_products_public(slug: str, category: Optional[str] = None, se
         else:
             # product: include legacy docs without a type field
             query["$or"] = [{"type": "product"}, {"type": {"$exists": False}}, {"type": None}, {"type": ""}]
-    # Light projection by default: skip heavy fields not used in grid/list views
-    projection = {"_id": 0}
-    if light:
-        projection.update({"description": 0, "images": 0, "video_url": 0, "video_links": 0})
-    products = await db.products.find(query, projection).sort("position", 1).to_list(500)
+    products = await db.products.find(query, {"_id": 0}).sort("position", 1).to_list(500)
     return products
 
 @api_router.get("/shop/{slug}/categories")
