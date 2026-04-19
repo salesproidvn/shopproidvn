@@ -3077,16 +3077,6 @@ if cors_origins_env == "*":
             response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
             response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
 
-            # Cache-Control for public storefront GET endpoints (60s browser cache, 300s CDN)
-            if request.method == "GET" and (
-                path.startswith("/api/shop/") or
-                path.startswith("/api/card/") or
-                path.startswith("/api/files/") or
-                path.startswith("/api/security/status")
-            ):
-                if "cache-control" not in (k.lower() for k in response.headers.keys()):
-                    response.headers["Cache-Control"] = "public, max-age=60, s-maxage=300, stale-while-revalidate=120"
-
             return response
 
     app.add_middleware(CombinedMiddleware)
