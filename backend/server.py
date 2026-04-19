@@ -2919,6 +2919,89 @@ async def get_db_backup_download_url(request: Request, key: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@api_router.post("/admin/restore/db")
+async def restore_db_from_backup(request: Request):
+    """Restore DB from a backup archive stored in R2. DESTRUCTIVE — drops existing collections.
+    Body: { "key": "backups/db/proidshopvn-YYYYMMDD-HHMMSS.tar.gz", "confirm": "RESTORE" }
+    """
+    await require_super_admin(request)
+    body = await request.json()
+    key = body.get("key")
+    confirm = body.get("confirm")
+    if confirm != "RESTORE":
+        raise HTTPException(status_code=400, detail="Bạn phải nhập RESTORE để xác nhận")
+    if not key or not key.startswith("backups/db/"):
+        raise HTTPException(status_code=400, detail="Invalid backup key")
+    try:
+        import sys as _sys
+        _sp = str(Path(__file__).parent / "scripts")
+        if _sp not in _sys.path:
+            _sys.path.append(_sp)
+        import backup_db as _bdb
+        import asyncio as _asyncio
+        result = await _asyncio.to_thread(_bdb.run_restore, key)
+        return {"success": True, **result}
+    except Exception as e:
+        logger.error(f"DB restore failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Restore failed: {e}")
+
+@api_router.post("/admin/backups/media/run")
+async def run_media_backup_now(request: Request, manifest_only: bool = False):
+    """Trigger a media backup. By default does full copy; pass ?manifest_only=true for cheap audit-only."""
+    await require_super_admin(request)
+    try:
+        import sys as _sys
+        _sp = str(Path(__file__).parent / "scripts")
+        if _sp not in _sys.path:
+            _sys.path.append(_sp)
+        import backup_media as _bm
+        import asyncio as _asyncio
+        result = await _asyncio.to_thread(_bm.run_media_backup, manifest_only)
+        return {"success": True, **result}
+    except Exception as e:
+        logger.error(f"media backup failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/admin/backups/media")
+async def list_media_backups_api(request: Request):
+    await require_super_admin(request)
+    try:
+        import sys as _sys
+        _sp = str(Path(__file__).parent / "scripts")
+        if _sp not in _sys.path:
+            _sys.path.append(_sp)
+        import backup_media as _bm
+        import asyncio as _asyncio
+        return await _asyncio.to_thread(_bm.list_media_backups)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/admin/restore/media")
+async def restore_media_from_backup(request: Request):
+    """Restore media files from a snapshot back to uploads prefix.
+    Body: { "timestamp": "YYYYMMDD-HHMMSS", "confirm": "RESTORE" }
+    """
+    await require_super_admin(request)
+    body = await request.json()
+    ts = body.get("timestamp")
+    confirm = body.get("confirm")
+    if confirm != "RESTORE":
+        raise HTTPException(status_code=400, detail="Bạn phải nhập RESTORE để xác nhận")
+    if not ts:
+        raise HTTPException(status_code=400, detail="Missing timestamp")
+    try:
+        import sys as _sys
+        _sp = str(Path(__file__).parent / "scripts")
+        if _sp not in _sys.path:
+            _sys.path.append(_sp)
+        import backup_media as _bm
+        import asyncio as _asyncio
+        result = await _asyncio.to_thread(_bm.run_media_restore, ts)
+        return {"success": True, **result}
+    except Exception as e:
+        logger.error(f"media restore failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @api_router.get("/admin/security/dashboard")
 async def security_dashboard(request: Request):
     """Security dashboard data for Super Admin."""

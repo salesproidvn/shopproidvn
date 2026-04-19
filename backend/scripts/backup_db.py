@@ -112,5 +112,67 @@ def run() -> None:
         fail(str(e))
 
 
+def run_restore(backup_key: str) -> dict:
+    """Download a backup archive from R2, extract, and mongorestore --drop to DB_NAME.
+    DESTRUCTIVE — drops existing collections before restoring.
+    """
+    for k, v in {
+        "MONGO_URL": MONGO_URL, "DB_NAME": DB_NAME,
+        "R2_ACCESS_KEY": R2_ACCESS_KEY, "R2_SECRET_KEY": R2_SECRET_KEY,
+        "R2_BUCKET": R2_BUCKET, "R2_ENDPOINT": R2_ENDPOINT,
+    }.items():
+        if not v:
+            raise RuntimeError(f"{k} is not set in backend/.env")
+
+    s3 = boto3.client(
+        "s3",
+        endpoint_url=R2_ENDPOINT,
+        aws_access_key_id=R2_ACCESS_KEY,
+        aws_secret_access_key=R2_SECRET_KEY,
+        config=Config(signature_version="s3v4"),
+        region_name="auto",
+    )
+
+    with tempfile.TemporaryDirectory(prefix="dbrestore-") as tmp:
+        tmp_path = Path(tmp)
+        archive_path = tmp_path / Path(backup_key).name
+        print(f"[RESTORE] Downloading {backup_key} ...")
+        s3.download_file(R2_BUCKET, backup_key, str(archive_path))
+
+        print(f"[RESTORE] Extracting archive ...")
+        with tarfile.open(archive_path, "r:gz") as tar:
+            tar.extractall(tmp_path)
+
+        # Find the inner dump directory (contains a subdir = DB_NAME)
+        dump_root = None
+        for child in tmp_path.iterdir():
+            if child.is_dir() and child.name != "dump":
+                candidate = child / DB_NAME
+                if candidate.is_dir():
+                    dump_root = child
+                    break
+        if not dump_root:
+            # fallback: look for any top-level dir containing DB_NAME subdir
+            for child in tmp_path.iterdir():
+                if child.is_dir():
+                    for sub in child.iterdir():
+                        if sub.is_dir() and sub.name == DB_NAME:
+                            dump_root = child
+                            break
+                if dump_root:
+                    break
+        if not dump_root:
+            raise RuntimeError("Could not locate dump directory in archive")
+
+        db_dump_path = dump_root / DB_NAME
+        print(f"[RESTORE] Running mongorestore --drop --dir {db_dump_path}")
+        subprocess.run(
+            ["mongorestore", "--uri", MONGO_URL, "--db", DB_NAME, "--drop", str(db_dump_path)],
+            check=True, capture_output=True,
+        )
+        print(f"[RESTORE][OK] Restored DB '{DB_NAME}' from {backup_key}")
+        return {"restored_from": backup_key, "db_name": DB_NAME}
+
+
 if __name__ == "__main__":
     run()

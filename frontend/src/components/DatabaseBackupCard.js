@@ -3,7 +3,9 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
-import { Database, Download, Loader2, Play, CheckCircle2 } from 'lucide-react';
+import { Input } from './ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
+import { Database, Download, Loader2, Play, CheckCircle2, RotateCcw, AlertTriangle } from 'lucide-react';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -11,6 +13,9 @@ const DatabaseBackupCard = () => {
   const [backups, setBackups] = useState([]);
   const [loading, setLoading] = useState(false);
   const [running, setRunning] = useState(false);
+  const [restoreTarget, setRestoreTarget] = useState(null); // backup object
+  const [confirmText, setConfirmText] = useState('');
+  const [restoring, setRestoring] = useState(false);
 
   const fetchBackups = async () => {
     setLoading(true);
@@ -45,6 +50,21 @@ const DatabaseBackupCard = () => {
       window.open(data.url, '_blank');
     } catch (e) {
       toast.error('Không tạo được link tải');
+    }
+  };
+
+  const doRestore = async () => {
+    if (confirmText !== 'RESTORE') { toast.error('Vui lòng gõ RESTORE để xác nhận'); return; }
+    setRestoring(true);
+    try {
+      await axios.post(`${API}/admin/restore/db`, { key: restoreTarget.key, confirm: 'RESTORE' });
+      toast.success(`Đã restore thành công từ ${restoreTarget.name}. Hãy logout & login lại.`);
+      setRestoreTarget(null);
+      setConfirmText('');
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'Restore thất bại');
+    } finally {
+      setRestoring(false);
     }
   };
 
@@ -96,7 +116,7 @@ const DatabaseBackupCard = () => {
                   <th className="px-3 py-2 font-medium text-xs text-[#64748B]">Tên file</th>
                   <th className="px-3 py-2 font-medium text-xs text-[#64748B]">Thời gian</th>
                   <th className="px-3 py-2 font-medium text-xs text-[#64748B]">Kích thước</th>
-                  <th className="px-3 py-2 font-medium text-xs text-[#64748B]">Tải</th>
+                  <th className="px-3 py-2 font-medium text-xs text-[#64748B]">Thao tác</th>
                 </tr>
               </thead>
               <tbody>
@@ -106,9 +126,14 @@ const DatabaseBackupCard = () => {
                     <td className="px-3 py-2 text-xs text-[#64748B]">{formatDate(b.created_at)}</td>
                     <td className="px-3 py-2 text-xs">{b.size_mb} MB</td>
                     <td className="px-3 py-2">
-                      <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => downloadBackup(b.key)} data-testid={`backup-download-${b.name}`}>
-                        <Download className="w-3 h-3 mr-1" /> Tải về
-                      </Button>
+                      <div className="flex gap-1.5">
+                        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => downloadBackup(b.key)} data-testid={`backup-download-${b.name}`}>
+                          <Download className="w-3 h-3 mr-1" /> Tải về
+                        </Button>
+                        <Button size="sm" variant="outline" className="h-7 text-xs text-red-600 border-red-200 hover:bg-red-50" onClick={() => { setRestoreTarget(b); setConfirmText(''); }} data-testid={`backup-restore-${b.name}`}>
+                          <RotateCcw className="w-3 h-3 mr-1" /> Restore
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -121,6 +146,40 @@ const DatabaseBackupCard = () => {
           💡 Link tải dùng <b>presigned URL</b> từ Cloudflare R2 (hiệu lực 1 giờ). File nén định dạng <code>.tar.gz</code>, giải nén bằng <code>tar -xzf</code> và import bằng <code>mongorestore</code>.
         </p>
       </CardContent>
+
+      {/* Restore confirmation dialog */}
+      <Dialog open={!!restoreTarget} onOpenChange={(v) => { if (!v) { setRestoreTarget(null); setConfirmText(''); } }}>
+        <DialogContent className="sm:max-w-md bg-white" data-testid="restore-confirm-modal">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <AlertTriangle className="w-5 h-5" /> Cảnh báo: Restore Database
+            </DialogTitle>
+            <DialogDescription className="text-sm">
+              Hành động này sẽ <b>XÓA TOÀN BỘ DATA HIỆN TẠI</b> và thay bằng dữ liệu từ bản backup. Không thể hoàn tác.
+            </DialogDescription>
+          </DialogHeader>
+          {restoreTarget && (
+            <div className="space-y-4">
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm">
+                <p className="font-semibold text-amber-800">Restore từ bản backup:</p>
+                <p className="font-mono text-xs mt-1 text-amber-700 break-all">{restoreTarget.name}</p>
+                <p className="text-xs text-amber-700 mt-1">Kích thước: {restoreTarget.size_mb} MB · Tạo lúc: {formatDate(restoreTarget.created_at)}</p>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-[#334155]">Gõ <b>RESTORE</b> để xác nhận:</label>
+                <Input value={confirmText} onChange={(e) => setConfirmText(e.target.value)}
+                  placeholder="RESTORE" className="mt-1 font-mono" autoFocus data-testid="restore-confirm-input" />
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" className="flex-1" onClick={() => { setRestoreTarget(null); setConfirmText(''); }}>Hủy</Button>
+                <Button variant="destructive" className="flex-1" onClick={doRestore} disabled={restoring || confirmText !== 'RESTORE'} data-testid="restore-confirm-btn">
+                  {restoring ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Đang restore...</> : 'Restore ngay'}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };

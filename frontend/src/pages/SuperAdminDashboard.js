@@ -17,6 +17,7 @@ import {
 import { toast } from 'sonner';
 import TwoFactorAuthCard from '../components/TwoFactorAuthCard';
 import DatabaseBackupCard from '../components/DatabaseBackupCard';
+import MediaBackupCard from '../components/MediaBackupCard';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -1025,6 +1026,7 @@ const SuperAdminDashboard = () => {
             <div className="space-y-6" data-testid="settings-tab">
               <TwoFactorAuthCard />
               <DatabaseBackupCard />
+              <MediaBackupCard />
               <Card className="border-0 shadow-sm max-w-lg">
                 <CardHeader className="p-5 pb-3">
                   <CardTitle className="text-lg flex items-center gap-2">
