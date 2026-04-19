@@ -5,6 +5,7 @@ from fastapi import FastAPI, APIRouter, HTTPException, Request, Response, Depend
 from fastapi.responses import HTMLResponse, JSONResponse
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.middleware.gzip import GZipMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from bson import ObjectId
 import os
@@ -2507,8 +2508,8 @@ async def get_shop_by_slug(slug: str):
     }
 
 @api_router.get("/shop/{slug}/products")
-async def get_shop_products_public(slug: str, category: Optional[str] = None, search: Optional[str] = None, type: Optional[str] = None):
-    shop = await db.shops.find_one({"slug": slug, "status": "active"})
+async def get_shop_products_public(slug: str, category: Optional[str] = None, search: Optional[str] = None, type: Optional[str] = None, light: bool = True):
+    shop = await db.shops.find_one({"slug": slug, "status": "active"}, {"_id": 1})
     if not shop:
         raise HTTPException(status_code=404, detail="Shop not found")
     shop_id = str(shop["_id"])
@@ -2523,7 +2524,11 @@ async def get_shop_products_public(slug: str, category: Optional[str] = None, se
         else:
             # product: include legacy docs without a type field
             query["$or"] = [{"type": "product"}, {"type": {"$exists": False}}, {"type": None}, {"type": ""}]
-    products = await db.products.find(query, {"_id": 0}).sort("position", 1).to_list(500)
+    # Light projection by default: skip heavy fields not used in grid/list views
+    projection = {"_id": 0}
+    if light:
+        projection.update({"description": 0, "images": 0, "video_url": 0, "video_links": 0})
+    products = await db.products.find(query, projection).sort("position", 1).to_list(500)
     return products
 
 @api_router.get("/shop/{slug}/categories")
@@ -3072,9 +3077,20 @@ if cors_origins_env == "*":
             response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
             response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
 
+            # Cache-Control for public storefront GET endpoints (60s browser cache, 300s CDN)
+            if request.method == "GET" and (
+                path.startswith("/api/shop/") or
+                path.startswith("/api/card/") or
+                path.startswith("/api/files/") or
+                path.startswith("/api/security/status")
+            ):
+                if "cache-control" not in (k.lower() for k in response.headers.keys()):
+                    response.headers["Cache-Control"] = "public, max-age=60, s-maxage=300, stale-while-revalidate=120"
+
             return response
 
     app.add_middleware(CombinedMiddleware)
+    app.add_middleware(GZipMiddleware, minimum_size=512)
 else:
     allowed_origins = [frontend_url, "http://localhost:3000"]
     if cors_origins_env:
@@ -3088,6 +3104,7 @@ else:
     )
     # Add security middleware only when using standard CORS (not combined)
     app.add_middleware(SecurityMiddleware)
+    app.add_middleware(GZipMiddleware, minimum_size=512)
 
 # ==================== STARTUP - SEED DATA ====================
 

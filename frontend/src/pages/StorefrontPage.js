@@ -4,7 +4,7 @@ import axios from 'axios';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
-import { formatVND } from '../utils/format';
+import { formatVND, optimizeImageUrl } from '../utils/format';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
@@ -471,7 +471,7 @@ const StorefrontPage = () => {
               )}
               <div className="aspect-square bg-[#F8FAFC] overflow-hidden">
                 {post.thumbnail ? (
-                  <img src={post.thumbnail} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                  <img src={optimizeImageUrl(post.thumbnail, 500)} alt={post.title} loading="lazy" decoding="async" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#F0F9FF] to-[#E0F2FE]">
                     <FileText className="w-10 h-10 text-[#CBD5E1]" />
@@ -520,7 +520,7 @@ const StorefrontPage = () => {
         <span className="absolute top-2 left-2 z-10 px-1.5 py-0.5 text-[10px] font-bold rounded bg-[#0F172A] text-white">Dịch vụ</span>
       )}
       <div className="aspect-square bg-[#F8FAFC] overflow-hidden">
-        <img src={product.image_url || '/product-fallback.png'} alt={product.name} onError={(e) => { e.target.src = '/product-fallback.png'; }} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+        <img src={optimizeImageUrl(product.image_url, 400) || '/product-fallback.png'} alt={product.name} loading="lazy" decoding="async" onError={(e) => { e.target.src = '/product-fallback.png'; }} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
       </div>
       <div className="p-3 sm:p-4 text-center">
         <h3 className="font-medium text-[#0F172A] text-sm sm:text-base line-clamp-2 mb-1">{product.name}</h3>
@@ -678,7 +678,7 @@ const StorefrontPage = () => {
             >
               <div className="aspect-square bg-[#F8FAFC] overflow-hidden">
                 {cat.image_url ? (
-                  <img src={cat.image_url} alt={cat.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                  <img src={optimizeImageUrl(cat.image_url, 400)} alt={cat.name} loading="lazy" decoding="async" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
                     <FolderOpen className="w-10 h-10 text-[#CBD5E1]" />
