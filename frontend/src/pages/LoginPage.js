@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
@@ -44,12 +44,15 @@ const LoginPage = () => {
   const { t } = useLanguage();
   const navigate = useNavigate();
 
-  // If already logged in, redirect
-  if (user) {
-    if (user.role === 'super_admin' || user.role === 'sub_admin') { navigate('/admin'); return null; }
-    navigate('/dashboard');
-    return null;
-  }
+  // If already logged in, redirect (in effect to avoid render-time setState warning)
+  useEffect(() => {
+    if (!user) return;
+    if (user.role === 'super_admin' || user.role === 'sub_admin') navigate('/admin');
+    else if (user.role === 'shop_owner') navigate('/dashboard');
+    else if (user.role === 'agent') navigate('/agent');
+    else navigate('/dashboard');
+  }, [user, navigate]);
+  if (user) return null;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
