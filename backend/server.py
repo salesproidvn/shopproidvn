@@ -24,6 +24,7 @@ import time
 import collections
 import bleach
 import boto3
+from botocore.client import Config as BotoConfig
 import resend
 from PIL import Image
 from pywebpush import webpush, WebPushException
@@ -2852,6 +2853,72 @@ async def security_status(request: Request):
         }
     }
 
+@api_router.get("/admin/backups")
+async def list_db_backups(request: Request):
+    """List DB backups stored in Cloudflare R2."""
+    await require_super_admin(request)
+    try:
+        s3 = boto3.client(
+            "s3",
+            endpoint_url=os.environ.get("R2_ENDPOINT"),
+            aws_access_key_id=os.environ.get("R2_ACCESS_KEY"),
+            aws_secret_access_key=os.environ.get("R2_SECRET_KEY"),
+            config=BotoConfig(signature_version="s3v4"),
+            region_name="auto",
+        )
+        prefix = os.environ.get("BACKUP_R2_PREFIX", "backups/db/")
+        resp = s3.list_objects_v2(Bucket=os.environ.get("R2_BUCKET"), Prefix=prefix)
+        objs = resp.get("Contents", []) or []
+        objs.sort(key=lambda o: o["LastModified"], reverse=True)
+        return [{
+            "key": o["Key"],
+            "name": o["Key"].split("/")[-1],
+            "size_mb": round(o["Size"] / 1024 / 1024, 2),
+            "created_at": o["LastModified"].isoformat(),
+        } for o in objs]
+    except Exception as e:
+        logger.error(f"list_db_backups failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/admin/backups/run")
+async def run_db_backup_now(request: Request):
+    """Trigger a full DB backup now. Super Admin only."""
+    await require_super_admin(request)
+    try:
+        import sys as _sys
+        _sp = str(Path(__file__).parent / "scripts")
+        if _sp not in _sys.path:
+            _sys.path.append(_sp)
+        import backup_db as _bdb
+        import asyncio as _asyncio
+        result = await _asyncio.to_thread(_bdb.run_backup)
+        return {"success": True, **result}
+    except Exception as e:
+        logger.error(f"manual backup failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Backup failed: {e}")
+
+@api_router.get("/admin/backups/download")
+async def get_db_backup_download_url(request: Request, key: str):
+    """Generate a presigned URL (valid 1 hour) to download a specific backup."""
+    await require_super_admin(request)
+    try:
+        s3 = boto3.client(
+            "s3",
+            endpoint_url=os.environ.get("R2_ENDPOINT"),
+            aws_access_key_id=os.environ.get("R2_ACCESS_KEY"),
+            aws_secret_access_key=os.environ.get("R2_SECRET_KEY"),
+            config=BotoConfig(signature_version="s3v4"),
+            region_name="auto",
+        )
+        url = s3.generate_presigned_url(
+            "get_object",
+            Params={"Bucket": os.environ.get("R2_BUCKET"), "Key": key},
+            ExpiresIn=3600,
+        )
+        return {"url": url, "expires_in": 3600}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @api_router.get("/admin/security/dashboard")
 async def security_dashboard(request: Request):
     """Security dashboard data for Super Admin."""
@@ -3222,6 +3289,33 @@ async def startup_event():
         f.write(f"- Email: {SHOP3_USER['email']}\n")
         f.write(f"- Password: {SHOP3_USER['password']}\n")
         f.write("- Shop slug: cho-xanh-365\n")
+
+    # Start daily DB backup scheduler (runs at 02:00 UTC = 09:00 ICT)
+    try:
+        from apscheduler.schedulers.asyncio import AsyncIOScheduler
+        from apscheduler.triggers.cron import CronTrigger
+        import asyncio as _asyncio
+        import sys as _sys
+        from pathlib import Path as _P
+        _sp = str(_P(__file__).parent / "scripts")
+        if _sp not in _sys.path:
+            _sys.path.append(_sp)
+        scheduler = AsyncIOScheduler()
+
+        async def _scheduled_backup():
+            try:
+                import backup_db as _bdb
+                result = await _asyncio.to_thread(_bdb.run_backup)
+                logger.info(f"[BACKUP][CRON] OK: {result}")
+            except Exception as e:
+                logger.error(f"[BACKUP][CRON] failed: {e}")
+
+        scheduler.add_job(_scheduled_backup, CronTrigger(hour=2, minute=0), id="daily_db_backup", replace_existing=True)
+        scheduler.start()
+        app.state.backup_scheduler = scheduler
+        logger.info("Daily DB backup scheduler started (02:00 UTC)")
+    except Exception as e:
+        logger.error(f"Failed to start backup scheduler: {e}")
 
 @app.on_event("shutdown")
 async def shutdown_db_client():

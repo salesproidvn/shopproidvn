@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import TwoFactorAuthCard from '../components/TwoFactorAuthCard';
+import DatabaseBackupCard from '../components/DatabaseBackupCard';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -1023,6 +1024,7 @@ const SuperAdminDashboard = () => {
           {activeTab === 'settings' && (
             <div className="space-y-6" data-testid="settings-tab">
               <TwoFactorAuthCard />
+              <DatabaseBackupCard />
               <Card className="border-0 shadow-sm max-w-lg">
                 <CardHeader className="p-5 pb-3">
                   <CardTitle className="text-lg flex items-center gap-2">
