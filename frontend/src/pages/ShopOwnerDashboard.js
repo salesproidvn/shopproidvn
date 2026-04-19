@@ -773,6 +773,24 @@ const ShopOwnerDashboard = () => {
     }
   };
 
+  const handleCopyProductLink = async (productId) => {
+    if (!shop?.slug) return;
+    const url = `${window.location.origin}/shop/${shop.slug}/product/${productId}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success('Đã copy link sản phẩm');
+    } catch {
+      // Fallback
+      const ta = document.createElement('textarea');
+      ta.value = url;
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); toast.success('Đã copy link sản phẩm'); }
+      catch { toast.error('Copy thất bại'); }
+      document.body.removeChild(ta);
+    }
+  };
+
   const openEditProduct = (product) => {
     setEditingProduct(product);
     setProductForm({
@@ -1577,6 +1595,9 @@ const ShopOwnerDashboard = () => {
                             <div className="flex gap-1 lg:gap-2 mt-2">
                               <Button variant="outline" size="sm" className="flex-1 text-[10px] lg:text-xs h-7 lg:h-8 px-1 lg:px-2 rounded-[5px]" onClick={() => openEditProduct(product)} data-testid={`edit-product-${product.id}`}>
                                 <Pencil className="w-3 h-3 mr-1" /> {t.edit}
+                              </Button>
+                              <Button variant="outline" size="sm" className="h-7 lg:h-8 px-1 lg:px-2 rounded-[5px]" onClick={() => handleCopyProductLink(product.id)} data-testid={`copy-product-link-${product.id}`} title="Copy link sản phẩm">
+                                <Link2 className="w-3 h-3" />
                               </Button>
                               <Button variant="destructive" size="sm" className="h-7 lg:h-8 px-1 lg:px-2 rounded-[5px]" onClick={() => handleDeleteProduct(product.id)} data-testid={`delete-product-${product.id}`}>
                                 <Trash2 className="w-3 h-3" />
@@ -3690,9 +3711,12 @@ const ShopOwnerDashboard = () => {
                   {selectedProduct.description && (
                     <div className="text-sm text-[#334155] mb-4 flex-1 prose prose-sm max-w-none break-words [&_ol]:list-decimal [&_ol]:pl-6 [&_ul]:list-disc [&_ul]:pl-6 [&_img]:max-w-full" dangerouslySetInnerHTML={{ __html: selectedProduct.description }} />
                   )}
-                  <div className="flex gap-3 mt-auto pt-4">
+                  <div className="flex gap-2 mt-auto pt-4">
                     <Button variant="outline" className="flex-1 text-sm" onClick={(e) => { e.stopPropagation(); setShowProductDetailModal(false); setTimeout(() => openEditProduct(selectedProduct), 100); }} data-testid="product-detail-edit-btn">
                       <Pencil className="w-4 h-4 mr-2" /> {t.editProduct}
+                    </Button>
+                    <Button variant="outline" className="text-sm px-3" onClick={() => handleCopyProductLink(selectedProduct.id)} data-testid="product-detail-copy-link" title="Copy link">
+                      <Link2 className="w-4 h-4" />
                     </Button>
                     <Button className="flex-1 text-sm hover:opacity-90" style={{ backgroundColor: themeColor }} onClick={() => setShowProductDetailModal(false)}>
                       {t.close}
