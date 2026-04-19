@@ -43,17 +43,34 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     const { data } = await axios.post(`${API}/auth/login`, { email, password });
+    // If 2FA is enabled, server returns { requires_2fa: true, pending_token }
+    if (data.requires_2fa) {
+      return { requires_2fa: true, pending_token: data.pending_token, email: data.email };
+    }
     if (data.token) {
       localStorage.setItem(TOKEN_KEY, data.token);
     }
     setUser(data);
-    // Return redirect path - let caller handle navigation via React Router (no page reload)
     if (data.role === 'super_admin' || data.role === 'sub_admin') {
       return { ...data, redirectTo: '/admin' };
     } else if (data.role === 'shop_owner') {
       return { ...data, redirectTo: '/dashboard' };
     } else if (data.role === 'agent') {
       return { ...data, redirectTo: '/agent' };
+    }
+    return data;
+  };
+
+  const verify2FA = async (pending_token, code) => {
+    const { data } = await axios.post(`${API}/auth/2fa/verify`, { pending_token, code });
+    if (data.token) {
+      localStorage.setItem(TOKEN_KEY, data.token);
+    }
+    setUser(data);
+    if (data.role === 'super_admin' || data.role === 'sub_admin') {
+      return { ...data, redirectTo: '/admin' };
+    } else if (data.role === 'shop_owner') {
+      return { ...data, redirectTo: '/dashboard' };
     }
     return data;
   };
@@ -76,7 +93,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, checkAuth }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, checkAuth, verify2FA }}>
       {children}
     </AuthContext.Provider>
   );

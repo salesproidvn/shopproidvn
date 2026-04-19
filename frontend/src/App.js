@@ -8,6 +8,7 @@ import { LanguageProvider } from "./context/LanguageContext";
 import { NotificationProvider } from "./context/NotificationContext";
 import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/LoginPage";
+import TwoFARecoverPage from "./pages/TwoFARecoverPage";
 import WishlistPage from "./pages/WishlistPage";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import ShopOwnerDashboard from "./pages/ShopOwnerDashboard";
@@ -32,6 +33,7 @@ function App() {
             <BrowserRouter>
               <Routes>
                 <Route path="/" element={<LoginPage />} />
+                <Route path="/2fa-recover" element={<TwoFARecoverPage />} />
                 <Route path="/wishlist" element={<WishlistPage />} />
                 <Route path="/admin" element={<SuperAdminDashboard />} />
                 <Route path="/dashboard" element={<ShopOwnerDashboard />} />

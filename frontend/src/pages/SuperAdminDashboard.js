@@ -15,6 +15,7 @@ import {
   LogOut, Menu, X, TrendingUp, CalendarClock, Eye, Phone, Mail, Globe, Wrench, Trash2, Image, AlertTriangle, CheckCircle2, Settings, Lock, Copy, MoreHorizontal, Send, Download, Shield, Activity, ShieldAlert, ShieldCheck, Clock
 } from 'lucide-react';
 import { toast } from 'sonner';
+import TwoFactorAuthCard from '../components/TwoFactorAuthCard';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -1021,6 +1022,7 @@ const SuperAdminDashboard = () => {
 
           {activeTab === 'settings' && (
             <div className="space-y-6" data-testid="settings-tab">
+              <TwoFactorAuthCard />
               <Card className="border-0 shadow-sm max-w-lg">
                 <CardHeader className="p-5 pb-3">
                   <CardTitle className="text-lg flex items-center gap-2">

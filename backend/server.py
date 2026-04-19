@@ -12,6 +12,7 @@ import logging
 import bcrypt
 import jwt
 import secrets
+import pyotp
 import uuid as uuid_lib
 import io
 import json
@@ -336,6 +337,30 @@ def create_refresh_token(user_id: str) -> str:
     payload = {"sub": user_id, "exp": datetime.now(timezone.utc) + timedelta(days=7), "type": "refresh"}
     return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
 
+def create_2fa_pending_token(user_id: str, email: str, role: str) -> str:
+    payload = {
+        "sub": user_id, "email": email, "role": role,
+        "exp": datetime.now(timezone.utc) + timedelta(minutes=5),
+        "type": "2fa_pending",
+    }
+    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+def generate_backup_codes(n: int = 8) -> list:
+    """Generate n human-readable backup codes like 'ABCD-1234'."""
+    codes = []
+    alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"  # no O/0/I/1
+    for _ in range(n):
+        part1 = "".join(secrets.choice(alphabet) for _ in range(4))
+        part2 = "".join(secrets.choice(alphabet) for _ in range(4))
+        codes.append(f"{part1}-{part2}")
+    return codes
+
+def hash_backup_code(code: str) -> str:
+    return bcrypt.hashpw(code.upper().replace("-", "").encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+
+def verify_backup_code(code: str, hashed: str) -> bool:
+    return bcrypt.checkpw(code.upper().replace("-", "").encode("utf-8"), hashed.encode("utf-8"))
+
 async def get_current_user(request: Request) -> dict:
     token = request.cookies.get("access_token")
     if not token:
@@ -433,6 +458,16 @@ class ResetPasswordRequest(BaseModel):
 class ChangePasswordRequest(BaseModel):
     current_password: str
     new_password: str
+
+class TwoFAVerifySetup(BaseModel):
+    code: str
+
+class TwoFALoginVerify(BaseModel):
+    pending_token: str
+    code: str
+
+class TwoFADisable(BaseModel):
+    code: str  # TOTP code or backup code
 
 class ShopCreate(BaseModel):
     name: str
@@ -663,6 +698,16 @@ async def login(user_data: UserLogin, request: Request, response: Response):
     login_tracker.clear(lock_key)
     user_id = str(user["_id"])
     role = user.get("role", "customer")
+
+    # 2FA check: if user has 2FA enabled, return pending token (no cookies yet)
+    if user.get("totp_enabled") and user.get("totp_secret"):
+        pending = create_2fa_pending_token(user_id, email, role)
+        return {
+            "requires_2fa": True,
+            "pending_token": pending,
+            "email": email,
+        }
+
     access_token = create_access_token(user_id, email, role)
     set_auth_cookies(response, access_token, create_refresh_token(user_id))
     return {"id": user_id, "email": user["email"], "name": user["name"], "role": role, "shop_id": user.get("shop_id"), "token": access_token}
@@ -744,6 +789,215 @@ async def change_password(request: Request):
     new_hash = hash_password(new_password)
     await db.users.update_one({"_id": ObjectId(user["_id"])}, {"$set": {"password_hash": new_hash}})
     return {"message": "Đổi mật khẩu thành công"}
+
+# ==================== 2FA (TOTP) ENDPOINTS ====================
+
+@api_router.get("/auth/2fa/status")
+async def get_2fa_status(request: Request):
+    """Return whether 2FA is enabled for current user."""
+    user = await get_current_user(request)
+    user_doc = await db.users.find_one({"_id": ObjectId(user["_id"])}, {"totp_enabled": 1, "totp_backup_codes": 1, "totp_enabled_at": 1})
+    if not user_doc:
+        raise HTTPException(status_code=404, detail="User not found")
+    backup_count = len([c for c in (user_doc.get("totp_backup_codes") or []) if not c.get("used")])
+    return {
+        "enabled": bool(user_doc.get("totp_enabled")),
+        "enabled_at": serialize_datetime(user_doc.get("totp_enabled_at")) if user_doc.get("totp_enabled_at") else None,
+        "backup_codes_remaining": backup_count,
+    }
+
+@api_router.post("/auth/2fa/setup")
+async def setup_2fa(request: Request):
+    """Generate a new TOTP secret and return provisioning URI. Not yet enabled until verified."""
+    user = await get_current_user(request)
+    if user.get("role") != "super_admin":
+        raise HTTPException(status_code=403, detail="Chỉ Super Admin được bật 2FA")
+    secret = pyotp.random_base32()
+    issuer = "Pro ID Shop"
+    account = user.get("email", "admin")
+    uri = pyotp.totp.TOTP(secret).provisioning_uri(name=account, issuer_name=issuer)
+    # Store pending secret (not yet enabled)
+    await db.users.update_one(
+        {"_id": ObjectId(user["_id"])},
+        {"$set": {"totp_pending_secret": secret, "totp_pending_created_at": datetime.now(timezone.utc)}},
+    )
+    return {"secret": secret, "otpauth_url": uri, "issuer": issuer, "account": account}
+
+@api_router.post("/auth/2fa/verify-setup")
+async def verify_setup_2fa(data: TwoFAVerifySetup, request: Request):
+    """Verify a TOTP code against the pending secret and activate 2FA. Returns backup codes (plaintext, shown once)."""
+    user = await get_current_user(request)
+    if user.get("role") != "super_admin":
+        raise HTTPException(status_code=403, detail="Chỉ Super Admin được bật 2FA")
+    user_doc = await db.users.find_one({"_id": ObjectId(user["_id"])})
+    pending = user_doc.get("totp_pending_secret")
+    if not pending:
+        raise HTTPException(status_code=400, detail="Chưa khởi tạo 2FA. Vui lòng gọi /auth/2fa/setup trước.")
+    totp = pyotp.TOTP(pending)
+    if not totp.verify(data.code.strip(), valid_window=1):
+        raise HTTPException(status_code=400, detail="Mã không đúng. Thử lại.")
+    # Generate backup codes
+    plaintext_codes = generate_backup_codes(8)
+    hashed_codes = [{"hash": hash_backup_code(c), "used": False} for c in plaintext_codes]
+    await db.users.update_one(
+        {"_id": ObjectId(user["_id"])},
+        {
+            "$set": {
+                "totp_secret": pending,
+                "totp_enabled": True,
+                "totp_enabled_at": datetime.now(timezone.utc),
+                "totp_backup_codes": hashed_codes,
+            },
+            "$unset": {"totp_pending_secret": "", "totp_pending_created_at": ""},
+        },
+    )
+    return {"enabled": True, "backup_codes": plaintext_codes}
+
+@api_router.post("/auth/2fa/verify")
+async def verify_2fa_login(data: TwoFALoginVerify, response: Response):
+    """Second step of login: verify TOTP code against pending_token and issue full access token."""
+    try:
+        payload = jwt.decode(data.pending_token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        if payload.get("type") != "2fa_pending":
+            raise HTTPException(status_code=400, detail="Token không hợp lệ")
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=400, detail="Phiên 2FA đã hết hạn. Vui lòng đăng nhập lại.")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=400, detail="Token không hợp lệ")
+
+    user_id = payload["sub"]
+    email = payload["email"]
+    role = payload["role"]
+    user_doc = await db.users.find_one({"_id": ObjectId(user_id)})
+    if not user_doc or not user_doc.get("totp_enabled"):
+        raise HTTPException(status_code=400, detail="2FA không được bật")
+
+    code = data.code.strip()
+    secret = user_doc.get("totp_secret")
+    totp = pyotp.TOTP(secret)
+    verified = False
+    used_backup = False
+    if totp.verify(code, valid_window=1):
+        verified = True
+    else:
+        # Try backup codes
+        codes = user_doc.get("totp_backup_codes") or []
+        for idx, bc in enumerate(codes):
+            if not bc.get("used") and verify_backup_code(code, bc["hash"]):
+                verified = True
+                used_backup = True
+                codes[idx]["used"] = True
+                codes[idx]["used_at"] = datetime.now(timezone.utc)
+                await db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"totp_backup_codes": codes}})
+                break
+    if not verified:
+        raise HTTPException(status_code=401, detail="Mã xác thực không đúng")
+
+    access_token = create_access_token(user_id, email, role)
+    set_auth_cookies(response, access_token, create_refresh_token(user_id))
+    return {
+        "id": user_id, "email": email, "name": user_doc.get("name"),
+        "role": role, "shop_id": user_doc.get("shop_id"),
+        "token": access_token, "used_backup_code": used_backup,
+    }
+
+@api_router.post("/auth/2fa/disable")
+async def disable_2fa(data: TwoFADisable, request: Request):
+    """Disable 2FA. Requires a valid TOTP or backup code."""
+    user = await get_current_user(request)
+    user_doc = await db.users.find_one({"_id": ObjectId(user["_id"])})
+    if not user_doc.get("totp_enabled"):
+        raise HTTPException(status_code=400, detail="2FA chưa được bật")
+    secret = user_doc.get("totp_secret")
+    code = data.code.strip()
+    verified = pyotp.TOTP(secret).verify(code, valid_window=1) if secret else False
+    if not verified:
+        for bc in user_doc.get("totp_backup_codes") or []:
+            if not bc.get("used") and verify_backup_code(code, bc["hash"]):
+                verified = True
+                break
+    if not verified:
+        raise HTTPException(status_code=401, detail="Mã xác thực không đúng")
+    await db.users.update_one(
+        {"_id": ObjectId(user["_id"])},
+        {"$unset": {"totp_secret": "", "totp_enabled": "", "totp_enabled_at": "", "totp_backup_codes": "", "totp_pending_secret": ""}},
+    )
+    return {"message": "Đã tắt 2FA", "enabled": False}
+
+@api_router.post("/auth/2fa/backup-codes/regenerate")
+async def regenerate_backup_codes(data: TwoFAVerifySetup, request: Request):
+    """Regenerate backup codes. Requires a valid TOTP code."""
+    user = await get_current_user(request)
+    user_doc = await db.users.find_one({"_id": ObjectId(user["_id"])})
+    if not user_doc.get("totp_enabled"):
+        raise HTTPException(status_code=400, detail="2FA chưa được bật")
+    if not pyotp.TOTP(user_doc["totp_secret"]).verify(data.code.strip(), valid_window=1):
+        raise HTTPException(status_code=401, detail="Mã TOTP không đúng")
+    plaintext_codes = generate_backup_codes(8)
+    hashed_codes = [{"hash": hash_backup_code(c), "used": False} for c in plaintext_codes]
+    await db.users.update_one({"_id": ObjectId(user["_id"])}, {"$set": {"totp_backup_codes": hashed_codes}})
+    return {"backup_codes": plaintext_codes}
+
+class TwoFARecoverStart(BaseModel):
+    email: EmailStr
+
+@api_router.post("/auth/2fa/recover-start")
+async def recover_2fa_start(data: TwoFARecoverStart):
+    """Email-based 2FA recovery: sends a one-time link to disable 2FA."""
+    email = data.email.lower()
+    user = await db.users.find_one({"email": email, "totp_enabled": True, "role": "super_admin"})
+    # Always return success to prevent email enumeration
+    if not user:
+        return {"message": "If this email exists and has 2FA enabled, a recovery link has been sent."}
+    token = secrets.token_urlsafe(32)
+    await db.password_resets.insert_one({
+        "user_id": str(user["_id"]),
+        "token": token,
+        "purpose": "2fa_recovery",
+        "used": False,
+        "created_at": datetime.now(timezone.utc),
+        "expires_at": datetime.now(timezone.utc) + timedelta(minutes=30),
+    })
+    recovery_link = f"{os.environ.get('FRONTEND_URL','')}/2fa-recover?token={token}"
+    # Send email
+    try:
+        resend.api_key = os.environ.get("RESEND_API_KEY")
+        resend.Emails.send({
+            "from": os.environ.get("SENDER_EMAIL", "no-reply@proid.vn"),
+            "to": email,
+            "subject": "[Pro ID Shop] Khôi phục 2FA",
+            "html": f"""
+            <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px">
+              <h2 style="color:#0F172A">Khôi phục 2FA</h2>
+              <p>Chúng tôi nhận được yêu cầu tắt xác thực 2 bước (2FA) cho tài khoản <b>{email}</b>.</p>
+              <p>Nếu đây là bạn, bấm vào nút bên dưới để xác nhận. Link hết hạn sau 30 phút.</p>
+              <p><a href="{recovery_link}" style="background:#EF4444;color:white;padding:12px 24px;text-decoration:none;border-radius:6px;display:inline-block">Tắt 2FA</a></p>
+              <p style="color:#64748B;font-size:12px">Nếu không phải bạn, hãy bỏ qua email này và kiểm tra tài khoản.</p>
+            </div>
+            """,
+        })
+    except Exception as e:
+        logger.error(f"2FA recovery email failed: {e}")
+    return {"message": "If this email exists and has 2FA enabled, a recovery link has been sent."}
+
+class TwoFARecoverComplete(BaseModel):
+    token: str
+
+@api_router.post("/auth/2fa/recover-complete")
+async def recover_2fa_complete(data: TwoFARecoverComplete):
+    """Complete 2FA recovery via the email link token. Disables 2FA."""
+    doc = await db.password_resets.find_one({
+        "token": data.token, "used": False, "purpose": "2fa_recovery",
+        "expires_at": {"$gt": datetime.now(timezone.utc)},
+    })
+    if not doc:
+        raise HTTPException(status_code=400, detail="Token không hợp lệ hoặc đã hết hạn")
+    await db.users.update_one(
+        {"_id": ObjectId(doc["user_id"])},
+        {"$unset": {"totp_secret": "", "totp_enabled": "", "totp_enabled_at": "", "totp_backup_codes": "", "totp_pending_secret": ""}},
+    )
+    await db.password_resets.update_one({"_id": doc["_id"]}, {"$set": {"used": True, "used_at": datetime.now(timezone.utc)}})
+    return {"message": "Đã tắt 2FA. Bạn có thể đăng nhập và bật lại trong Profile."}
 
 # ==================== SUPER ADMIN ENDPOINTS ====================
 

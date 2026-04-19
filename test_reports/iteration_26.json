@@ -1,0 +1,62 @@
+{
+  "summary": "Comprehensive regression testing of Super Admin 2FA (TOTP) feature — backend + frontend. 20/20 pytest cases passed covering full flow (setup, verify-setup, status, login→requires_2fa, verify TOTP, verify backup code (one-shot), expired pending token, regenerate, recover-start/complete, disable, role-guard 403 for non super_admin). Frontend UI verified end-to-end: Settings tab → TwoFactorAuthCard renders, 'Bật 2FA' opens modal with QR SVG + secret + code input, verify-setup switches to 8-backup-codes grid, enabled-state shows Tắt 2FA + Tạo lại mã backup buttons, logout→re-login triggers 2FA verify screen (title 'Xác thực hai bước'), bad code shows 'Mã xác thực không đúng', valid TOTP issues session and lands on /admin, /2fa-recover page renders with confirm button, Disable 2FA cleanup worked. Admin account restored to no-2FA state at end of testing (totp_* keys removed).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "LoginPage", "issues": ["Non-blocking React warning in console: 'Cannot update a component (BrowserRouter) while rendering a different component (LoginPage)' — setState-in-render detected during 2FA mode transition; does not affect functionality but should be wrapped in useEffect."]}
+    ]
+  },
+  "features_tested": {
+    "backend_setup_guard": {"status": "PASS", "details": "POST /api/auth/2fa/setup returns 403 for shop_owner (fashion@proid.vn); returns secret/otpauth_url/issuer='Pro ID Shop'/account=admin email for super_admin."},
+    "backend_verify_setup": {"status": "PASS", "details": "POST /api/auth/2fa/verify-setup with bad code → 400; with valid TOTP → 200 with enabled:true and 8 backup codes matching 'XXXX-XXXX' format."},
+    "backend_status": {"status": "PASS", "details": "GET /api/auth/2fa/status returns enabled,enabled_at,backup_codes_remaining; remaining decrements after a backup code is used."},
+    "backend_login_requires_2fa": {"status": "PASS", "details": "POST /api/auth/login for 2FA-enabled admin returns {requires_2fa:true, pending_token, email} and sets no access_token cookie."},
+    "backend_verify_totp": {"status": "PASS", "details": "POST /api/auth/2fa/verify with valid TOTP → 200 {role:'super_admin', token, used_backup_code:false}; invalid code → 401."},
+    "backend_verify_backup_one_shot": {"status": "PASS", "details": "Backup code verifies once with used_backup_code:true and is rejected on subsequent attempts (401)."},
+    "backend_expired_pending": {"status": "PASS", "details": "POST /api/auth/2fa/verify with malformed/invalid pending_token → 400 with 'Token không hợp lệ'/'Phiên 2FA đã hết hạn'."},
+    "backend_regenerate": {"status": "PASS", "details": "POST /api/auth/2fa/backup-codes/regenerate — bad TOTP → 401; valid TOTP → new 8 codes, old codes no longer accepted at /auth/2fa/verify."},
+    "backend_recover_start": {"status": "PASS", "details": "Returns generic success for both unknown emails and the admin email (no enumeration). Resend email send wrapped in try/except."},
+    "backend_recover_complete": {"status": "PASS", "details": "Invalid token → 400. Valid flow exercised by code review (password_resets collection uses purpose='2fa_recovery', 30-min expiry)."},
+    "backend_disable": {"status": "PASS", "details": "Bad code → 401. Valid TOTP → 200 enabled:false. Next login no longer requires 2FA."},
+    "frontend_settings_card": {"status": "PASS", "details": "TwoFactorAuthCard visible in /admin Settings tab; when off shows warning banner + 'Bật 2FA ngay' button."},
+    "frontend_setup_modal": {"status": "PASS", "details": "Modal renders QR SVG (qrcode.react), displays base32 secret, 6-digit code input, Hủy/Xác nhận buttons. After verify-setup succeeds, switches to backup codes view with 8 <code> elements (e.g. 'MUJ8-53FJ')."},
+    "frontend_enabled_state": {"status": "PASS", "details": "Once 2FA enabled, twofa-disable-btn and twofa-regen-btn become visible."},
+    "frontend_login_2fa_screen": {"status": "PASS", "details": "After password entry, UI transitions to 2FA mode. twofa-title, twofa-code-input, twofa-submit-button, twofa-back-btn, twofa-lost-btn/twofa-recover-btn present. Bad code shows twofa-error = 'Mã xác thực không đúng'. Valid TOTP lands on /admin."},
+    "frontend_recover_page": {"status": "PASS", "details": "/2fa-recover?token=XXX renders data-testid='2fa-recover-page' with confirm-recover-btn. Invalid token shows error state after click."},
+    "frontend_disable_modal": {"status": "PASS", "details": "twofa-disable-modal opens with twofa-disable-code-input + twofa-disable-confirm; valid TOTP disables 2FA and enable-btn reappears."}
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_2fa.py",
+    "/app/test_reports/pytest/pytest_2fa.xml"
+  ],
+  "action_items": [
+    "(Low priority) Fix React setState-in-render warning in LoginPage.js during 2FA mode transition — wrap the offending navigation/state update in useEffect to prevent the 'Cannot update a component (BrowserRouter) while rendering LoginPage' console warning."
+  ],
+  "critical_code_review_comments": [
+    "2FA recover-start uses FRONTEND_URL from env but falls back to empty string if unset — the generated link would then be '/2fa-recover?token=...' (relative). Current .env has FRONTEND_URL so fine, but consider failing loudly if env missing.",
+    "disable_2fa accepts TOTP OR backup code — good defense. But backup-code usage in disable() does NOT mark the code as used (unlike /auth/2fa/verify). Since 2FA is being fully removed (totp_backup_codes unset) this is fine, but document this intentional behaviour.",
+    "create_2fa_pending_token includes role in JWT and /auth/2fa/verify trusts it as-is. If a user's role were changed in DB between login and 2FA verify the issued access_token would carry the stale role. Low-risk but consider re-reading role from DB at verify step.",
+    "regenerate_backup_codes only accepts TOTP (not backup codes), which matches spec; good.",
+    "Recovery link email content includes admin email in HTML — safe since it is only emailed to that address, but consider escaping if user-controlled in future."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_2fa.py"
+  ],
+  "success_rate": {
+    "backend": "100% (20/20 pytest cases passed)",
+    "frontend": "100% (all 2FA UI flows verified: setup → backup codes → 2FA login → recover page → disable)"
+  },
+  "test_credentials": {
+    "super_admin": "daominhhai129@gmail.com / admin123 (currently NO 2FA)",
+    "shop_owner": "fashion@proid.vn / iLoveProID@ (used for 403 guard check)"
+  },
+  "seed_data_creation": "None. Admin account was toggled on/off 2FA during testing and restored to no-2FA state at end (totp_* keys unset in db.users). One orphan password_resets doc with purpose='2fa_recovery' remains from test_recover_start — harmless, TTL 30 min.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "2FA feature complete and working on both backend + frontend. pyotp 2.9.0 used. Backend tests live at /app/backend/tests/test_2fa.py (20 cases); run with: python -m pytest backend/tests/test_2fa.py -v. UI testids added: twofa-card, twofa-enable-btn, twofa-setup-modal, twofa-setup-code-input, twofa-setup-verify, twofa-setup-cancel, twofa-setup-done, twofa-backup-codes (children are <code> not <div>), twofa-disable-btn, twofa-regen-btn, twofa-disable-modal, twofa-disable-code-input, twofa-disable-confirm, twofa-regen-modal, twofa-regen-code-input, twofa-regen-confirm. LoginPage: twofa-title, twofa-code-input, twofa-submit-button, twofa-error, twofa-back-btn, twofa-lost-btn, twofa-recover-btn. Recover page: 2fa-recover-page, confirm-recover-btn. If re-testing and admin has leftover 2FA, clean via: db.users.update_one({email:'daominhhai129@gmail.com'},{$unset:{totp_secret:'',totp_enabled:'',totp_enabled_at:'',totp_backup_codes:'',totp_pending_secret:''}}). Login submit testid is 'auth-submit-button' (not 'login-submit-button')."
+}

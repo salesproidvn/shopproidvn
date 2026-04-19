@@ -27,7 +27,7 @@ const FacebookIcon = () => (
 );
 
 const LoginPage = () => {
-  const [mode, setMode] = useState('login'); // 'login' | 'register' | 'forgot' | 'reset'
+  const [mode, setMode] = useState('login'); // 'login' | 'register' | 'forgot' | 'reset' | '2fa'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
@@ -37,7 +37,10 @@ const LoginPage = () => {
   const [resetToken, setResetToken] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
-  const { login, register, user } = useAuth();
+  const [twoFAPending, setTwoFAPending] = useState(null); // { pending_token, email }
+  const [twoFACode, setTwoFACode] = useState('');
+  const [showRecover, setShowRecover] = useState(false);
+  const { login, register, user, verify2FA } = useAuth();
   const { t } = useLanguage();
   const navigate = useNavigate();
 
@@ -56,7 +59,10 @@ const LoginPage = () => {
     try {
       if (mode === 'login') {
         const result = await login(email, password);
-        if (result?.redirectTo) {
+        if (result?.requires_2fa) {
+          setTwoFAPending({ pending_token: result.pending_token, email: result.email });
+          setMode('2fa');
+        } else if (result?.redirectTo) {
           navigate(result.redirectTo);
         }
       } else if (mode === 'register') {
@@ -118,6 +124,35 @@ const LoginPage = () => {
 
   const handleSocialLogin = (provider) => {
     setError(`${provider} login coming soon`);
+  };
+
+  const handle2FASubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    if (!twoFACode.trim()) return;
+    setLoading(true);
+    try {
+      const result = await verify2FA(twoFAPending.pending_token, twoFACode.trim());
+      if (result?.redirectTo) navigate(result.redirectTo);
+    } catch (err) {
+      setError(formatApiErrorDetail(err.response?.data?.detail) || err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRecover2FA = async () => {
+    if (!twoFAPending?.email) return;
+    setLoading(true);
+    try {
+      await axios.post(`${API}/auth/2fa/recover-start`, { email: twoFAPending.email });
+      setSuccessMessage('Nếu email này tồn tại và đã bật 2FA, một link khôi phục đã được gửi. Kiểm tra hộp thư.');
+      setShowRecover(false);
+    } catch (err) {
+      setError(formatApiErrorDetail(err.response?.data?.detail) || err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const highlights = [
@@ -190,6 +225,50 @@ const LoginPage = () => {
 
         <div className="flex-1 flex items-center justify-center p-6 sm:p-10">
           <div className="w-full max-w-sm">
+            {/* ===== 2FA VERIFY MODE ===== */}
+            {mode === '2fa' && (
+              <>
+                <div className="mb-8">
+                  <h2 className="text-2xl font-extrabold text-[#0F172A] tracking-tight" data-testid="twofa-title">
+                    Xác thực hai bước
+                  </h2>
+                  <p className="text-sm text-[#64748B] mt-1.5">
+                    Nhập mã 6 số từ ứng dụng xác thực (Google Authenticator / Authy) cho <b>{twoFAPending?.email}</b>
+                  </p>
+                </div>
+                <form onSubmit={handle2FASubmit} className="space-y-4">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="twofa-code" className="text-xs font-medium text-[#334155]">Mã xác thực</Label>
+                    <Input id="twofa-code" type="text" inputMode="numeric" autoComplete="one-time-code"
+                      value={twoFACode} onChange={(e) => setTwoFACode(e.target.value)}
+                      required autoFocus maxLength={16}
+                      className="h-12 rounded-xl bg-[#F8FAFC] border-[#E2E8F0] focus:bg-white text-center text-lg tracking-widest font-mono"
+                      placeholder="123456" data-testid="twofa-code-input" />
+                    <p className="text-[11px] text-[#94A3B8]">Có thể dùng mã backup (ví dụ: ABCD-1234)</p>
+                  </div>
+                  {error && <div className="text-red-600 text-xs bg-red-50 p-3 rounded-xl border border-red-100" data-testid="twofa-error">{error}</div>}
+                  {successMessage && <div className="text-green-700 text-xs bg-green-50 p-3 rounded-xl border border-green-100 flex items-center gap-2"><CheckCircle className="w-4 h-4" />{successMessage}</div>}
+                  <Button type="submit" className="w-full h-11 bg-gradient-to-r from-[#CC0000] to-[#FF4444] hover:opacity-90 rounded-xl text-sm font-semibold shadow-lg shadow-[#CC0000]/20" disabled={loading} data-testid="twofa-submit-button">
+                    {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Shield className="w-4 h-4 mr-2" /> Xác nhận</>}
+                  </Button>
+                  <div className="flex items-center justify-between text-xs">
+                    <button type="button" onClick={() => { setMode('login'); setTwoFAPending(null); setTwoFACode(''); setError(''); }} className="text-[#64748B] hover:underline" data-testid="twofa-back-btn">
+                      Đăng nhập lại
+                    </button>
+                    {!showRecover ? (
+                      <button type="button" onClick={() => setShowRecover(true)} className="text-[#CC0000] font-medium hover:underline" data-testid="twofa-lost-btn">
+                        Mất thiết bị?
+                      </button>
+                    ) : (
+                      <button type="button" onClick={handleRecover2FA} disabled={loading} className="text-[#CC0000] font-medium hover:underline" data-testid="twofa-recover-btn">
+                        Gửi link khôi phục
+                      </button>
+                    )}
+                  </div>
+                </form>
+              </>
+            )}
+
             {/* ===== FORGOT PASSWORD MODE ===== */}
             {mode === 'forgot' && (
               <>
