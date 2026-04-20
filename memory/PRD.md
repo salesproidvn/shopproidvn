@@ -48,6 +48,15 @@ Multi-tenant e-commerce platform allowing shop owners to create and manage onlin
 - **Agent tracking**: Bookings carry `agent_tracking_code` if referral is present (same as orders)
 - **Business Card**: Instagram replaced with **TikTok** on the business card form and public card page; other pages (Storefront/Contact) keep Instagram unchanged
 
+### Phase 6 - Product Stock Toggles + Dedicated Edit Page (April 20, 2026)
+- **Removed** `stock` field entirely from `Product` model; migration unset `stock` on all 271 existing products
+- **Added** `is_hidden` (ẩn sản phẩm — excludes from public listing) and kept `out_of_stock` (hết hàng — product visible but cannot be ordered)
+- Public endpoints (`/api/shop/{slug}/products`, `/api/products`, `/api/card/{slug}`, `/api/og/shop/{slug}/product/...`, `/api/shop/{slug}/bookings`) filter `is_hidden:{$ne: true}`
+- **New dedicated Product Edit page** at `/dashboard/product/new` and `/dashboard/product/:productId/edit` with 2-column layout and 5 numbered sections (Type&Identification, Media Gallery, Pricing&Logistics, Detailed Information, Visibility&Promotion)
+- Replaces the prior in-dashboard Product Modal entirely
+- Dashboard product card now shows red "Hết hàng" and grey "Ẩn" badges instead of stock count
+- Storefront card + Product Detail page both hide Add-to-cart/Book button and show "Hết hàng" badge when `out_of_stock=true`
+
 ## DB Collections
 users, shops, products (+ type field), categories, orders, bookings (new), posts, pages, vouchers, agents, agent_sales, business_cards, push_subscriptions, password_resets, contacts
 
