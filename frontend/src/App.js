@@ -22,6 +22,7 @@ import CustomPage from "./pages/CustomPage";
 import AgentDashboard from "./pages/AgentDashboard";
 import BusinessCardPage from "./pages/BusinessCardPage";
 import ProductDetailPage from "./pages/ProductDetailPage";
+import ProductEditPage from "./pages/ProductEditPage";
 
 function App() {
   return (
@@ -37,6 +38,8 @@ function App() {
                 <Route path="/wishlist" element={<WishlistPage />} />
                 <Route path="/admin" element={<SuperAdminDashboard />} />
                 <Route path="/dashboard" element={<ShopOwnerDashboard />} />
+                <Route path="/dashboard/product/new" element={<ProductEditPage />} />
+                <Route path="/dashboard/product/:productId/edit" element={<ProductEditPage />} />
                 <Route path="/agent" element={<AgentDashboard />} />
                 <Route path="/card/:cardSlug" element={<BusinessCardPage />} />
                 <Route path="/shop/:slug" element={<StorefrontPage />} />

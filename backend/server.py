@@ -513,10 +513,10 @@ class ProductCreate(BaseModel):
     images: Optional[List[str]] = []
     video_url: Optional[str] = ""
     video_links: Optional[List[str]] = []
-    stock: Optional[int] = 0
     position: Optional[int] = 0
     is_featured: Optional[bool] = False
     is_active: Optional[bool] = True
+    is_hidden: Optional[bool] = False
     out_of_stock: Optional[bool] = False
     sku: Optional[str] = ""
     type: Optional[str] = "product"
@@ -1553,8 +1553,9 @@ async def create_product(data: ProductCreate, request: Request):
         "category_id": data.category_id, "category": cat_name, "description": data.description,
         "image_url": image_url, "images": images, "video_url": data.video_url or "",
         "video_links": data.video_links or [],
-        "stock": data.stock, "position": data.position or 0,
+        "position": data.position or 0,
         "is_active": data.is_active if data.is_active is not None else True,
+        "is_hidden": bool(data.is_hidden),
         "out_of_stock": bool(data.out_of_stock),
         "is_featured": data.is_featured or False, "sku": data.sku or "",
         "type": data.type if data.type in ("product", "service") else "product",
@@ -1569,6 +1570,8 @@ async def update_product(prod_id: str, request: Request):
     user = await require_shop_owner(request)
     shop_id = await resolve_shop_id(request, user)
     body = await request.json()
+    # Remove deprecated field "stock" if present - we no longer use it
+    body.pop("stock", None)
     # Security: Validate word limit and sanitize description
     if "description" in body and body["description"]:
         validate_word_limit(body["description"], "Mô tả sản phẩm")
@@ -2261,7 +2264,7 @@ async def get_public_business_card(card_slug: str):
         products = []
         if card.get("selected_products"):
             for pid in card["selected_products"]:
-                p = await db.products.find_one({"id": pid, "shop_id": shop_id, "is_active": True}, {"_id": 0})
+                p = await db.products.find_one({"id": pid, "shop_id": shop_id, "is_active": True, "is_hidden": {"$ne": True}}, {"_id": 0})
                 if p:
                     products.append({"id": p["id"], "name": p["name"], "price": p["price"], "image_url": p.get("image_url", "")})
         card.pop("created_at", None)
@@ -2283,7 +2286,7 @@ async def get_public_business_card(card_slug: str):
         products = []
         if card.get("selected_products") and shop:
             for pid in card["selected_products"]:
-                p = await db.products.find_one({"id": pid, "shop_id": str(shop["_id"]), "is_active": True}, {"_id": 0})
+                p = await db.products.find_one({"id": pid, "shop_id": str(shop["_id"]), "is_active": True, "is_hidden": {"$ne": True}}, {"_id": 0})
                 if p:
                     products.append({"id": p["id"], "name": p["name"], "price": p["price"], "image_url": p.get("image_url", "")})
         card.pop("created_at", None)
@@ -2518,7 +2521,7 @@ async def get_shop_products_public(slug: str, category: Optional[str] = None, se
     if not shop:
         raise HTTPException(status_code=404, detail="Shop not found")
     shop_id = str(shop["_id"])
-    query = {"shop_id": shop_id, "is_active": True}
+    query = {"shop_id": shop_id, "is_active": True, "is_hidden": {"$ne": True}}
     if category and category != "all":
         query["category_id"] = category
     if search:
@@ -2687,7 +2690,7 @@ async def create_booking(slug: str, data: BookingCreate, request: Request):
     if not shop:
         raise HTTPException(status_code=404, detail="Shop not found")
     shop_id = str(shop["_id"])
-    service = await db.products.find_one({"id": data.service_id, "shop_id": shop_id, "is_active": True})
+    service = await db.products.find_one({"id": data.service_id, "shop_id": shop_id, "is_active": True, "is_hidden": {"$ne": True}})
     if not service or service.get("type") != "service":
         raise HTTPException(status_code=404, detail="Service not found")
     booking_id = f"BK-{secrets.token_hex(6).upper()}"
@@ -2817,7 +2820,7 @@ async def submit_contact(slug: str, data: ContactForm, request: Request):
 
 @api_router.get("/products")
 async def get_products(category: Optional[str] = None, search: Optional[str] = None):
-    query = {"is_active": {"$ne": False}}
+    query = {"is_active": {"$ne": False}, "is_hidden": {"$ne": True}}
     if category and category != "All Categories":
         query["category"] = category
     if search:
@@ -3118,7 +3121,7 @@ async def og_product_page(slug: str, product_id: str):
     if not shop:
         raise HTTPException(status_code=404, detail="Shop not found")
     shop_id = str(shop["_id"])
-    product = await db.products.find_one({"id": product_id, "shop_id": shop_id, "is_active": True}, {"_id": 0})
+    product = await db.products.find_one({"id": product_id, "shop_id": shop_id, "is_active": True, "is_hidden": {"$ne": True}}, {"_id": 0})
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
     

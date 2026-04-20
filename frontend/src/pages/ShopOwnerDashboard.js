@@ -281,12 +281,10 @@ const ShopOwnerDashboard = () => {
   
   const [themeColor, setThemeColor] = useState('#0055FF');
 
-  const [showProductModal, setShowProductModal] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showOrderModal, setShowOrderModal] = useState(false);
   const [showProductDetailModal, setShowProductDetailModal] = useState(false);
   const [showPostModal, setShowPostModal] = useState(false);
-  const [editingProduct, setEditingProduct] = useState(null);
   const [editingCategory, setEditingCategory] = useState(null);
   const [editingPost, setEditingPost] = useState(null);
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -295,7 +293,6 @@ const ShopOwnerDashboard = () => {
   const [detailShowVideo, setDetailShowVideo] = useState(false);
   const [posts, setPosts] = useState([]);
 
-  const [productForm, setProductForm] = useState({ name: '', price: '', category_id: '', description: '', image_url: '', images: [], stock: '', position: '', video_url: '', video_links: [], sku: '', is_featured: false, type: 'product' });
   const [categoryForm, setCategoryForm] = useState({ name: '', description: '', parent_id: '', image_url: '' });
   const [shopForm, setShopForm] = useState({});
   const [postForm, setPostForm] = useState({ title: '', description: '', thumbnail: '', images: [], attached_products: [] });
@@ -685,82 +682,7 @@ const ShopOwnerDashboard = () => {
     requestAnimationFrame(() => window.scrollTo(0, scrollY));
   };
 
-  const handleImageUpload = async (e) => {
-    const files = Array.from(e.target.files || []);
-    if (!files.length) return;
-    const currentCount = (productForm.images || []).length;
-    const remaining = 8 - currentCount;
-    if (remaining <= 0) { toast.error('Tối đa 8 ảnh / Maximum 8 images'); return; }
-    const toUpload = files.slice(0, remaining);
-    if (files.length > remaining) toast.info(`Chỉ upload ${remaining} ảnh (tối đa 8)`);
-    try {
-      setUploading(true);
-      const uploaded = [];
-      for (const file of toUpload) {
-        const formData = new FormData();
-        formData.append('file', file);
-        const { data } = await axios.post(`${API}/upload/image`, formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        });
-        uploaded.push(data.url || `${API}/files/${data.id}`);
-      }
-      const newImages = [...(productForm.images || []), ...uploaded];
-      setProductForm({ ...productForm, images: newImages, image_url: newImages[0] });
-      toast.success(`${uploaded.length} ảnh đã tải lên`);
-    } catch (err) {
-      toast.error(err.response?.data?.detail || t.uploadFailed);
-    } finally {
-      setUploading(false);
-    }
-    if (fileInputRef.current) fileInputRef.current.value = '';
-  };
 
-  const removeProductImage = (idx) => {
-    const newImages = productForm.images.filter((_, i) => i !== idx);
-    setProductForm({ ...productForm, images: newImages, image_url: newImages[0] || '' });
-  };
-
-  const setAsThumbnail = (idx) => {
-    if (idx === 0) return;
-    const newImages = [...productForm.images];
-    const [moved] = newImages.splice(idx, 1);
-    newImages.unshift(moved);
-    setProductForm({ ...productForm, images: newImages, image_url: newImages[0] });
-  };
-
-  const handleSaveProduct = async (e) => {
-    e.preventDefault();
-    if (countWords(productForm.description) > 1000) { toast.error(t.maxWordsReachedProduct || 'Mô tả sản phẩm vượt quá 1000 từ'); return; }
-    const savedScrollY = window.scrollY;
-    try {
-      const data = { 
-        ...productForm, 
-        price: parseInt(productForm.price), 
-        stock: parseInt(productForm.stock) || 0,
-        position: parseInt(productForm.position) || 0,
-        category_id: productForm.category_id === "none" ? null : productForm.category_id || null,
-        images: productForm.images || [],
-        video_url: productForm.video_url || '',
-        video_links: (productForm.video_links || []).filter(v => v.trim()),
-        sku: productForm.sku || '',
-        is_featured: productForm.is_featured || false,
-        image_url: productForm.images?.length > 0 ? productForm.images[0] : productForm.image_url
-      };
-      if (editingProduct) {
-        await axios.put(`${API}/dashboard/products/${editingProduct.id}`, data);
-        toast.success(t.productUpdated);
-      } else {
-        await axios.post(`${API}/dashboard/products`, data);
-        toast.success(t.productCreated);
-      }
-      setShowProductModal(false);
-      resetProductForm();
-      await fetchProductsOnly();
-      requestAnimationFrame(() => window.scrollTo(0, savedScrollY));
-    } catch (err) {
-      toast.error(err.response?.data?.detail || t.failedToSave);
-    }
-  };
 
   const handleDeleteProduct = async (prodId) => {
     if (!window.confirm(t.deleteConfirmProduct)) return;
@@ -791,25 +713,6 @@ const ShopOwnerDashboard = () => {
     }
   };
 
-  const openEditProduct = (product) => {
-    setEditingProduct(product);
-    setProductForm({
-      name: product.name,
-      price: product.price.toString(),
-      category_id: product.category_id || 'none',
-      description: product.description || '',
-      image_url: product.image_url,
-      images: product.images || (product.image_url ? [product.image_url] : []),
-      stock: (product.stock || 0).toString(),
-      position: (product.position || 0).toString(),
-      video_url: product.video_url || '',
-      video_links: product.video_links || [],
-      sku: product.sku || '',
-      is_featured: product.is_featured || false,
-      type: product.type || 'product'
-    });
-    setShowProductModal(true);
-  };
 
   const openProductDetail = (product) => {
     setSelectedProduct(product);
@@ -818,10 +721,6 @@ const ShopOwnerDashboard = () => {
     setShowProductDetailModal(true);
   };
 
-  const resetProductForm = () => {
-    setEditingProduct(null);
-    setProductForm({ name: '', price: '', category_id: '', description: '', image_url: '', images: [], stock: '', position: '', video_url: '', video_links: [], sku: '', is_featured: false, type: 'product' });
-  };
 
   const handleSaveCategory = async (e) => {
     e.preventDefault();
@@ -1419,7 +1318,7 @@ const ShopOwnerDashboard = () => {
               </div>
             </div>
             {activeTab === 'products' && (
-              <Button onClick={() => { resetProductForm(); setShowProductModal(true); }} style={{ backgroundColor: themeColor }} className="hover:opacity-90 text-sm" data-testid="add-product-btn">
+              <Button onClick={() => navigate('/dashboard/product/new')} style={{ backgroundColor: themeColor }} className="hover:opacity-90 text-sm" data-testid="add-product-btn">
                 <Plus className="w-4 h-4 mr-2" /> {t.addProduct}
               </Button>
             )}
@@ -1589,11 +1488,18 @@ const ShopOwnerDashboard = () => {
                               {product.category_id && categories.find(c => c.id === product.category_id) && (
                                 <span className="text-[10px] lg:text-xs px-1.5 py-0.5 bg-[#F1F5F9] text-[#475569] rounded">{categories.find(c => c.id === product.category_id)?.name}</span>
                               )}
-                              <p className="text-[10px] lg:text-xs text-[#64748B]">{t.stock}: {product.stock || 0}</p>
+                              {product.out_of_stock && (
+                                <span className="text-[10px] lg:text-xs px-1.5 py-0.5 bg-red-100 text-red-700 rounded font-medium" data-testid={`out-of-stock-badge-${product.id}`}>Hết hàng</span>
+                              )}
+                              {product.is_hidden && (
+                                <span className="text-[10px] lg:text-xs px-1.5 py-0.5 bg-[#F1F5F9] text-[#64748B] rounded font-medium inline-flex items-center gap-1" data-testid={`hidden-badge-${product.id}`}>
+                                  <EyeOff className="w-2.5 h-2.5" /> Ẩn
+                                </span>
+                              )}
                               {product.sku && <p className="text-[10px] lg:text-xs text-[#94A3B8]">SKU: {product.sku}</p>}
                             </div>
                             <div className="flex gap-1 lg:gap-2 mt-2">
-                              <Button variant="outline" size="sm" className="flex-1 text-[10px] lg:text-xs h-7 lg:h-8 px-1 lg:px-2 rounded-[5px]" onClick={() => openEditProduct(product)} data-testid={`edit-product-${product.id}`}>
+                              <Button variant="outline" size="sm" className="flex-1 text-[10px] lg:text-xs h-7 lg:h-8 px-1 lg:px-2 rounded-[5px]" onClick={() => navigate(`/dashboard/product/${product.id}/edit`)} data-testid={`edit-product-${product.id}`}>
                                 <Pencil className="w-3 h-3 mr-1" /> {t.edit}
                               </Button>
                               <Button variant="outline" size="sm" className="h-7 lg:h-8 px-1 lg:px-2 rounded-[5px]" onClick={() => handleCopyProductLink(product.id)} data-testid={`copy-product-link-${product.id}`} title="Copy link sản phẩm">
@@ -3296,196 +3202,6 @@ const ShopOwnerDashboard = () => {
         </div>
       </main>
 
-      {/* Product Modal */}
-      <Dialog open={showProductModal} onOpenChange={setShowProductModal}>
-        <DialogContent className="sm:max-w-lg bg-white max-h-[90vh] overflow-y-auto" hideClose data-testid="product-modal" onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
-          <DialogHeader>
-            <DialogTitle className="text-lg">{editingProduct ? t.editProduct : t.addProduct}</DialogTitle>
-            <DialogDescription className="text-sm">{t.fillProductDetails}</DialogDescription>
-          </DialogHeader>
-          <button type="button" onClick={() => setShowProductModal(false)}
-            className="absolute top-3 right-3 w-9 h-9 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-lg ring-2 ring-white transition-colors z-10"
-            data-testid="product-modal-close-btn">
-            <X className="w-5 h-5 stroke-[2.5]" />
-          </button>
-          <form onSubmit={handleSaveProduct} className="space-y-4">
-            <div>
-              <label className="block text-xs font-medium mb-1">{t.productName} *</label>
-              <Input value={productForm.name} onChange={(e) => setProductForm({ ...productForm, name: e.target.value })} required className="text-sm" data-testid="product-name-input" />
-            </div>
-            <div>
-              <label className="block text-xs font-medium mb-1">Loại</label>
-              <div className="grid grid-cols-2 gap-2">
-                <button type="button" onClick={() => setProductForm({ ...productForm, type: 'product' })}
-                  className={`text-sm py-2 rounded-[5px] border transition-colors ${productForm.type !== 'service' ? 'border-transparent text-white' : 'border-[#E2E8F0] bg-white text-[#64748B]'}`}
-                  style={productForm.type !== 'service' ? { backgroundColor: themeColor } : {}}
-                  data-testid="product-type-product-btn">
-                  Sản phẩm
-                </button>
-                <button type="button" onClick={() => setProductForm({ ...productForm, type: 'service' })}
-                  className={`text-sm py-2 rounded-[5px] border transition-colors ${productForm.type === 'service' ? 'border-transparent text-white' : 'border-[#E2E8F0] bg-white text-[#64748B]'}`}
-                  style={productForm.type === 'service' ? { backgroundColor: themeColor } : {}}
-                  data-testid="product-type-service-btn">
-                  Dịch vụ
-                </button>
-              </div>
-              {productForm.type === 'service' && (
-                <p className="text-[11px] text-[#64748B] mt-1">Khách sẽ thấy nút "Đặt lịch" thay vì "Thêm vào giỏ".</p>
-              )}
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <div>
-                <label className="block text-xs font-medium mb-1">{t.productPrice} *</label>
-                <Input type="number" value={productForm.price} onChange={(e) => setProductForm({ ...productForm, price: e.target.value })} required className="text-sm" data-testid="product-price-input" />
-              </div>
-              <div>
-                <label className="block text-xs font-medium mb-1">{t.stock}</label>
-                <Input type="number" value={productForm.stock} onChange={(e) => setProductForm({ ...productForm, stock: e.target.value })} className="text-sm" data-testid="product-stock-input" />
-              </div>
-              <div>
-                <label className="block text-xs font-medium mb-1">SKU</label>
-                <Input value={productForm.sku} onChange={(e) => setProductForm({ ...productForm, sku: e.target.value })} className="text-sm" placeholder="e.g. WH-001" data-testid="product-sku-input" />
-              </div>
-              <div>
-                <label className="block text-xs font-medium mb-1">{t.position}</label>
-                <Input type="number" value={productForm.position} onChange={(e) => setProductForm({ ...productForm, position: e.target.value })} className="text-sm" placeholder="0" data-testid="product-position-input" />
-              </div>
-            </div>
-            <div>
-              <label className="block text-xs font-medium mb-1">{t.category}</label>
-              <Select value={productForm.category_id || "none"} onValueChange={(val) => {
-                if (val === '__create_new__') {
-                  setCategoryForm({ name: '', description: '', parent_id: '', image_url: '' });
-                  setEditingCategory(null);
-                  setShowCategoryModal(true);
-                } else {
-                  setProductForm({ ...productForm, category_id: val });
-                }
-              }}>
-                <SelectTrigger className="text-sm" data-testid="product-category-select">
-                  <SelectValue placeholder={t.selectCategory} />
-                </SelectTrigger>
-                <SelectContent className="bg-white">
-                  <SelectItem value="none">{t.none}</SelectItem>
-                  {categories.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id}>{cat.parent_id ? `└ ${cat.name}` : cat.name}</SelectItem>
-                  ))}
-                  <div className="border-t border-[#E2E8F0] mt-1 pt-1">
-                    <SelectItem value="__create_new__" className="text-[#0055FF] font-medium">
-                      + {t.addCategory || 'Thêm danh mục mới'}
-                    </SelectItem>
-                  </div>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-center justify-between p-3 bg-[#F8FAFC] rounded-[5px]">
-              <div className="flex items-center gap-2">
-                <TrendingUp className="w-4 h-4" style={{ color: productForm.is_featured ? themeColor : '#94A3B8' }} />
-                <span className="text-sm font-medium text-[#0F172A]">{t.featuredProducts || 'Featured Product'}</span>
-              </div>
-              <button type="button" onClick={() => setProductForm({ ...productForm, is_featured: !productForm.is_featured })}
-                className={`w-[68px] h-8 rounded-full transition-all relative overflow-hidden ${productForm.is_featured ? '' : 'bg-[#E2E8F0]'}`}
-                style={productForm.is_featured ? { backgroundColor: themeColor } : {}}
-                data-testid="product-featured-toggle">
-                <span className={`absolute inset-0 flex items-center ${productForm.is_featured ? 'justify-start pl-2.5' : 'justify-end pr-2.5'}`}>
-                  <span className="text-[10px] font-bold text-white tracking-wide select-none">{productForm.is_featured ? 'BẬT' : ''}</span>
-                  <span className="text-[10px] font-bold text-[#94A3B8] tracking-wide select-none">{!productForm.is_featured ? 'TẮT' : ''}</span>
-                </span>
-                <span className={`absolute top-[3px] w-[26px] h-[26px] bg-white rounded-full shadow-md transition-transform ${productForm.is_featured ? 'translate-x-[38px]' : 'translate-x-[3px]'}`} />
-              </button>
-            </div>
-            <div>
-              <label className="block text-xs font-medium mb-1">{t.productImages}</label>
-              <div className="space-y-2">
-                {productForm.images?.length > 0 && (
-                  <div className="flex flex-wrap gap-2" data-testid="product-images-preview">
-                    {productForm.images.map((img, idx) => (
-                      <div key={idx} className="relative w-20 h-20 rounded-lg overflow-hidden bg-[#F8FAFC] group cursor-pointer"
-                        onClick={() => setAsThumbnail(idx)} title={idx === 0 ? '' : (t.setAsThumbnail || 'Set as thumbnail')}>
-                        <img src={img} alt={`Preview ${idx + 1}`} className="w-full h-full object-cover" />
-                        <button type="button" onClick={(e) => { e.stopPropagation(); removeProductImage(idx); }}
-                          className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-xs"
-                          data-testid={`remove-image-${idx}`}>
-                          <X className="w-3 h-3" />
-                        </button>
-                        {idx === 0 && <span className="absolute bottom-0 left-0 right-0 bg-[#0055FF]/80 text-white text-[9px] text-center py-0.5" data-testid="thumbnail-badge">Thumbnail</span>}
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <div className="flex gap-2">
-                  <Button type="button" variant="outline" size="sm" onClick={() => openMediaLibrary((urls) => {
-                    const current = productForm.images || [];
-                    const newImages = Array.isArray(urls) ? urls : [urls];
-                    const combined = [...current, ...newImages].slice(0, 8);
-                    setProductForm({ ...productForm, images: combined, image_url: combined[0] || '' });
-                  }, { multiple: true, maxSelect: 8 - (productForm.images || []).length })} disabled={(productForm.images || []).length >= 8} className="text-xs" data-testid="upload-image-btn">
-                    <Image className="w-4 h-4 mr-1" /> {t.addMoreImages} ({(productForm.images || []).length}/8)
-                  </Button>
-                </div>
-                <Input
-                  placeholder={t.orPasteUrl}
-                  className="text-sm"
-                  data-testid="product-image-input"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      const url = e.target.value.trim();
-                      if (url) {
-                        const newImages = [...(productForm.images || []), url];
-                        setProductForm({ ...productForm, images: newImages, image_url: newImages[0] });
-                        e.target.value = '';
-                      }
-                    }
-                  }}
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block text-xs font-medium mb-1">{t.videoLinks}</label>
-              <p className="text-[10px] text-[#94A3B8] mb-2">{t.videoLinksDesc}</p>
-              <div className="space-y-2">
-                {(productForm.video_links || []).map((vl, idx) => (
-                  <div key={idx} className="flex gap-2">
-                    <Input value={vl} onChange={(e) => {
-                      const newLinks = [...(productForm.video_links || [])];
-                      newLinks[idx] = e.target.value;
-                      setProductForm({ ...productForm, video_links: newLinks });
-                    }} placeholder={t.videoLinkPlaceholder} className="text-sm flex-1" data-testid={`product-video-link-${idx}`} />
-                    <Button variant="ghost" size="icon" className="h-9 w-9 text-red-400" type="button" onClick={() => {
-                      const newLinks = (productForm.video_links || []).filter((_, i) => i !== idx);
-                      setProductForm({ ...productForm, video_links: newLinks });
-                    }} data-testid={`remove-video-link-${idx}`}><X className="w-3 h-3" /></Button>
-                  </div>
-                ))}
-                {(productForm.video_links || []).length < 4 && (
-                  <Button variant="outline" size="sm" className="text-xs" type="button" onClick={() => {
-                    setProductForm({ ...productForm, video_links: [...(productForm.video_links || []), ''] });
-                  }} data-testid="add-video-link-btn">
-                    <Plus className="w-3 h-3 mr-1" /> {t.addVideoLink}
-                  </Button>
-                )}
-                {(productForm.video_links || []).length >= 4 && (
-                  <span className="text-[10px] text-yellow-600">{t.maxVideoLinks}</span>
-                )}
-              </div>
-            </div>
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="block text-xs font-medium">{t.description}</label>
-                <span className={`text-[10px] ${countWords(productForm.description) > 1000 ? 'text-red-500 font-bold' : 'text-[#94A3B8]'}`} data-testid="product-word-count">
-                  {countWords(productForm.description)}/1000 {t.wordCount || 'từ'}
-                </span>
-              </div>
-              <ReactQuill theme="snow" value={productForm.description} onChange={(val) => setProductForm({ ...productForm, description: val })} modules={quillModulesProduct} className="bg-white [&_.ql-container]:min-h-[120px]" data-testid="product-description-input" />
-            </div>
-            <div className="flex gap-3 pt-4">
-              <Button type="button" variant="outline" className="flex-1 text-sm" onClick={() => setShowProductModal(false)}>{t.cancel}</Button>
-              <Button type="submit" className="flex-1 hover:opacity-90 text-sm" style={{ backgroundColor: themeColor }} data-testid="save-product-btn">{t.save}</Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
 
       {/* Category Modal */}
       <Dialog open={showCategoryModal} onOpenChange={setShowCategoryModal}>
@@ -3706,13 +3422,25 @@ const ShopOwnerDashboard = () => {
                 </div>
                 <div className="p-6 flex flex-col">
                   <h2 className="text-xl font-bold text-[#0F172A] mb-2">{selectedProduct.name}</h2>
-                  <p className="text-2xl font-bold mb-4" style={{ color: themeColor }}>{formatVND(selectedProduct.price)}</p>
-                  <p className="text-sm text-[#64748B] mb-2">{t.stock}: {selectedProduct.stock || 0}</p>
+                  <p className="text-2xl font-bold mb-3" style={{ color: themeColor }}>{formatVND(selectedProduct.price)}</p>
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {selectedProduct.out_of_stock && (
+                      <span className="text-xs px-2 py-0.5 bg-red-100 text-red-700 rounded font-medium">Hết hàng</span>
+                    )}
+                    {selectedProduct.is_hidden && (
+                      <span className="text-xs px-2 py-0.5 bg-[#F1F5F9] text-[#64748B] rounded font-medium inline-flex items-center gap-1">
+                        <EyeOff className="w-3 h-3" /> Đã ẩn
+                      </span>
+                    )}
+                    {selectedProduct.sku && (
+                      <span className="text-xs px-2 py-0.5 bg-[#F1F5F9] text-[#64748B] rounded">SKU: {selectedProduct.sku}</span>
+                    )}
+                  </div>
                   {selectedProduct.description && (
                     <div className="text-sm text-[#334155] mb-4 flex-1 prose prose-sm max-w-none break-words [&_ol]:list-decimal [&_ol]:pl-6 [&_ul]:list-disc [&_ul]:pl-6 [&_img]:max-w-full" dangerouslySetInnerHTML={{ __html: selectedProduct.description }} />
                   )}
                   <div className="flex gap-2 mt-auto pt-4">
-                    <Button variant="outline" className="flex-1 text-sm" onClick={(e) => { e.stopPropagation(); setShowProductDetailModal(false); setTimeout(() => openEditProduct(selectedProduct), 100); }} data-testid="product-detail-edit-btn">
+                    <Button variant="outline" className="flex-1 text-sm" onClick={(e) => { e.stopPropagation(); setShowProductDetailModal(false); navigate(`/dashboard/product/${selectedProduct.id}/edit`); }} data-testid="product-detail-edit-btn">
                       <Pencil className="w-4 h-4 mr-2" /> {t.editProduct}
                     </Button>
                     <Button variant="outline" className="text-sm px-3" onClick={() => handleCopyProductLink(selectedProduct.id)} data-testid="product-detail-copy-link" title="Copy link">

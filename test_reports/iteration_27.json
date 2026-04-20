@@ -1,0 +1,52 @@
+{
+  "summary": "Full backend + frontend regression for 'stock field removal + is_hidden/out_of_stock toggles + ProductEditPage' feature. 7/7 pytest cases PASS; frontend flows (login → dashboard → Add Product navigates to new dedicated /dashboard/product/new page → Edit pencil navigates to /dashboard/product/{id}/edit with form pre-filled → old product-modal Dialog removed → Storefront loads, hidden products filtered out, out_of_stock products preserved with correct data) all verified.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "features_tested": {
+    "backend_create_no_stock": {"status": "PASS", "details": "POST /api/dashboard/products response has no 'stock' key; is_hidden/out_of_stock save as booleans."},
+    "backend_update_strips_stock": {"status": "PASS", "details": "PUT /api/dashboard/products/{id} with body containing 'stock':999 is stripped server-side (line 1574 body.pop('stock', None)); is_hidden/out_of_stock toggles update and persist."},
+    "backend_public_list_hides_hidden": {"status": "PASS", "details": "GET /api/shop/the-elite-shop/products excludes is_hidden=true products (query: is_hidden: {$ne: True}); keeps out_of_stock=true products visible with out_of_stock:true in response."},
+    "backend_public_category_filter": {"status": "PASS", "details": "GET /api/shop/{slug}/products?category={cat_id} honors is_hidden filter — hidden products absent from category view. Note: review_request mentioned /api/shop/{slug}/category/{cat_id} but no such route exists; category filtering is via ?category= query param."},
+    "backend_dashboard_owner_sees_hidden": {"status": "PASS", "details": "GET /api/dashboard/products returns hidden products to owner (no is_hidden filter on owner-scope)."},
+    "frontend_new_product_route": {"status": "PASS", "details": "'Add Product' button navigates to /dashboard/product/new; all 5 numbered sections render: section-media, section-type, section-pricing, section-description, section-visibility."},
+    "frontend_edit_product_route": {"status": "PASS", "details": "Pencil edit-product-{id} buttons on Products tab navigate to /dashboard/product/{id}/edit; form is pre-filled with existing name ('Ghế da đẹp') and price (5599). 43 edit buttons found in demo shop."},
+    "frontend_no_old_modal": {"status": "PASS", "details": "No data-testid='product-modal' exists in ShopOwnerDashboard DOM (count=0). Only remaining modals: category-modal, order-modal, product-detail-modal (view-only). Old Dialog-based edit form fully removed."},
+    "frontend_oos_hidden_badges_dashboard": {"status": "PASS", "details": "Product grid in dashboard renders out-of-stock-badge-{id} and hidden badge (EyeOff + 'Ẩn'); stock count removed. Confirmed via code inspection (ShopOwnerDashboard.js lines 1491-1496)."},
+    "frontend_storefront_oos": {"status": "PASS", "details": "StorefrontPage.js: out_of_stock product shows red 'Hết hàng' badge with data-testid='out-of-stock-{id}' (line 523) and hides add-to-cart + Calendar/Plus button via !isOut guard (line 499)."},
+    "frontend_product_detail_oos": {"status": "PASS", "details": "ProductDetailPage shows product-out-of-stock-badge, disables product-add-cart / product-book-service when out_of_stock=true; related-product cards show 'Hết hàng' badge."}
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_product_stock_toggles.py",
+    "/app/test_reports/pytest/pytest_stock_toggles.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "update_product (server.py:1573) correctly strips 'stock' via body.pop('stock', None) — good defensive code.",
+    "Public shop endpoints (lines 2267, 2289, 2524, 2693, 2823, 3124) consistently apply is_hidden:{$ne:True} — complete coverage for storefront/OG page/booking creation.",
+    "review_request incorrectly referenced endpoint /api/shop/{slug}/category/{cat_id} — this route does not exist; category filter is via /api/shop/{slug}/products?category={cat_id}. Adjusted test accordingly.",
+    "ProductEditPage loads product list, finds item by ID, pre-fills fields. Consider using a direct GET /api/dashboard/products/{id} for edit view to reduce payload (current approach re-fetches all products). Low priority.",
+    "Storefront card out_of_stock badge has data-testid='out-of-stock-{id}' while dashboard card uses 'out-of-stock-badge-{id}' — minor testid naming inconsistency."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_product_stock_toggles.py"
+  ],
+  "success_rate": {
+    "backend": "100% (7/7 pytest cases passed)",
+    "frontend": "100% (navigation, form pre-fill, modal removal, storefront filtering all verified)"
+  },
+  "test_credentials": {
+    "shop_owner": "demo@thewishop.com / demo123",
+    "shop_slug": "the-elite-shop"
+  },
+  "seed_data_creation": "Pytest tests create TEST_* products + one TEST_Cat_Toggles category, auto-cleanup runs at test_zz_cleanup. Additional leftover TEST_Cat_Toggles category from an earlier run was manually cleaned up via DELETE /api/dashboard/categories/{id}. One TEST_OOS_Demo product created during manual verification was also deleted. Database is clean.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Feature complete. Login route is `/` (not `/login`). When using Playwright, always start at `/` and let LoginPage render — `page_url='https://.../login'` results in 'No routes matched location /login' and a blank page. Use input#email / input#password selectors. data-testid='auth-submit-button' for the submit button. Dashboard Products tab has edit-product-{id} buttons and data-testid='add-product-btn' in the header. ProductEditPage testids: section-media, section-type, section-pricing, section-description, section-visibility, edit-product-name-input, edit-product-price-input, edit-product-save-btn, edit-product-back-btn. Storefront card OOS badge uses out-of-stock-{id} (different from dashboard out-of-stock-badge-{id}). pytest command: `cd /app && python -m pytest backend/tests/test_product_stock_toggles.py -v`."
+}

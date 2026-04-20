@@ -494,6 +494,25 @@ export const vi = {
   maxVideoLinks: 'Tối đa 4 video',
   productVideos: 'Video sản phẩm',
 
+  // Product toggles (hidden / out of stock)
+  outOfStock: 'Hết hàng',
+  outOfStockDesc: 'Vẫn hiển thị sản phẩm nhưng tắt nút đặt hàng',
+  isHidden: 'Ẩn sản phẩm',
+  isHiddenDesc: 'Sản phẩm sẽ không xuất hiện trên storefront',
+  hiddenBadge: 'Đã ẩn',
+  typeAndId: 'Loại & Nhận dạng',
+  pricingLogistics: 'Giá & Tồn kho',
+  detailedInformation: 'Thông tin chi tiết',
+  visibilityPromotion: 'Hiển thị & Quảng bá',
+  mediaGallery: 'Thư viện hình & video',
+  youtubeUrl: 'URL YouTube',
+  tiktokUrl: 'URL TikTok',
+  backToProducts: 'Quay lại danh sách sản phẩm',
+  saveProduct: 'Lưu sản phẩm',
+  featuredProductDesc: 'Sản phẩm sẽ hiển thị ở mục nổi bật',
+  mainThumbnail: 'Ảnh đại diện chính',
+  clickToUpload: 'Nhấn để tải ảnh lên',
+
   // Vouchers
   vouchers: 'Voucher',
   createVoucher: 'Tạo voucher',
@@ -1031,6 +1050,25 @@ export const en = {
   videoLinkPlaceholder: 'Video URL (YouTube or TikTok)',
   maxVideoLinks: 'Maximum 4 videos',
   productVideos: 'Product Videos',
+
+  // Product toggles (hidden / out of stock)
+  outOfStock: 'Out of Stock',
+  outOfStockDesc: 'Product stays visible but order button is disabled',
+  isHidden: 'Hidden from Listing',
+  isHiddenDesc: 'Keeps product private — not shown on storefront',
+  hiddenBadge: 'Hidden',
+  typeAndId: 'Type & Identification',
+  pricingLogistics: 'Pricing & Logistics',
+  detailedInformation: 'Detailed Information',
+  visibilityPromotion: 'Visibility & Promotion',
+  mediaGallery: 'Media Gallery',
+  youtubeUrl: 'YouTube URL',
+  tiktokUrl: 'TikTok URL',
+  backToProducts: 'Back to products',
+  saveProduct: 'Save product',
+  featuredProductDesc: 'Highlights on homepage/featured sections',
+  mainThumbnail: 'Main Thumbnail',
+  clickToUpload: 'Click to upload',
 
   // Missing keys
   customDomain: 'Custom Domain',
