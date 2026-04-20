@@ -516,8 +516,10 @@ class ProductCreate(BaseModel):
     stock: Optional[int] = 0
     position: Optional[int] = 0
     is_featured: Optional[bool] = False
+    is_active: Optional[bool] = True
+    out_of_stock: Optional[bool] = False
     sku: Optional[str] = ""
-    type: Optional[str] = "product"  # "product" or "service"
+    type: Optional[str] = "product"
 
 class OrderCreate(BaseModel):
     customer_name: str
@@ -1551,7 +1553,9 @@ async def create_product(data: ProductCreate, request: Request):
         "category_id": data.category_id, "category": cat_name, "description": data.description,
         "image_url": image_url, "images": images, "video_url": data.video_url or "",
         "video_links": data.video_links or [],
-        "stock": data.stock, "position": data.position or 0, "is_active": True,
+        "stock": data.stock, "position": data.position or 0,
+        "is_active": data.is_active if data.is_active is not None else True,
+        "out_of_stock": bool(data.out_of_stock),
         "is_featured": data.is_featured or False, "sku": data.sku or "",
         "type": data.type if data.type in ("product", "service") else "product",
         "created_at": datetime.now(timezone.utc)
