@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { useLanguage } from '../context/LanguageContext';
 import { useCart } from '../context/CartContext';
@@ -16,6 +16,8 @@ const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 const SingleCategoryPage = () => {
   const { slug, categoryId } = useParams();
+  const [searchParams] = useSearchParams();
+  const subParam = searchParams.get('sub');
   const { t } = useLanguage();
   const navigate = useNavigate();
   const { addToCart, cart, cartCount, cartTotal, updateQuantity, removeFromCart } = useCart();
@@ -24,7 +26,7 @@ const SingleCategoryPage = () => {
   const [subCategories, setSubCategories] = useState([]);
   const [products, setProducts] = useState([]);
   const [allCategories, setAllCategories] = useState([]);
-  const [activeSubFilter, setActiveSubFilter] = useState('all');
+  const [activeSubFilter, setActiveSubFilter] = useState(subParam || 'all');
   const [loading, setLoading] = useState(true);
   const [showCart, setShowCart] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -66,7 +68,7 @@ const SingleCategoryPage = () => {
 
   const filteredProducts = activeSubFilter === 'all'
     ? products
-    : products.filter(p => p.category_id === activeSubFilter);
+    : products.filter(p => p.category_id === activeSubFilter || p.category_id === categoryId);
 
   const handleAddToCart = (product) => {
     addToCart(product.id, product, 1);

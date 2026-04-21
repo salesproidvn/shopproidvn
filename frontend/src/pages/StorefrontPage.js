@@ -642,12 +642,12 @@ const StorefrontPage = () => {
                   {subs.length > 0 && (
                     <div className="flex flex-wrap gap-1.5 mb-4" data-testid={`subcats-${cat.id}`}>
                       {subs.map(sub => (
-                        <button key={sub.id} onClick={() => setSelectedCategory(sub.id)}
+                        <Link key={sub.id} to={`/shop/${slug}/category/${cat.id}?sub=${sub.id}`}
                           className="text-xs px-2.5 py-1 rounded-full border border-[#E2E8F0] text-[#64748B] hover:border-current transition-colors"
                           style={{ '--tw-border-opacity': 1 }}
                           data-testid={`subcat-chip-${sub.id}`}>
                           {sub.name}
-                        </button>
+                        </Link>
                       ))}
                     </div>
                   )}
