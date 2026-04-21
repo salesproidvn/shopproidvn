@@ -1121,28 +1121,6 @@ const StorefrontPage = () => {
           </div>
         </div>
 
-        <div className="flex flex-col gap-3 mb-6">
-          <div className="flex flex-col sm:flex-row gap-3">
-            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-              <SelectTrigger className="w-full sm:w-[200px] h-9 text-sm" data-testid="category-filter">
-                <SelectValue placeholder={t.allCategories} />
-              </SelectTrigger>
-              <SelectContent className="bg-white">
-                <SelectItem value="all">{t.allCategories}</SelectItem>
-                {categories.filter(c => !c.parent_id).map((cat) => (
-                  <React.Fragment key={cat.id}>
-                    <SelectItem value={cat.id}>{cat.name}</SelectItem>
-                    {categories.filter(c => c.parent_id === cat.id).map(sub => (
-                      <SelectItem key={sub.id} value={sub.id}>&nbsp;&nbsp;└ {sub.name}</SelectItem>
-                    ))}
-                  </React.Fragment>
-                ))}
-                <SelectItem value="uncategorized">{t.uncategorized || 'Chưa phân loại'}</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
         {/* Products section */}
         <ProductsSection />
         </div>
