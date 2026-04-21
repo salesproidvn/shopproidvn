@@ -68,7 +68,7 @@ const SingleCategoryPage = () => {
 
   const filteredProducts = activeSubFilter === 'all'
     ? products
-    : products.filter(p => p.category_id === activeSubFilter || p.category_id === categoryId);
+    : products.filter(p => p.category_id === activeSubFilter);
 
   const handleAddToCart = (product) => {
     addToCart(product.id, product, 1);
