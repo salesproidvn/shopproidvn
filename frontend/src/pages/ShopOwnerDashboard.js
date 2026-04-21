@@ -17,7 +17,8 @@ import {
   LogOut, Menu, X, Plus, Pencil, Trash2, TrendingUp, Clock, Eye, Palette, Upload, ExternalLink,
   Bold, Italic, List, ChevronUp, ChevronDown, Play, FileText, Image, Calendar, Search, LayoutGrid, GripVertical,
   Globe, Navigation, Link2, Video, Type, ArrowUp, ArrowDown, EyeOff, Copy, Grid3X3,
-  Bell, BellOff, Smartphone, Download, Mail, Loader2, Check, Ticket, Users, Lock, Phone
+  Bell, BellOff, Smartphone, Download, Mail, Loader2, Check, Ticket, Users, Lock, Phone,
+  AlignLeft, AlignCenter, AlignRight
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { DndContext, closestCenter, PointerSensor, TouchSensor, KeyboardSensor, useSensor, useSensors } from '@dnd-kit/core';
@@ -1166,7 +1167,7 @@ const ShopOwnerDashboard = () => {
   // ==================== Custom Sections ====================
   const [showCustomSectionModal, setShowCustomSectionModal] = useState(false);
   const [editingCustomSection, setEditingCustomSection] = useState(null);
-  const [customSectionForm, setCustomSectionForm] = useState({ title: '', image_url: '', content: '' });
+  const [customSectionForm, setCustomSectionForm] = useState({ title: '', image_url: '', content: '', title_size: 'lg', title_align: 'left' });
 
   const openCreateCustomSection = () => {
     if ((shopForm.custom_sections || []).length >= 5) {
@@ -1174,13 +1175,19 @@ const ShopOwnerDashboard = () => {
       return;
     }
     setEditingCustomSection(null);
-    setCustomSectionForm({ title: '', image_url: '', content: '' });
+    setCustomSectionForm({ title: '', image_url: '', content: '', title_size: 'lg', title_align: 'left' });
     setShowCustomSectionModal(true);
   };
 
   const openEditCustomSection = (cs) => {
     setEditingCustomSection(cs);
-    setCustomSectionForm({ title: cs.title || '', image_url: cs.image_url || '', content: cs.content || '' });
+    setCustomSectionForm({
+      title: cs.title || '',
+      image_url: cs.image_url || '',
+      content: cs.content || '',
+      title_size: cs.title_size || 'lg',
+      title_align: cs.title_align || 'left',
+    });
     setShowCustomSectionModal(true);
   };
 
@@ -1189,13 +1196,17 @@ const ShopOwnerDashboard = () => {
     if (!customSectionForm.title.trim()) { toast.error('Vui lòng nhập tiêu đề'); return; }
     if (countWords(customSectionForm.content) > 1000) { toast.error(t.maxWordsReached || 'Nội dung vượt quá 1000 từ'); return; }
     const current = shopForm.custom_sections || [];
+    const payloadExtras = {
+      title_size: customSectionForm.title_size || 'lg',
+      title_align: customSectionForm.title_align || 'left',
+    };
     let next;
     let newSectionId = null;
     if (editingCustomSection) {
-      next = current.map(cs => cs.id === editingCustomSection.id ? { ...cs, title: customSectionForm.title.trim(), image_url: customSectionForm.image_url, content: customSectionForm.content } : cs);
+      next = current.map(cs => cs.id === editingCustomSection.id ? { ...cs, title: customSectionForm.title.trim(), image_url: customSectionForm.image_url, content: customSectionForm.content, ...payloadExtras } : cs);
     } else {
       newSectionId = `cs-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
-      next = [...current, { id: newSectionId, title: customSectionForm.title.trim(), image_url: customSectionForm.image_url, content: customSectionForm.content, enabled: true }];
+      next = [...current, { id: newSectionId, title: customSectionForm.title.trim(), image_url: customSectionForm.image_url, content: customSectionForm.content, enabled: true, ...payloadExtras }];
     }
     // Also append to layout_sections if it's a new one and not already listed
     let nextLayout = shopForm.layout_sections ? [...shopForm.layout_sections] : [...getLayoutSections()];
@@ -3393,6 +3404,52 @@ const ShopOwnerDashboard = () => {
                 className="text-sm"
                 data-testid="custom-section-title-input"
               />
+            </div>
+            {/* Title size + alignment */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium mb-2">Cỡ chữ tiêu đề</label>
+                <div className="flex gap-1" data-testid="custom-section-title-size">
+                  {[
+                    { k: 'sm', label: 'Nhỏ', cls: 'text-sm' },
+                    { k: 'md', label: 'Vừa', cls: 'text-base' },
+                    { k: 'lg', label: 'Lớn', cls: 'text-lg' },
+                    { k: 'xl', label: 'Rất lớn', cls: 'text-xl' },
+                  ].map(opt => {
+                    const sel = customSectionForm.title_size === opt.k;
+                    return (
+                      <button key={opt.k} type="button"
+                        onClick={() => setCustomSectionForm({ ...customSectionForm, title_size: opt.k })}
+                        className={`flex-1 py-2 px-1 rounded-[5px] border text-xs font-medium transition-colors ${sel ? 'text-white border-transparent' : 'bg-white border-[#E2E8F0] text-[#475569] hover:bg-[#F8FAFC]'}`}
+                        style={sel ? { backgroundColor: themeColor } : {}}
+                        data-testid={`title-size-${opt.k}`}>
+                        <span className={`${opt.cls} font-semibold leading-none`}>A</span> <span className="text-[10px] ml-0.5 opacity-80">{opt.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium mb-2">Căn lề tiêu đề</label>
+                <div className="flex gap-1" data-testid="custom-section-title-align">
+                  {[
+                    { k: 'left', label: 'Trái', Icon: AlignLeft },
+                    { k: 'center', label: 'Giữa', Icon: AlignCenter },
+                    { k: 'right', label: 'Phải', Icon: AlignRight },
+                  ].map(({ k, label, Icon }) => {
+                    const sel = customSectionForm.title_align === k;
+                    return (
+                      <button key={k} type="button"
+                        onClick={() => setCustomSectionForm({ ...customSectionForm, title_align: k })}
+                        className={`flex-1 py-2 rounded-[5px] border text-xs font-medium transition-colors flex items-center justify-center gap-1 ${sel ? 'text-white border-transparent' : 'bg-white border-[#E2E8F0] text-[#475569] hover:bg-[#F8FAFC]'}`}
+                        style={sel ? { backgroundColor: themeColor } : {}}
+                        data-testid={`title-align-${k}`}>
+                        <Icon className="w-3.5 h-3.5" /> <span className="text-[11px]">{label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
             <div>
               <label className="block text-xs font-medium mb-2">Ảnh minh hoạ (tùy chọn)</label>

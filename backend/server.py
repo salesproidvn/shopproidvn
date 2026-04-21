@@ -1478,6 +1478,8 @@ async def update_shop(request: Request):
                 "image_url": s.get("image_url", "") or "",
                 "content": content,
                 "enabled": bool(s.get("enabled", True)),
+                "title_size": s.get("title_size") if s.get("title_size") in ("sm", "md", "lg", "xl") else "lg",
+                "title_align": s.get("title_align") if s.get("title_align") in ("left", "center", "right") else "left",
             })
         body["custom_sections"] = clean
     await db.shops.update_one({"_id": ObjectId(shop_id)}, {"$set": body})

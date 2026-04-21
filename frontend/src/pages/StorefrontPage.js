@@ -766,10 +766,21 @@ const StorefrontPage = () => {
     if (cs.enabled === false) return null;
     const hasContent = (cs.content || '').replace(/<[^>]+>/g, '').trim().length > 0;
     if (!cs.title && !cs.image_url && !hasContent) return null;
+    const sizeCls = {
+      sm: 'text-base sm:text-lg',
+      md: 'text-lg sm:text-xl',
+      lg: 'text-xl sm:text-2xl',
+      xl: 'text-2xl sm:text-3xl md:text-4xl',
+    }[cs.title_size || 'lg'];
+    const alignCls = {
+      left: 'text-left',
+      center: 'text-center',
+      right: 'text-right',
+    }[cs.title_align || 'left'];
     return (
       <div className="mb-10" data-testid={`custom-section-${cs.id}`}>
         {cs.title && (
-          <h3 className="text-xl sm:text-2xl font-bold text-[#0F172A] mb-4">{cs.title}</h3>
+          <h3 className={`${sizeCls} ${alignCls} font-bold text-[#0F172A] mb-4`}>{cs.title}</h3>
         )}
         <div className="bg-white border border-[#E2E8F0] rounded-[10px] overflow-hidden">
           {cs.image_url && (
