@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useParams, Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
@@ -117,6 +117,29 @@ const StorefrontPage = () => {
   const [bannerIndex, setBannerIndex] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileExpandedCat, setMobileExpandedCat] = useState(null);
+
+  // Sync mobile menu with URL hash so browser Back button closes it (and history is preserved
+  // when user navigates menu -> category -> product).
+  const location = useLocation();
+  useEffect(() => {
+    const wantOpen = location.hash === '#menu';
+    setMobileMenuOpen(wantOpen);
+    if (!wantOpen) setMobileExpandedCat(null);
+  }, [location.hash]);
+
+  const openMobileMenu = () => {
+    if (location.hash === '#menu') return;
+    navigate(location.pathname + location.search + '#menu');
+  };
+
+  const closeMobileMenu = () => {
+    setMobileExpandedCat(null);
+    if (location.hash === '#menu') {
+      navigate(-1);
+    } else {
+      setMobileMenuOpen(false);
+    }
+  };
 
   useEffect(() => { fetchShopData(); }, [slug]);
 
@@ -868,7 +891,7 @@ const StorefrontPage = () => {
                 )}
               </Button>
               {/* Mobile menu toggle */}
-              <Button variant="ghost" size="icon" className="md:hidden h-9 w-9" onClick={() => setMobileMenuOpen(!mobileMenuOpen)} data-testid="mobile-menu-toggle">
+              <Button variant="ghost" size="icon" className="md:hidden h-9 w-9" onClick={() => { if (mobileMenuOpen) { closeMobileMenu(); } else { openMobileMenu(); } }} data-testid="mobile-menu-toggle">
                 <MenuIcon className="w-5 h-5" />
               </Button>
             </div>
@@ -885,7 +908,7 @@ const StorefrontPage = () => {
                 {shop.logo_url && <img src={shop.logo_url} alt="" className="w-7 h-7 rounded-lg object-cover" />}
                 <span className="font-bold text-[#0F172A] text-sm">{shop.name}</span>
               </a>
-              <button onClick={() => { setMobileMenuOpen(false); setMobileExpandedCat(null); }} className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-[#F1F5F9]" data-testid="mobile-menu-close">
+              <button onClick={closeMobileMenu} className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-[#F1F5F9]" data-testid="mobile-menu-close">
                 <X className="w-5 h-5 text-[#475569]" />
               </button>
             </div>
