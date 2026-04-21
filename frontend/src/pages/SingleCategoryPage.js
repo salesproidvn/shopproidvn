@@ -11,6 +11,7 @@ import { ArrowLeft, ShoppingCart, FolderOpen, Plus, Minus, Trash2, X, Share2, Ca
 import { toast } from 'sonner';
 import { Input } from '../components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog';
+import { safeShare } from '../utils/share';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -266,12 +267,7 @@ const SingleCategoryPage = () => {
                 <span className="font-semibold text-[#0F172A] text-sm truncate max-w-[200px]">{shop?.name}</span>
                 <button onClick={() => {
                   const url = `${window.location.origin}/shop/${slug}?product=${selectedProduct.id}`;
-                  if (navigator.share) {
-                    navigator.share({ title: selectedProduct.name, text: `${selectedProduct.name} - ${formatVND(selectedProduct.price)}`, url });
-                  } else {
-                    navigator.clipboard.writeText(url);
-                    toast.success(t.linkCopied || 'Link copied!');
-                  }
+                  safeShare({ title: selectedProduct.name, text: `${selectedProduct.name} - ${formatVND(selectedProduct.price)}`, url }, { successMessage: t.linkCopied || 'Đã copy link!' });
                 }} className="flex items-center gap-2 text-sm text-[#334155] hover:text-[#0F172A] transition-colors">
                   <Share2 className="w-4 h-4" />
                 </button>
@@ -333,12 +329,7 @@ const SingleCategoryPage = () => {
                   <Button variant="outline" className="py-6 px-4 rounded-[5px]"
                     onClick={() => {
                       const url = `${window.location.origin}/shop/${slug}?product=${selectedProduct.id}`;
-                      if (navigator.share) {
-                        navigator.share({ title: selectedProduct.name, text: `${selectedProduct.name} - ${formatVND(selectedProduct.price)}`, url });
-                      } else {
-                        navigator.clipboard.writeText(url);
-                        toast.success(t.linkCopied || 'Link copied!');
-                      }
+                      safeShare({ title: selectedProduct.name, text: `${selectedProduct.name} - ${formatVND(selectedProduct.price)}`, url }, { successMessage: t.linkCopied || 'Đã copy link!' });
                     }}>
                     <Share2 className="w-5 h-5" />
                   </Button>

@@ -6,6 +6,7 @@ import { formatVND } from '../utils/format';
 import { Button } from '../components/ui/button';
 import { ArrowLeft, Calendar, ShoppingCart, Share2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { safeShare } from '../utils/share';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -86,12 +87,7 @@ const BlogPostPage = () => {
               </Link>
               <Button variant="ghost" size="sm" className="gap-2 rounded-[5px]" onClick={() => {
                 const url = window.location.href;
-                if (navigator.share) {
-                  navigator.share({ title: selectedPost.title, text: selectedPost.title, url });
-                } else {
-                  navigator.clipboard.writeText(url);
-                  toast.success(t.linkCopied || 'Link copied!');
-                }
+                safeShare({ title: selectedPost.title, text: selectedPost.title, url }, { successMessage: t.linkCopied || 'Đã copy link!' });
               }} data-testid="post-share-btn">
                 <Share2 className="w-4 h-4" />
               </Button>

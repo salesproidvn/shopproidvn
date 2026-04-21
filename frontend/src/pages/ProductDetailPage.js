@@ -10,6 +10,7 @@ import { Input } from '../components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '../components/ui/sheet';
 import { ScrollArea } from '../components/ui/scroll-area';
+import { safeShare } from '../utils/share';
 
 const API = process.env.REACT_APP_BACKEND_URL + '/api';
 
@@ -118,12 +119,10 @@ const ProductDetailPage = () => {
 
   const handleShare = () => {
     const ogUrl = `${process.env.REACT_APP_BACKEND_URL}/api/og/shop/${slug}/product/${product.id}`;
-    if (navigator.share) {
-      navigator.share({ title: product.name, text: `${product.name} - ${formatVND(product.price)}`, url: ogUrl });
-    } else {
-      navigator.clipboard.writeText(ogUrl);
-      toast.success(t.linkCopied || 'Link copied!');
-    }
+    safeShare(
+      { title: product.name, text: `${product.name} - ${formatVND(product.price)}`, url: ogUrl },
+      { successMessage: t.linkCopied || 'Đã copy link!' }
+    );
   };
 
   const submitBooking = async (e) => {
