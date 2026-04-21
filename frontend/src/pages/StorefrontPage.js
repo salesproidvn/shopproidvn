@@ -912,9 +912,9 @@ const StorefrontPage = () => {
               ))}
             </div>
 
-            {/* Categories Mega Menu - Grid listing of main categories */}
+            {/* Categories Mega Menu - Text list of main categories */}
             <div className="px-4 py-3">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-3 px-1">{t.categories}</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-2 px-1">{t.categories}</p>
               {(() => {
                 const parentCats = categories.filter(c => !c.parent_id);
                 const megaConfig = shop.mega_menu_categories || [];
@@ -927,27 +927,17 @@ const StorefrontPage = () => {
                 }
                 if (megaCats.length === 0) return null;
                 return (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3" data-testid="mobile-mega-cat-grid">
+                  <div className="flex flex-col" data-testid="mobile-mega-cat-list">
                     {megaCats.map(cat => (
                       <Link
                         key={cat.id}
                         to={`/shop/${slug}/category/${cat.id}`}
                         onClick={() => { setMobileMenuOpen(false); setMobileExpandedCat(null); }}
-                        className="group flex flex-col items-center text-center bg-white border border-[#E2E8F0] rounded-[10px] overflow-hidden hover:shadow-md hover:border-[#CBD5E1] transition-all"
+                        className="flex items-center justify-between gap-3 py-3 px-1 border-b border-[#F1F5F9] last:border-0 hover:bg-[#F8FAFC] transition-colors"
                         data-testid={`mobile-mega-cat-${cat.id}`}
                       >
-                        <div className="w-full aspect-square bg-[#F8FAFC] overflow-hidden">
-                          {cat.image_url ? (
-                            <img src={cat.image_url} alt={cat.name} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: themeColor + '10' }}>
-                              <FolderOpen className="w-8 h-8" style={{ color: themeColor }} />
-                            </div>
-                          )}
-                        </div>
-                        <div className="w-full px-2 py-2">
-                          <p className="text-xs font-medium text-[#0F172A] line-clamp-2 leading-tight">{cat.name}</p>
-                        </div>
+                        <span className="text-sm font-medium text-[#0F172A] truncate">{cat.name}</span>
+                        <ChevronRight className="w-4 h-4 text-[#94A3B8] flex-shrink-0" />
                       </Link>
                     ))}
                   </div>
