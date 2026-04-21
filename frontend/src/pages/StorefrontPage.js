@@ -866,9 +866,9 @@ const StorefrontPage = () => {
               ))}
             </div>
 
-            {/* Categories Mega Menu */}
+            {/* Categories Mega Menu - Grid listing of main categories */}
             <div className="px-4 py-3">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-2 px-1">{t.categories}</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-3 px-1">{t.categories}</p>
               {(() => {
                 const parentCats = categories.filter(c => !c.parent_id);
                 const megaConfig = shop.mega_menu_categories || [];
@@ -879,102 +879,33 @@ const StorefrontPage = () => {
                 } else {
                   megaCats = parentCats;
                 }
-                return megaCats.map(cat => {
-                  const subs = categories.filter(c => c.parent_id === cat.id);
-                  const isExpanded = mobileExpandedCat === cat.id;
-                  const catProducts = products.filter(p => {
-                    const subIds = subs.map(s => s.id);
-                    return p.category_id === cat.id || subIds.includes(p.category_id);
-                  }).slice(0, 4);
-
-                  return (
-                    <div key={cat.id} className="border-b border-[#F1F5F9] last:border-0" data-testid={`mobile-mega-cat-${cat.id}`}>
-                      <button
-                        onClick={() => {
-                          if (subs.length > 0) {
-                            setMobileExpandedCat(isExpanded ? null : cat.id);
-                          } else {
-                            setMobileMenuOpen(false);
-                            setMobileExpandedCat(null);
-                            setSelectedCategory(cat.id);
-                            setTimeout(() => document.getElementById('products-section')?.scrollIntoView({ behavior: 'smooth' }), 100);
-                          }
-                        }}
-                        className="flex items-center justify-between w-full py-3 px-1"
-                        data-testid={`mobile-mega-cat-btn-${cat.id}`}
+                if (megaCats.length === 0) return null;
+                return (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3" data-testid="mobile-mega-cat-grid">
+                    {megaCats.map(cat => (
+                      <Link
+                        key={cat.id}
+                        to={`/shop/${slug}/category/${cat.id}`}
+                        onClick={() => { setMobileMenuOpen(false); setMobileExpandedCat(null); }}
+                        className="group flex flex-col items-center text-center bg-white border border-[#E2E8F0] rounded-[10px] overflow-hidden hover:shadow-md hover:border-[#CBD5E1] transition-all"
+                        data-testid={`mobile-mega-cat-${cat.id}`}
                       >
-                        <div className="flex items-center gap-3">
+                        <div className="w-full aspect-square bg-[#F8FAFC] overflow-hidden">
                           {cat.image_url ? (
-                            <img src={cat.image_url} alt="" className="w-9 h-9 rounded-lg object-cover bg-[#F8FAFC]" />
+                            <img src={cat.image_url} alt={cat.name} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" />
                           ) : (
-                            <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ backgroundColor: themeColor + '12' }}>
-                              <FolderOpen className="w-4 h-4" style={{ color: themeColor }} />
-                            </div>
-                          )}
-                          <span className="text-sm font-medium text-[#0F172A]">{cat.name}</span>
-                        </div>
-                        {subs.length > 0 && (
-                          <ChevronDown className={`w-4 h-4 text-[#94A3B8] transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
-                        )}
-                      </button>
-
-                      {/* Expanded subcategories + products */}
-                      {isExpanded && subs.length > 0 && (
-                        <div className="pb-3 pl-2 animate-in slide-in-from-top-2 duration-200" data-testid={`mobile-mega-subs-${cat.id}`}>
-                          {/* Subcategory chips */}
-                          <div className="flex flex-wrap gap-2 mb-3 pl-11">
-                            <button
-                              onClick={() => { setMobileMenuOpen(false); setMobileExpandedCat(null); setSelectedCategory(cat.id); setTimeout(() => document.getElementById('products-section')?.scrollIntoView({ behavior: 'smooth' }), 100); }}
-                              className="px-3 py-1.5 text-xs font-medium rounded-full border transition-colors"
-                              style={{ borderColor: themeColor, color: themeColor }}
-                              data-testid={`mobile-sub-all-${cat.id}`}
-                            >
-                              {t.viewAll || 'Tất cả'}
-                            </button>
-                            {subs.map(sub => (
-                              <button
-                                key={sub.id}
-                                onClick={() => { setMobileMenuOpen(false); setMobileExpandedCat(null); setSelectedCategory(sub.id); setTimeout(() => document.getElementById('products-section')?.scrollIntoView({ behavior: 'smooth' }), 100); }}
-                                className="px-3 py-1.5 text-xs font-medium text-[#475569] rounded-full border border-[#E2E8F0] hover:border-[#CBD5E1] hover:bg-[#F8FAFC] transition-colors"
-                                data-testid={`mobile-sub-${sub.id}`}
-                              >
-                                {sub.name}
-                              </button>
-                            ))}
-                          </div>
-
-                          {/* Product preview row */}
-                          {catProducts.length > 0 && (
-                            <div className="pl-11">
-                              <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
-                                {catProducts.map(p => (
-                                  <div
-                                    key={p.id}
-                                    className="flex-shrink-0 w-24 cursor-pointer"
-                                    onClick={() => { setMobileMenuOpen(false); setMobileExpandedCat(null); navigate(`/shop/${slug}/product/${p.id}`); }}
-                                    data-testid={`mobile-mega-prod-${p.id}`}
-                                  >
-                                    <div className="w-24 h-24 rounded-lg overflow-hidden bg-[#F8FAFC] mb-1">
-                                      {p.image_url ? (
-                                        <img src={p.image_url} alt={p.name} onError={(e) => { e.target.src = '/product-fallback.png'; }} className="w-full h-full object-cover" />
-                                      ) : (
-                                        <div className="w-full h-full flex items-center justify-center">
-                                          <Grid3X3 className="w-6 h-6 text-[#CBD5E1]" />
-                                        </div>
-                                      )}
-                                    </div>
-                                    <p className="text-[11px] text-[#334155] line-clamp-1">{p.name}</p>
-                                    <p className="text-[11px] font-bold" style={{ color: themeColor }}>{formatVND(p.price)}</p>
-                                  </div>
-                                ))}
-                              </div>
+                            <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: themeColor + '10' }}>
+                              <FolderOpen className="w-8 h-8" style={{ color: themeColor }} />
                             </div>
                           )}
                         </div>
-                      )}
-                    </div>
-                  );
-                });
+                        <div className="w-full px-2 py-2">
+                          <p className="text-xs font-medium text-[#0F172A] line-clamp-2 leading-tight">{cat.name}</p>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                );
               })()}
             </div>
 
