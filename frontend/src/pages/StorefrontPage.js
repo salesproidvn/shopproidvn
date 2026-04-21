@@ -149,16 +149,38 @@ const StorefrontPage = () => {
     }
     return () => { document.title = 'Pro ID Shop'; };
   }, [shop?.name]);
-  // Save scroll position continuously & restore when returning
+  // Save scroll position continuously & restore when returning.
+  // Restore is attempted multiple times while content is still loading (images, lazy products)
+  // so the page actually reaches the saved scrollY instead of being clamped to a short height.
   useEffect(() => {
     if (loading) return;
-    const savedPos = sessionStorage.getItem(`scroll-${slug}`);
+    const key = `scroll-${slug}`;
+    const savedPos = sessionStorage.getItem(key);
+    let isRestoring = false;
     if (savedPos) {
-      const pos = parseInt(savedPos);
-      sessionStorage.removeItem(`scroll-${slug}`);
-      setTimeout(() => window.scrollTo(0, pos), 200);
+      const target = parseInt(savedPos, 10);
+      if (!Number.isNaN(target) && target > 0) {
+        isRestoring = true;
+        if ('scrollRestoration' in window.history) window.history.scrollRestoration = 'manual';
+        let tries = 0;
+        const maxTries = 40; // ~6s worst case
+        const tryRestore = () => {
+          window.scrollTo(0, target);
+          tries += 1;
+          if (Math.abs(window.scrollY - target) > 4 && tries < maxTries) {
+            setTimeout(tryRestore, 150);
+          } else {
+            isRestoring = false;
+          }
+        };
+        requestAnimationFrame(tryRestore);
+      }
     }
-    const handleScroll = () => sessionStorage.setItem(`scroll-${slug}`, window.scrollY);
+    const handleScroll = () => {
+      // Don't overwrite target with intermediate clamped values during restore
+      if (isRestoring) return;
+      sessionStorage.setItem(key, String(window.scrollY));
+    };
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, [slug, loading]);
