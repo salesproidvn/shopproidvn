@@ -295,7 +295,20 @@ const StorefrontPage = () => {
       const insertAt = prodIdx >= 0 ? prodIdx : existing.length;
       existing.splice(insertAt, 0, { id: 'services', enabled: true });
     }
+    // Auto-append any custom sections not yet in layout
+    (shop?.custom_sections || []).forEach(cs => {
+      if (!existing.some(s => s.id === `custom:${cs.id}`)) {
+        existing.push({ id: `custom:${cs.id}`, enabled: cs.enabled !== false });
+      }
+    });
     return existing;
+  })();
+
+  // Index custom sections by id for quick lookup when rendering
+  const customSectionsById = (() => {
+    const map = {};
+    (shop?.custom_sections || []).forEach(cs => { map[cs.id] = cs; });
+    return map;
   })();
 
   const isSectionEnabled = (id) => {
@@ -701,9 +714,42 @@ const StorefrontPage = () => {
     );
   };
 
+  // Custom Section renderer
+  const CustomSectionBlock = ({ sectionKey }) => {
+    const cs = customSectionsById[sectionKey];
+    if (!cs) return null;
+    if (cs.enabled === false) return null;
+    const hasContent = (cs.content || '').replace(/<[^>]+>/g, '').trim().length > 0;
+    if (!cs.title && !cs.image_url && !hasContent) return null;
+    return (
+      <div className="mb-10" data-testid={`custom-section-${cs.id}`}>
+        {cs.title && (
+          <h3 className="text-xl sm:text-2xl font-bold text-[#0F172A] mb-4">{cs.title}</h3>
+        )}
+        <div className="bg-white border border-[#E2E8F0] rounded-[10px] overflow-hidden">
+          {cs.image_url && (
+            <div className="w-full aspect-[16/6] bg-[#F8FAFC] overflow-hidden">
+              <img src={cs.image_url} alt={cs.title || ''} loading="lazy" className="w-full h-full object-cover" />
+            </div>
+          )}
+          {hasContent && (
+            <div
+              className="p-5 sm:p-6 text-sm sm:text-base text-[#334155] leading-relaxed prose prose-sm max-w-none break-words [&_img]:max-w-full [&_ol]:list-decimal [&_ol]:pl-6 [&_ul]:list-disc [&_ul]:pl-6 [&_a]:text-[#0055FF] [&_a]:underline"
+              dangerouslySetInnerHTML={{ __html: cs.content }}
+            />
+          )}
+        </div>
+      </div>
+    );
+  };
+
   // Section renderer based on layout order
   const renderSection = (section) => {
     if (!section.enabled) return null;
+    if (typeof section.id === 'string' && section.id.startsWith('custom:')) {
+      const key = section.id.replace('custom:', '');
+      return <CustomSectionBlock key={section.id} sectionKey={key} />;
+    }
     switch (section.id) {
       case 'banner': return <BannerSlider key="banner" />;
       case 'categories': return <CategoryGrid key="categories" />;

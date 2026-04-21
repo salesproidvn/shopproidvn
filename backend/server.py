@@ -1432,6 +1432,7 @@ async def get_shop_details(request: Request):
         "banners": shop.get("banners", []), "banner_enabled": shop.get("banner_enabled", True),
         "blog_enabled": shop.get("blog_enabled", True),
         "layout_sections": shop.get("layout_sections", []),
+        "custom_sections": shop.get("custom_sections", []),
         "footer_columns": shop.get("footer_columns", []),
         "post_carousel_position": shop.get("post_carousel_position", "top"),
         "max_products": shop.get("max_products", 100), "max_posts": shop.get("max_posts", 50),
@@ -1456,6 +1457,29 @@ async def update_shop(request: Request):
             body["slug"] = new_slug
         else:
             del body["slug"]
+    # Enforce max 5 custom sections + sanitize rich text content
+    if "custom_sections" in body:
+        sections = body.get("custom_sections") or []
+        if not isinstance(sections, list):
+            raise HTTPException(status_code=400, detail="custom_sections must be a list")
+        if len(sections) > 5:
+            raise HTTPException(status_code=400, detail="Tối đa 5 section tùy chỉnh")
+        clean = []
+        for s in sections:
+            if not isinstance(s, dict):
+                continue
+            content = s.get("content", "") or ""
+            if content:
+                validate_word_limit(content, "Nội dung section")
+                content = sanitize_html(content)
+            clean.append({
+                "id": s.get("id") or f"cs-{secrets.token_hex(6)}",
+                "title": (s.get("title") or "").strip()[:200],
+                "image_url": s.get("image_url", "") or "",
+                "content": content,
+                "enabled": bool(s.get("enabled", True)),
+            })
+        body["custom_sections"] = clean
     await db.shops.update_one({"_id": ObjectId(shop_id)}, {"$set": body})
     return {"message": "Shop updated"}
 
@@ -2510,6 +2534,7 @@ async def get_shop_by_slug(slug: str):
         "menu_items": shop.get("menu_items", []),
         "mega_menu_categories": shop.get("mega_menu_categories", []),
         "custom_pages": shop.get("custom_pages", []),
+        "custom_sections": shop.get("custom_sections", []),
         "post_carousel_position": shop.get("post_carousel_position", "top"),
         "max_products": shop.get("max_products", 100), "max_posts": shop.get("max_posts", 50),
         "expiry_date": shop.get("expiry_date", ""),

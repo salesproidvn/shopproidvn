@@ -30,10 +30,11 @@ import 'react-quill-new/dist/quill.snow.css';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
-function SortableLayoutItem({ section, sectionLabels, sectionIcons, themeColor, onToggle }) {
+function SortableLayoutItem({ section, sectionLabels, sectionIcons, themeColor, onToggle, onEdit }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: section.id });
   const style = { transform: CSS.Transform.toString(transform), transition, zIndex: isDragging ? 50 : 'auto', opacity: isDragging ? 0.85 : 1 };
-  const IconComp = sectionIcons[section.id] || Package;
+  const isCustom = typeof section.id === 'string' && section.id.startsWith('custom:');
+  const IconComp = isCustom ? LayoutGrid : (sectionIcons[section.id] || Package);
   return (
     <div ref={setNodeRef} style={style}
       className={`flex items-center gap-3 p-3 rounded-[5px] border transition-all ${section.enabled ? 'bg-white border-[#E2E8F0]' : 'bg-[#F8FAFC] border-dashed border-[#E2E8F0] opacity-60'} ${isDragging ? 'shadow-lg ring-2 ring-blue-300' : ''}`}
@@ -45,8 +46,14 @@ function SortableLayoutItem({ section, sectionLabels, sectionIcons, themeColor, 
         <IconComp className="w-4 h-4" style={{ color: section.enabled ? themeColor : '#94A3B8' }} />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="font-medium text-sm text-[#0F172A]">{sectionLabels[section.id] || section.label}</p>
+        <p className="font-medium text-sm text-[#0F172A] truncate">{sectionLabels[section.id] || section.label}</p>
+        {isCustom && <p className="text-[10px] text-[#94A3B8]">Section tùy chỉnh</p>}
       </div>
+      {isCustom && onEdit && (
+        <button onClick={onEdit} className="w-8 h-8 rounded-[5px] border border-[#E2E8F0] text-[#475569] hover:bg-[#F8FAFC] flex items-center justify-center flex-shrink-0" data-testid={`edit-custom-section-${section.id}`} title="Chỉnh sửa">
+          <Pencil className="w-3.5 h-3.5" />
+        </button>
+      )}
       <button onClick={onToggle}
         className={`w-[68px] h-8 rounded-full transition-all relative overflow-hidden flex-shrink-0 ${section.enabled ? '' : 'bg-[#E2E8F0]'}`}
         style={section.enabled ? { backgroundColor: themeColor } : {}}
@@ -1053,6 +1060,15 @@ const ShopOwnerDashboard = () => {
     products: t.sectionProducts,
   };
 
+  // Build labels for custom: sections on-the-fly
+  const buildSectionLabels = () => {
+    const base = { ...sectionLabels };
+    (shopForm.custom_sections || []).forEach(cs => {
+      base[`custom:${cs.id}`] = cs.title || 'Section tùy chỉnh';
+    });
+    return base;
+  };
+
   const sectionIcons = {
     banner: Image,
     categories: FolderOpen,
@@ -1063,17 +1079,26 @@ const ShopOwnerDashboard = () => {
   };
 
   const VALID_SECTION_IDS = ['banner', 'categories', 'blog', 'featured', 'services', 'products'];
+  const customSections = shopForm.custom_sections || [];
+  const isCustomSectionId = (id) => typeof id === 'string' && id.startsWith('custom:');
+
   const getLayoutSections = () => {
     const sections = shopForm.layout_sections;
+    const customItems = customSections.map(cs => ({ id: `custom:${cs.id}`, label: cs.title || 'Section tùy chỉnh', enabled: cs.enabled !== false }));
     if (sections && sections.length > 0) {
       // Filter invalid + append 'services' if missing (migrate existing shops)
-      const valid = sections.filter(s => VALID_SECTION_IDS.includes(s.id));
+      const valid = sections.filter(s => VALID_SECTION_IDS.includes(s.id) || isCustomSectionId(s.id));
       if (!valid.some(s => s.id === 'services')) {
         const prodIdx = valid.findIndex(s => s.id === 'products');
         const insertAt = prodIdx >= 0 ? prodIdx : valid.length;
         valid.splice(insertAt, 0, { id: 'services', label: 'Dịch vụ', enabled: true });
       }
-      return valid;
+      // Append newly-created custom sections that aren't in layout yet
+      customItems.forEach(ci => {
+        if (!valid.some(v => v.id === ci.id)) valid.push(ci);
+      });
+      // Drop stale custom: entries whose source was deleted
+      return valid.filter(s => !isCustomSectionId(s.id) || customItems.some(c => c.id === s.id));
     }
     return [
       { id: 'banner', label: 'Banner', enabled: true },
@@ -1081,7 +1106,8 @@ const ShopOwnerDashboard = () => {
       { id: 'blog', label: 'Blog', enabled: true },
       { id: 'featured', label: 'Featured Products', enabled: true },
       { id: 'services', label: 'Dịch vụ', enabled: true },
-      { id: 'products', label: 'Products', enabled: true }
+      { id: 'products', label: 'Products', enabled: true },
+      ...customItems,
     ];
   };
 
@@ -1100,9 +1126,18 @@ const ShopOwnerDashboard = () => {
   const toggleSection = async (idx) => {
     const sections = [...getLayoutSections()];
     sections[idx] = { ...sections[idx], enabled: !sections[idx].enabled };
-    setShopForm({ ...shopForm, layout_sections: sections });
+    const patch = { layout_sections: sections };
+    // If toggling a custom section, also sync enabled flag in custom_sections
+    if (isCustomSectionId(sections[idx].id)) {
+      const csId = sections[idx].id.replace('custom:', '');
+      const updatedCs = (shopForm.custom_sections || []).map(cs => cs.id === csId ? { ...cs, enabled: sections[idx].enabled } : cs);
+      patch.custom_sections = updatedCs;
+      setShopForm({ ...shopForm, layout_sections: sections, custom_sections: updatedCs });
+    } else {
+      setShopForm({ ...shopForm, layout_sections: sections });
+    }
     try {
-      await axios.put(`${API}/dashboard/shop`, { layout_sections: sections });
+      await axios.put(`${API}/dashboard/shop`, patch);
       toast.success(t.shopUpdated);
     } catch { toast.error(t.failedToSave); }
   };
@@ -1126,6 +1161,68 @@ const ShopOwnerDashboard = () => {
       await axios.put(`${API}/dashboard/shop`, { layout_sections: reordered });
       toast.success(t.shopUpdated);
     } catch { toast.error(t.failedToSave); }
+  };
+
+  // ==================== Custom Sections ====================
+  const [showCustomSectionModal, setShowCustomSectionModal] = useState(false);
+  const [editingCustomSection, setEditingCustomSection] = useState(null);
+  const [customSectionForm, setCustomSectionForm] = useState({ title: '', image_url: '', content: '' });
+
+  const openCreateCustomSection = () => {
+    if ((shopForm.custom_sections || []).length >= 5) {
+      toast.error('Đã đạt giới hạn tối đa 5 section tùy chỉnh');
+      return;
+    }
+    setEditingCustomSection(null);
+    setCustomSectionForm({ title: '', image_url: '', content: '' });
+    setShowCustomSectionModal(true);
+  };
+
+  const openEditCustomSection = (cs) => {
+    setEditingCustomSection(cs);
+    setCustomSectionForm({ title: cs.title || '', image_url: cs.image_url || '', content: cs.content || '' });
+    setShowCustomSectionModal(true);
+  };
+
+  const handleSaveCustomSection = async (e) => {
+    e?.preventDefault?.();
+    if (!customSectionForm.title.trim()) { toast.error('Vui lòng nhập tiêu đề'); return; }
+    if (countWords(customSectionForm.content) > 1000) { toast.error(t.maxWordsReached || 'Nội dung vượt quá 1000 từ'); return; }
+    const current = shopForm.custom_sections || [];
+    let next;
+    let newSectionId = null;
+    if (editingCustomSection) {
+      next = current.map(cs => cs.id === editingCustomSection.id ? { ...cs, title: customSectionForm.title.trim(), image_url: customSectionForm.image_url, content: customSectionForm.content } : cs);
+    } else {
+      newSectionId = `cs-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+      next = [...current, { id: newSectionId, title: customSectionForm.title.trim(), image_url: customSectionForm.image_url, content: customSectionForm.content, enabled: true }];
+    }
+    // Also append to layout_sections if it's a new one and not already listed
+    let nextLayout = shopForm.layout_sections ? [...shopForm.layout_sections] : [...getLayoutSections()];
+    if (newSectionId && !nextLayout.some(s => s.id === `custom:${newSectionId}`)) {
+      nextLayout.push({ id: `custom:${newSectionId}`, label: customSectionForm.title.trim(), enabled: true });
+    }
+    try {
+      await axios.put(`${API}/dashboard/shop`, { custom_sections: next, layout_sections: nextLayout });
+      setShopForm({ ...shopForm, custom_sections: next, layout_sections: nextLayout });
+      toast.success(editingCustomSection ? 'Đã cập nhật section' : 'Đã tạo section');
+      setShowCustomSectionModal(false);
+    } catch (err) {
+      toast.error(err.response?.data?.detail || t.failedToSave);
+    }
+  };
+
+  const handleDeleteCustomSection = async (cs) => {
+    if (!window.confirm(`Xóa section "${cs.title}"?`)) return;
+    const nextCs = (shopForm.custom_sections || []).filter(x => x.id !== cs.id);
+    const nextLayout = (shopForm.layout_sections || []).filter(s => s.id !== `custom:${cs.id}`);
+    try {
+      await axios.put(`${API}/dashboard/shop`, { custom_sections: nextCs, layout_sections: nextLayout });
+      setShopForm({ ...shopForm, custom_sections: nextCs, layout_sections: nextLayout });
+      toast.success('Đã xóa section');
+    } catch {
+      toast.error(t.failedToSave);
+    }
   };
 
   const menuItems = [
@@ -2251,12 +2348,86 @@ const ShopOwnerDashboard = () => {
                     <SortableContext items={getLayoutSections().map(s => s.id)} strategy={verticalListSortingStrategy}>
                       <div className="space-y-2" data-testid="layout-sections">
                         {getLayoutSections().map((section, idx) => (
-                          <SortableLayoutItem key={section.id} section={section} sectionLabels={sectionLabels} sectionIcons={sectionIcons} themeColor={themeColor}
-                            onToggle={() => toggleSection(idx)} />
+                          <SortableLayoutItem
+                            key={section.id}
+                            section={section}
+                            sectionLabels={buildSectionLabels()}
+                            sectionIcons={sectionIcons}
+                            themeColor={themeColor}
+                            onToggle={() => toggleSection(idx)}
+                            onEdit={section.id.startsWith('custom:') ? () => {
+                              const csId = section.id.replace('custom:', '');
+                              const cs = (shopForm.custom_sections || []).find(x => x.id === csId);
+                              if (cs) openEditCustomSection(cs);
+                            } : null}
+                          />
                         ))}
                       </div>
                     </SortableContext>
                   </DndContext>
+                </CardContent>
+              </Card>
+
+              {/* Custom Sections Manager */}
+              <Card className="border-0 shadow-sm">
+                <CardHeader className="p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <LayoutGrid className="w-4 h-4" /> Section tùy chỉnh
+                      </CardTitle>
+                      <p className="text-sm text-[#64748B] mt-1">
+                        Tạo section riêng (tiêu đề + ảnh + nội dung) để hiển thị chen giữa các khối khác ở trang chủ. Tối đa 5 section.
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      onClick={openCreateCustomSection}
+                      disabled={(shopForm.custom_sections || []).length >= 5}
+                      className="text-sm flex-shrink-0"
+                      style={{ backgroundColor: themeColor }}
+                      data-testid="add-custom-section-btn"
+                    >
+                      <Plus className="w-4 h-4 mr-1" /> Thêm section
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-4 pt-0 space-y-2" data-testid="custom-sections-list">
+                  {(shopForm.custom_sections || []).length === 0 ? (
+                    <div className="py-8 text-center text-sm text-[#94A3B8] border border-dashed border-[#E2E8F0] rounded-[5px]">
+                      Chưa có section tùy chỉnh nào. Nhấn "Thêm section" để tạo mới.
+                    </div>
+                  ) : (
+                    (shopForm.custom_sections || []).map((cs) => (
+                      <div
+                        key={cs.id}
+                        className="flex items-center gap-3 p-3 border border-[#E2E8F0] rounded-[5px] bg-white"
+                        data-testid={`custom-section-row-${cs.id}`}
+                      >
+                        <div className="w-12 h-12 rounded-[5px] overflow-hidden bg-[#F8FAFC] flex-shrink-0">
+                          {cs.image_url ? (
+                            <img src={cs.image_url} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <Image className="w-5 h-5 text-[#94A3B8]" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm text-[#0F172A] truncate">{cs.title || 'Section tùy chỉnh'}</p>
+                          <p className="text-[11px] text-[#94A3B8]">
+                            {cs.enabled === false ? 'Đã tắt' : 'Đang hiển thị'} · {countWords(cs.content || '')} từ
+                          </p>
+                        </div>
+                        <Button variant="outline" size="sm" className="text-xs" onClick={() => openEditCustomSection(cs)} data-testid={`edit-custom-section-btn-${cs.id}`}>
+                          <Pencil className="w-3.5 h-3.5 mr-1" /> Sửa
+                        </Button>
+                        <Button variant="destructive" size="sm" className="text-xs" onClick={() => handleDeleteCustomSection(cs)} data-testid={`delete-custom-section-btn-${cs.id}`}>
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    ))
+                  )}
                 </CardContent>
               </Card>
 
@@ -3201,6 +3372,77 @@ const ShopOwnerDashboard = () => {
           )}
         </div>
       </main>
+
+
+      {/* Custom Section Modal */}
+      <Dialog open={showCustomSectionModal} onOpenChange={setShowCustomSectionModal}>
+        <DialogContent className="sm:max-w-2xl bg-white max-h-[90vh] overflow-y-auto" data-testid="custom-section-modal">
+          <DialogHeader>
+            <DialogTitle className="text-lg">{editingCustomSection ? 'Sửa section tùy chỉnh' : 'Tạo section tùy chỉnh'}</DialogTitle>
+            <DialogDescription className="text-sm">Section sẽ hiển thị trên trang chủ ở vị trí bạn sắp xếp trong danh sách bố cục.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSaveCustomSection} className="space-y-4">
+            <div>
+              <label className="block text-xs font-medium mb-1">Tiêu đề section *</label>
+              <Input
+                value={customSectionForm.title}
+                onChange={(e) => setCustomSectionForm({ ...customSectionForm, title: e.target.value })}
+                required
+                maxLength={200}
+                placeholder="VD: Câu chuyện thương hiệu"
+                className="text-sm"
+                data-testid="custom-section-title-input"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium mb-2">Ảnh minh hoạ (tùy chọn)</label>
+              {customSectionForm.image_url ? (
+                <div className="relative w-40 h-28 rounded-[5px] overflow-hidden bg-[#F8FAFC] border border-[#E2E8F0] mb-2">
+                  <img src={customSectionForm.image_url} alt="" className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => setCustomSectionForm({ ...customSectionForm, image_url: '' })}
+                    className="absolute top-1 right-1 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center"
+                    data-testid="custom-section-remove-image"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ) : null}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="text-xs"
+                onClick={() => openMediaLibrary((url) => setCustomSectionForm((prev) => ({ ...prev, image_url: Array.isArray(url) ? url[0] : url })), { multiple: false, maxSelect: 1 })}
+                data-testid="custom-section-pick-image"
+              >
+                <Image className="w-3.5 h-3.5 mr-1" /> {customSectionForm.image_url ? 'Đổi ảnh' : 'Chọn ảnh'}
+              </Button>
+            </div>
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-medium">Nội dung</label>
+                <span className={`text-[10px] ${countWords(customSectionForm.content) > 1000 ? 'text-red-500 font-bold' : 'text-[#94A3B8]'}`}>
+                  {countWords(customSectionForm.content)}/1000 {t.wordCount || 'từ'}
+                </span>
+              </div>
+              <ReactQuill
+                theme="snow"
+                value={customSectionForm.content}
+                onChange={(val) => setCustomSectionForm({ ...customSectionForm, content: val })}
+                modules={quillModulesProduct}
+                className="bg-white [&_.ql-container]:min-h-[160px]"
+                data-testid="custom-section-content-input"
+              />
+            </div>
+            <div className="flex gap-3 pt-2">
+              <Button type="button" variant="outline" className="flex-1 text-sm" onClick={() => setShowCustomSectionModal(false)}>{t.cancel}</Button>
+              <Button type="submit" className="flex-1 hover:opacity-90 text-sm text-white" style={{ backgroundColor: themeColor }} data-testid="save-custom-section-btn">{t.save}</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
 
 
       {/* Category Modal */}

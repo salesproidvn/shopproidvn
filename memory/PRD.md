@@ -57,6 +57,11 @@ Multi-tenant e-commerce platform allowing shop owners to create and manage onlin
 - Dashboard product card now shows red "Hết hàng" and grey "Ẩn" badges instead of stock count
 - Storefront card + Product Detail page both hide Add-to-cart/Book button and show "Hết hàng" badge when `out_of_stock=true`
 
+### Phase 7 - Storefront Refinements + Custom Homepage Sections (April 21, 2026)
+- Removed the "All categories" dropdown filter above the storefront product grid (reduces visual noise; users still filter via header menu / category page)
+- Rebuilt the **mobile mega-menu** as a 2-column grid of main categories (image thumbnail + name). Tapping a category opens `/shop/:slug/category/:id`
+- **Custom homepage sections** (max 5 per shop): shop owner creates simple blocks (title + image + rich text) from the **Bố cục hiển thị** tab. Each custom section appears inside the draggable layout list alongside Banner/Categories/Featured/... with its own BẬT/TẮT toggle + inline Edit pencil, and renders inline on the public storefront at the chosen position.
+
 ## DB Collections
 users, shops, products (+ type field), categories, orders, bookings (new), posts, pages, vouchers, agents, agent_sales, business_cards, push_subscriptions, password_resets, contacts
 
