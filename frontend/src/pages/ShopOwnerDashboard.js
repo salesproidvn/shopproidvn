@@ -3694,12 +3694,12 @@ const ShopOwnerDashboard = () => {
             });
             return (
               <div className="grid md:grid-cols-2">
-                <div className="flex flex-col">
-                  <div className="aspect-square bg-[#F8FAFC] relative overflow-hidden">
+                <div className="flex flex-col min-w-0">
+                  <div className="w-full aspect-square max-h-[60vh] bg-[#F8FAFC] relative overflow-hidden flex items-center justify-center">
                     {detailShowVideo !== false && allVideoEmbeds[detailShowVideo] ? (
                       <iframe src={allVideoEmbeds[detailShowVideo]} title="Product video" className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
                     ) : (
-                      <img src={images[detailActiveImage]} alt={selectedProduct.name} className="w-full h-full object-cover" />
+                      <img src={images[detailActiveImage]} alt={selectedProduct.name} className="w-full h-full object-contain" />
                     )}
                   </div>
                   {(images.length > 1 || allVideoEmbeds.length > 0) && (
