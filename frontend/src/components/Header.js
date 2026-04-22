@@ -9,6 +9,7 @@ import { useNotifications } from '../context/NotificationContext';
 import { emitNotification } from '../context/NotificationContext';
 import NotificationBell from './NotificationBell';
 import { formatVND } from '../utils/format';
+import { resolveImage } from '../utils/imageUrl';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import {
@@ -344,7 +345,7 @@ const Header = ({ searchQuery, setSearchQuery, onSearch }) => {
                   <div className="space-y-3 mb-4">
                     {cart.map((item) => (
                       <div key={item.product_id} className="flex gap-3">
-                        <img src={item.image_url} alt={item.name} className="w-12 h-12 rounded-lg object-cover" />
+                        <img src={resolveImage(item.image_url)} alt={item.name} className="w-12 h-12 rounded-lg object-cover" />
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-[#0F172A] truncate">{item.name}</p>
                           <p className="text-xs text-[#64748B]">x{item.quantity}</p>

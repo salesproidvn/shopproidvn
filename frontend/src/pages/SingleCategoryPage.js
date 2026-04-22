@@ -4,6 +4,7 @@ import axios from 'axios';
 import { useLanguage } from '../context/LanguageContext';
 import { useCart } from '../context/CartContext';
 import { formatVND } from '../utils/format';
+import { resolveImage } from '../utils/imageUrl';
 import { Button } from '../components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '../components/ui/sheet';
 import { ScrollArea } from '../components/ui/scroll-area';
@@ -137,7 +138,7 @@ const SingleCategoryPage = () => {
               </Button>
               <div className="flex items-center gap-2">
                 {shop?.logo_url ? (
-                  <img src={shop.logo_url} alt={shop.name} className="w-7 h-7 rounded-full object-cover" />
+                  <img src={resolveImage(shop.logo_url)} alt={shop.name} className="w-7 h-7 rounded-full object-cover" />
                 ) : (
                   <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center">
                     <span className="text-white font-bold text-xs">{shop?.name?.[0]}</span>
@@ -161,7 +162,7 @@ const SingleCategoryPage = () => {
         <div className="flex items-center gap-4 mb-6" data-testid="category-hero">
           <div className="w-16 h-16 rounded-full overflow-hidden bg-white border-2 flex items-center justify-center shrink-0" style={{ borderColor: themeColor }}>
             {category.image_url ? (
-              <img src={category.image_url} alt={category.name} className="w-full h-full object-cover" />
+              <img src={resolveImage(category.image_url)} alt={category.name} className="w-full h-full object-cover" />
             ) : (
               <FolderOpen className="w-7 h-7" style={{ color: themeColor }} />
             )}
@@ -215,7 +216,7 @@ const SingleCategoryPage = () => {
                 )}
                 <div className="cursor-pointer" onClick={() => { setSelectedProduct(product); setActiveImage(0); }}>
                   <div className="aspect-square bg-[#F8FAFC] overflow-hidden">
-                    <img src={product.image_url || '/product-fallback.png'} alt={product.name} onError={(e) => { e.target.src = '/product-fallback.png'; }} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                    <img src={resolveImage(product.image_url)} alt={product.name} onError={(e) => { e.target.src = '/product-fallback.png'; }} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                   </div>
                 </div>
                 <div className="p-3 text-center">
@@ -287,7 +288,7 @@ const SingleCategoryPage = () => {
                     return (
                       <>
                         {imgs.length > 1 && imgs.map((img, idx) => idx !== activeImage && <link key={idx} rel="preload" as="image" href={img} />)}
-                        <img src={imgs[activeImage]} alt={selectedProduct.name} className="w-full h-full object-contain" loading="eager" />
+                        <img src={resolveImage(imgs[activeImage])} alt={selectedProduct.name} className="w-full h-full object-contain" loading="eager" />
                       </>
                     );
                   })()}
@@ -301,7 +302,7 @@ const SingleCategoryPage = () => {
                         <button key={idx} onClick={() => setActiveImage(idx)}
                           className={`w-14 h-14 sm:w-16 sm:h-16 rounded overflow-hidden flex-shrink-0 border-2 transition-all ${activeImage === idx ? 'ring-1' : 'border-transparent hover:border-[#E2E8F0]'}`}
                           style={activeImage === idx ? { borderColor: themeColor, '--tw-ring-color': themeColor } : {}}>
-                          <img src={img} alt="" className="w-full h-full object-cover" loading="eager" />
+                          <img src={resolveImage(img)} alt="" className="w-full h-full object-cover" loading="eager" />
                         </button>
                       ))}
                     </div>
@@ -357,7 +358,7 @@ const SingleCategoryPage = () => {
                       <div key={rp.id} className="group bg-white border border-[#E2E8F0] rounded-[5px] overflow-hidden hover:shadow-lg transition-all cursor-pointer"
                         onClick={() => { setSelectedProduct(rp); setActiveImage(0); document.querySelector('[data-testid="cat-product-fullpage"]')?.scrollTo({ top: 0, behavior: 'smooth' }); }}>
                         <div className="aspect-square bg-[#F8FAFC] overflow-hidden">
-                          <img src={rp.image_url} alt={rp.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                          <img src={resolveImage(rp.image_url)} alt={rp.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                         </div>
                         <div className="p-3 text-center">
                           <h3 className="font-medium text-[#0F172A] text-sm line-clamp-2 mb-1">{rp.name}</h3>
@@ -388,7 +389,7 @@ const SingleCategoryPage = () => {
                 <div className="space-y-4 py-4">
                   {cart.map((item) => (
                     <div key={item.product_id} className="flex gap-4 p-3 bg-[#F8FAFC] rounded-xl">
-                      <img src={item.image_url} alt={item.name} className="w-16 h-16 rounded-lg object-cover" />
+                      <img src={resolveImage(item.image_url)} alt={item.name} className="w-16 h-16 rounded-lg object-cover" />
                       <div className="flex-1 min-w-0">
                         <h4 className="font-medium text-[#0F172A] text-sm truncate">{item.name}</h4>
                         <p className="font-semibold text-sm" style={{ color: themeColor }}>{formatVND(item.price)}</p>

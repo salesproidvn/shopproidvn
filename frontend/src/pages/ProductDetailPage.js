@@ -10,6 +10,7 @@ import { Input } from '../components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '../components/ui/sheet';
 import { ScrollArea } from '../components/ui/scroll-area';
+import { resolveImage } from '../utils/imageUrl';
 
 const API = process.env.REACT_APP_BACKEND_URL + '/api';
 
@@ -192,7 +193,7 @@ const ProductDetailPage = () => {
               {activeVid ? (
                 <iframe src={activeVid.embed} title="Product video" className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowFullScreen style={activeVid.type === 'tiktok' ? { maxWidth: '325px', margin: '0 auto' } : {}} />
               ) : (
-                <img src={images[activeImage]} alt={product.name} className="w-full h-full object-contain" loading="eager" />
+                <img src={resolveImage(images[activeImage])} alt={product.name} className="w-full h-full object-contain" loading="eager" />
               )}
             </div>
             {(images.length > 1 || allVideos.length > 0) && (
@@ -201,7 +202,7 @@ const ProductDetailPage = () => {
                   <button key={`img-${idx}`} onClick={() => { setActiveImage(idx); setShowVideo(null); }}
                     className={`w-14 h-14 sm:w-16 sm:h-16 rounded overflow-hidden flex-shrink-0 border-2 transition-all ${showVideo === null && activeImage === idx ? 'ring-1' : 'border-transparent hover:border-[#E2E8F0]'}`}
                     style={showVideo === null && activeImage === idx ? { borderColor: themeColor } : {}}>
-                    <img src={img} alt="" className="w-full h-full object-cover" loading="eager" />
+                    <img src={resolveImage(img)} alt="" className="w-full h-full object-cover" loading="eager" />
                   </button>
                 ))}
                 {allVideos.map((vid, idx) => (
@@ -276,7 +277,7 @@ const ProductDetailPage = () => {
                     </button>
                   )}
                   <div className="aspect-square bg-[#F8FAFC] overflow-hidden">
-                    <img src={rp.image_url || '/product-fallback.png'} alt={rp.name} onError={(e) => { e.target.src = '/product-fallback.png'; }} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                    <img src={resolveImage(rp.image_url)} alt={rp.name} onError={(e) => { e.target.src = '/product-fallback.png'; }} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                   </div>
                   <div className="p-3 text-center">
                     <h3 className="font-medium text-[#0F172A] text-sm line-clamp-2 mb-1">{rp.name}</h3>
@@ -306,7 +307,7 @@ const ProductDetailPage = () => {
                 <div className="space-y-4 py-4">
                   {cart.map((item) => (
                     <div key={item.product_id} className="flex gap-4 p-3 bg-[#F8FAFC] rounded-xl" data-testid={`cart-item-${item.product_id}`}>
-                      <img src={item.image_url || '/product-fallback.png'} alt={item.name} onError={(e) => { e.target.src = '/product-fallback.png'; }} className="w-16 h-16 rounded-lg object-cover" />
+                      <img src={resolveImage(item.image_url)} alt={item.name} onError={(e) => { e.target.src = '/product-fallback.png'; }} className="w-16 h-16 rounded-lg object-cover" />
                       <div className="flex-1 min-w-0">
                         <h4 className="font-medium text-[#0F172A] text-sm truncate">{item.name}</h4>
                         <p className="font-semibold text-sm" style={{ color: themeColor }}>{formatVND(item.price)}</p>

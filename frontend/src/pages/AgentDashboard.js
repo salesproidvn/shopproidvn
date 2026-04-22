@@ -4,6 +4,7 @@ import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { formatVND } from '../utils/format';
+import { resolveImage } from '../utils/imageUrl';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { 
@@ -55,7 +56,7 @@ const AgentDashboard = () => {
       <header className="bg-white border-b border-[#E2E8F0] sticky top-0 z-30">
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            {shop?.logo_url && <img src={shop.logo_url} alt="" className="w-8 h-8 rounded-lg object-cover" />}
+            {shop?.logo_url && <img src={resolveImage(shop.logo_url)} alt="" className="w-8 h-8 rounded-lg object-cover" />}
             <div>
               <h1 className="font-bold text-[#0F172A] text-sm">{shop?.name}</h1>
               <p className="text-[10px] text-[#94A3B8]">{agent.name} - {levelLabels[agent.level]}</p>

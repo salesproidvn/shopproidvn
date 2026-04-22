@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useLanguage } from '../context/LanguageContext';
 import { Button } from '../components/ui/button';
+import { resolveImage } from '../utils/imageUrl';
 import { ArrowLeft, ExternalLink } from 'lucide-react';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -72,7 +73,7 @@ const CustomPage = () => {
             </Button>
             <div className="flex items-center gap-2">
               {shop?.logo_url ? (
-                <img src={shop.logo_url} alt={shop.name} className="w-8 h-8 rounded-full object-cover" />
+                <img src={resolveImage(shop.logo_url)} alt={shop.name} className="w-8 h-8 rounded-full object-cover" />
               ) : (
                 <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: themeColor }}>
                   <span className="text-white font-bold text-xs">{shop?.name?.[0]}</span>
@@ -99,7 +100,7 @@ const CustomPage = () => {
 
               {section.type === 'image' && section.url && (
                 <div className="rounded-[5px] overflow-hidden" data-testid={`section-image-${idx}`}>
-                  <img src={section.url} alt={section.alt || ''} className="w-full h-auto max-h-[500px] object-cover rounded-[5px]" />
+                  <img src={resolveImage(section.url)} alt={section.alt || ''} className="w-full h-auto max-h-[500px] object-cover rounded-[5px]" />
                   {section.caption && <p className="text-sm text-[#64748B] mt-2 text-center">{section.caption}</p>}
                 </div>
               )}

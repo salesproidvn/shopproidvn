@@ -4,6 +4,7 @@ import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { formatVND } from '../utils/format';
+import { resolveImage } from '../utils/imageUrl';
 import { setAdminViewShopId } from '../utils/adminContext';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
@@ -1577,7 +1578,7 @@ const ShopOwnerDashboard = () => {
                       {filtered.map((product) => (
                         <div key={product.id} className="border rounded-[5px] overflow-hidden bg-white hover:shadow-lg transition-shadow">
                           <div className="aspect-square bg-[#F8FAFC] cursor-pointer relative" onClick={() => openProductDetail(product)}>
-                            <img src={product.image_url || '/product-fallback.png'} alt={product.name} onError={(e) => { e.target.src = '/product-fallback.png'; }} className="w-full h-full object-cover" />
+                            <img src={resolveImage(product.image_url)} alt={product.name} onError={(e) => { e.target.src = '/product-fallback.png'; }} className="w-full h-full object-cover" />
                             {product.is_featured && (
                               <span className="absolute top-1 left-1 px-1.5 py-0.5 text-white text-[9px] font-bold rounded-[3px]" style={{ backgroundColor: themeColor }} data-testid={`featured-badge-${product.id}`}>
                                 <TrendingUp className="w-2.5 h-2.5 inline mr-0.5" />Featured
@@ -1853,7 +1854,7 @@ const ShopOwnerDashboard = () => {
                                 <div className="space-y-2" data-testid={`order-items-${order.id}`}>
                                   {(order.items || []).map((item, idx) => (
                                     <div key={idx} className="flex items-center gap-3 p-2 rounded bg-[#F8FAFC]">
-                                      <img src={item.image_url || '/product-fallback.png'} alt={item.name} onError={(e) => { e.target.src = '/product-fallback.png'; }} className="w-12 h-12 rounded object-cover flex-shrink-0" />
+                                      <img src={resolveImage(item.image_url)} alt={item.name} onError={(e) => { e.target.src = '/product-fallback.png'; }} className="w-12 h-12 rounded object-cover flex-shrink-0" />
                                       <div className="flex-1 min-w-0">
                                         <p className="text-sm font-medium text-[#0F172A] truncate">{item.name}</p>
                                         <p className="text-xs text-[#64748B]">{formatVND(item.price)} × {item.quantity}</p>
@@ -2009,7 +2010,7 @@ const ShopOwnerDashboard = () => {
                     {posts.map((post) => (
                       <div key={post.id} className="p-3 border rounded-lg bg-white flex gap-4 items-start" data-testid={`post-row-${post.id}`}>
                         {post.thumbnail && (
-                          <img src={post.thumbnail} alt={post.title} className="w-20 h-14 rounded object-cover flex-shrink-0" />
+                          <img src={resolveImage(post.thumbnail)} alt={post.title} className="w-20 h-14 rounded object-cover flex-shrink-0" />
                         )}
                         <div className="flex-1 min-w-0">
                           <h4 className="font-medium text-[#0F172A] text-sm truncate">{post.title}</h4>
@@ -2158,7 +2159,7 @@ const ShopOwnerDashboard = () => {
                             <div key={item.id} className={`relative group aspect-square rounded-lg overflow-hidden border-2 cursor-pointer transition-all ${isSelected ? 'border-blue-500 ring-2 ring-blue-200' : 'border-[#E2E8F0] hover:border-[#CBD5E1]'}`}
                               onClick={() => setMediaSelected(prev => prev.includes(item.id) ? prev.filter(s => s !== item.id) : [...prev, item.id])}
                               data-testid={`media-tab-item-${item.id}`}>
-                              <img src={`${API}/files/${item.id}`} alt={item.original_filename} className="w-full h-full object-cover" loading="lazy" />
+                              <img src={resolveImage(item.url || `/api/files/${item.id}`)} alt={item.original_filename} className="w-full h-full object-cover" loading="lazy" />
                               {isSelected && (
                                 <div className="absolute top-1.5 left-1.5 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
                                   <Check className="w-3 h-3 text-white" />
@@ -2312,7 +2313,7 @@ const ShopOwnerDashboard = () => {
                       }} data-testid={`mega-down-${idx}`}><ArrowDown className="w-3 h-3" /></Button>
                     </div>
                     {item.image_url ? (
-                      <img src={item.image_url} alt={item.name} className="w-8 h-8 rounded object-cover shrink-0" />
+                      <img src={resolveImage(item.image_url)} alt={item.name} className="w-8 h-8 rounded object-cover shrink-0" />
                     ) : (
                       <div className="w-8 h-8 rounded flex items-center justify-center shrink-0" style={{ backgroundColor: themeColor + '15' }}>
                         <FolderOpen className="w-4 h-4" style={{ color: themeColor }} />
@@ -2452,7 +2453,7 @@ const ShopOwnerDashboard = () => {
                     <div className="flex gap-3 flex-wrap">
                       {(shopForm.banners || []).map((url, idx) => (
                         <div key={idx} className="relative w-40 h-20 rounded-[5px] overflow-hidden bg-[#F8FAFC] border">
-                          <img src={url} alt="" className="w-full h-full object-cover" />
+                          <img src={resolveImage(url)} alt="" className="w-full h-full object-cover" />
                           <button onClick={() => removeBanner(idx)} className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs" data-testid={`layout-remove-banner-${idx}`}>
                             <X className="w-3 h-3" />
                           </button>
@@ -3276,7 +3277,7 @@ const ShopOwnerDashboard = () => {
                     <div className="flex gap-3 flex-wrap">
                       {(shopForm.banners || []).map((url, idx) => (
                         <div key={idx} className="relative w-40 h-20 rounded-[5px] overflow-hidden bg-[#F8FAFC] border">
-                          <img src={url} alt="" className="w-full h-full object-cover" />
+                          <img src={resolveImage(url)} alt="" className="w-full h-full object-cover" />
                           <button onClick={() => removeBanner(idx)} className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs" data-testid={`remove-banner-${idx}`}>
                             <X className="w-3 h-3" />
                           </button>
@@ -3331,7 +3332,7 @@ const ShopOwnerDashboard = () => {
                       <div className="flex items-start gap-4">
                         <div className="w-20 h-20 rounded-full border-2 border-dashed border-[#E2E8F0] overflow-hidden flex items-center justify-center bg-[#F8FAFC] shrink-0" data-testid="shop-logo-preview">
                           {shopForm.logo_url ? (
-                            <img src={shopForm.logo_url} alt="Logo" className="w-full h-full object-cover" />
+                            <img src={resolveImage(shopForm.logo_url)} alt="Logo" className="w-full h-full object-cover" />
                           ) : (
                             <span className="text-2xl font-bold text-[#94A3B8]">{shopForm.name?.[0] || '?'}</span>
                           )}
@@ -3535,7 +3536,7 @@ const ShopOwnerDashboard = () => {
               <div className="flex items-center gap-3">
                 {categoryForm.image_url ? (
                   <div className="relative w-16 h-16 rounded-lg overflow-hidden border flex-shrink-0">
-                    <img src={categoryForm.image_url} alt="" className="w-full h-full object-cover" />
+                    <img src={resolveImage(categoryForm.image_url)} alt="" className="w-full h-full object-cover" />
                     <button type="button" onClick={() => setCategoryForm({ ...categoryForm, image_url: '' })}
                       className="absolute top-0.5 right-0.5 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-[10px]" data-testid="category-image-remove">
                       <X className="w-3 h-3" />
@@ -3699,7 +3700,7 @@ const ShopOwnerDashboard = () => {
                     {detailShowVideo !== false && allVideoEmbeds[detailShowVideo] ? (
                       <iframe src={allVideoEmbeds[detailShowVideo]} title="Product video" className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
                     ) : (
-                      <img src={images[detailActiveImage]} alt={selectedProduct.name} className="w-full h-full object-cover" />
+                      <img src={resolveImage(images[detailActiveImage])} alt={selectedProduct.name} className="w-full h-full object-cover" />
                     )}
                   </div>
                   {(images.length > 1 || allVideoEmbeds.length > 0) && (
@@ -3707,7 +3708,7 @@ const ShopOwnerDashboard = () => {
                       {images.map((img, idx) => (
                         <button key={idx} onClick={() => { setDetailActiveImage(idx); setDetailShowVideo(false); }}
                           className={`w-14 h-14 rounded-lg overflow-hidden flex-shrink-0 border-2 transition-all ${detailShowVideo === false && detailActiveImage === idx ? 'border-[#0055FF] ring-1 ring-[#0055FF]' : 'border-transparent hover:border-[#E2E8F0]'}`}>
-                          <img src={img} alt="" className="w-full h-full object-cover" />
+                          <img src={resolveImage(img)} alt="" className="w-full h-full object-cover" />
                         </button>
                       ))}
                       {allVideoEmbeds.map((_, vidIdx) => (
@@ -3773,7 +3774,7 @@ const ShopOwnerDashboard = () => {
               <div className="flex items-center gap-3">
                 {postForm.thumbnail && (
                   <div className="relative w-24 h-16 rounded overflow-hidden bg-[#F8FAFC]">
-                    <img src={postForm.thumbnail} alt="" className="w-full h-full object-cover" />
+                    <img src={resolveImage(postForm.thumbnail)} alt="" className="w-full h-full object-cover" />
                     <button type="button" onClick={() => setPostForm({ ...postForm, thumbnail: '' })} className="absolute top-0.5 right-0.5 w-4 h-4 bg-red-500 text-white rounded-full flex items-center justify-center text-[10px]"><X className="w-3 h-3" /></button>
                   </div>
                 )}
@@ -3789,7 +3790,7 @@ const ShopOwnerDashboard = () => {
               <div className="flex items-center gap-2 flex-wrap">
                 {(postForm.images || []).map((img, idx) => (
                   <div key={idx} className="relative w-20 h-14 rounded overflow-hidden bg-[#F8FAFC]">
-                    <img src={img} alt="" className="w-full h-full object-cover" />
+                    <img src={resolveImage(img)} alt="" className="w-full h-full object-cover" />
                     <button type="button" onClick={() => setPostForm({ ...postForm, images: postForm.images.filter((_, i) => i !== idx) })} className="absolute top-0.5 right-0.5 w-4 h-4 bg-red-500 text-white rounded-full flex items-center justify-center text-[10px]"><X className="w-3 h-3" /></button>
                   </div>
                 ))}
@@ -3824,7 +3825,7 @@ const ShopOwnerDashboard = () => {
                     if (!prod) return null;
                     return (
                       <div key={pid} className="flex items-center gap-1.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-[5px] px-2 py-1">
-                        <img src={prod.image_url} alt={prod.name} className="w-6 h-6 rounded object-cover" />
+                        <img src={resolveImage(prod.image_url)} alt={prod.name} className="w-6 h-6 rounded object-cover" />
                         <span className="text-xs text-[#0F172A] max-w-[120px] truncate">{prod.name}</span>
                         <button type="button" onClick={() => toggleProductAttach(pid)} className="text-red-400 hover:text-red-600 ml-1"><X className="w-3 h-3" /></button>
                       </div>
@@ -3846,7 +3847,7 @@ const ShopOwnerDashboard = () => {
                     <button type="button" key={prod.id} onClick={() => toggleProductAttach(prod.id)}
                       className={`w-full flex items-center gap-2 p-1.5 rounded-[5px] text-left transition-all mb-0.5 ${isAttached ? 'bg-blue-50 border border-blue-200' : 'hover:bg-[#F8FAFC]'}`}
                       data-testid={`attach-product-${prod.id}`}>
-                      <img src={prod.image_url} alt={prod.name} className="w-8 h-8 rounded object-cover flex-shrink-0" />
+                      <img src={resolveImage(prod.image_url)} alt={prod.name} className="w-8 h-8 rounded object-cover flex-shrink-0" />
                       <span className="text-xs text-[#0F172A] flex-1 truncate">{prod.name}</span>
                       <span className="text-[10px] text-[#94A3B8] flex-shrink-0">{formatVND(prod.price)}</span>
                       {isAttached && <span className="w-4 h-4 rounded-full flex items-center justify-center text-white text-[10px] flex-shrink-0" style={{ backgroundColor: themeColor }}>✓</span>}
@@ -3948,7 +3949,7 @@ const ShopOwnerDashboard = () => {
                         <Input value={section.caption || ''} onChange={(e) => {
                           const secs = [...pageForm.sections]; secs[idx] = { ...secs[idx], caption: e.target.value }; setPageForm({ ...pageForm, sections: secs });
                         }} placeholder="Caption (optional)" className="text-xs" />
-                        {section.url && <img src={section.url} alt="" className="w-full max-h-40 object-cover rounded-[5px]" />}
+                        {section.url && <img src={resolveImage(section.url)} alt="" className="w-full max-h-40 object-cover rounded-[5px]" />}
                       </div>
                     )}
 

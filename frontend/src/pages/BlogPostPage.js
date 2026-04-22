@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useLanguage } from '../context/LanguageContext';
 import { formatVND } from '../utils/format';
+import { resolveImage } from '../utils/imageUrl';
 import { Button } from '../components/ui/button';
 import { ArrowLeft, Calendar, ShoppingCart, Share2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -100,7 +101,7 @@ const BlogPostPage = () => {
         </header>
         <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {selectedPost.thumbnail && (
-            <img src={selectedPost.thumbnail} alt={selectedPost.title} className="w-full h-auto max-h-[600px] object-contain mb-6 rounded-[5px] cursor-pointer hover:opacity-90 transition-opacity" data-testid="post-detail-thumbnail" onClick={() => setLightboxImg(selectedPost.thumbnail)} />
+            <img src={resolveImage(selectedPost.thumbnail)} alt={selectedPost.title} className="w-full h-auto max-h-[600px] object-contain mb-6 rounded-[5px] cursor-pointer hover:opacity-90 transition-opacity" data-testid="post-detail-thumbnail" onClick={() => setLightboxImg(selectedPost.thumbnail)} />
           )}
           <h1 className="text-2xl sm:text-3xl font-bold text-[#0F172A] mb-3" data-testid="post-detail-title">{selectedPost.title}</h1>
           <p className="text-sm text-[#94A3B8] mb-6 flex items-center gap-2">
@@ -110,7 +111,7 @@ const BlogPostPage = () => {
           {selectedPost.images?.length > 0 && (
             <div className="flex gap-3 mb-6 overflow-x-auto">
               {selectedPost.images.map((img, idx) => (
-                <img key={idx} src={img} alt="" className="h-40 rounded-[5px] object-cover flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity" onClick={() => setLightboxImg(img)} data-testid={`post-image-${idx}`} />
+                <img key={idx} src={resolveImage(img)} alt="" className="h-40 rounded-[5px] object-cover flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity" onClick={() => setLightboxImg(img)} data-testid={`post-image-${idx}`} />
               ))}
             </div>
           )}
@@ -119,7 +120,7 @@ const BlogPostPage = () => {
               <button onClick={() => setLightboxImg(null)} className="absolute top-4 right-4 w-10 h-10 bg-white/20 hover:bg-white/40 text-white rounded-full flex items-center justify-center transition-colors" data-testid="lightbox-close">
                 <span className="text-2xl leading-none">&times;</span>
               </button>
-              <img src={lightboxImg} alt="" className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl" onClick={(e) => e.stopPropagation()} />
+              <img src={resolveImage(lightboxImg)} alt="" className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl" onClick={(e) => e.stopPropagation()} />
             </div>
           )}
           <div className="prose max-w-none text-[#334155] leading-relaxed mb-8 break-words [&_ol]:list-decimal [&_ol]:pl-6 [&_ul]:list-disc [&_ul]:pl-6 [&_img]:max-w-full [&_pre]:overflow-x-auto [&_table]:overflow-x-auto" data-testid="post-detail-content" dangerouslySetInnerHTML={{ __html: selectedPost.description }} />
@@ -130,7 +131,7 @@ const BlogPostPage = () => {
                 {attachedProds.map(prod => (
                   <Link key={prod.id} to={`/shop/${slug}?product=${prod.id}`} className="group border border-[#E2E8F0] rounded-[5px] overflow-hidden hover:shadow-lg transition-all" data-testid={`attached-product-${prod.id}`}>
                     <div className="aspect-square bg-[#F8FAFC] overflow-hidden">
-                      <img src={prod.image_url} alt={prod.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                      <img src={resolveImage(prod.image_url)} alt={prod.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                     </div>
                     <div className="p-3 text-center">
                       <h4 className="font-medium text-sm text-[#0F172A] line-clamp-2">{prod.name}</h4>
@@ -171,7 +172,7 @@ const BlogPostPage = () => {
               <Link key={post.id} to={`/shop/${slug}/posts/${post.id}`} className="bg-white rounded-[5px] overflow-hidden hover:shadow-lg transition-all group" data-testid={`post-card-${post.id}`}>
                 {post.thumbnail && (
                   <div className="aspect-video overflow-hidden">
-                    <img src={post.thumbnail} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                    <img src={resolveImage(post.thumbnail)} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                   </div>
                 )}
                 <div className="p-4">

@@ -4,6 +4,7 @@ import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
 import { useLanguage } from '../context/LanguageContext';
 import { formatVND } from '../utils/format';
+import { resolveImage } from '../utils/imageUrl';
 import { Button } from '../components/ui/button';
 import { toast } from 'sonner';
 import ProductModal from './ProductModal';
@@ -50,7 +51,7 @@ const ProductCard = ({ product }) => {
             <div className="absolute inset-0 animate-pulse bg-gradient-to-r from-[#F8FAFC] to-[#E2E8F0]" />
           )}
           <img
-            src={product.image_url}
+            src={resolveImage(product.image_url)}
             alt={product.name}
             className={`w-full h-full object-cover image-zoom ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
             onLoad={() => setImageLoaded(true)}

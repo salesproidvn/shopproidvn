@@ -1,6 +1,7 @@
 import { useCart } from '../context/CartContext';
 import { useLanguage } from '../context/LanguageContext';
 import { formatVND } from '../utils/format';
+import { resolveImage } from '../utils/imageUrl';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '../components/ui/sheet';
 import { Button } from '../components/ui/button';
 import { ScrollArea } from '../components/ui/scroll-area';
@@ -29,7 +30,7 @@ const CartDrawer = ({ open, onOpenChange, onCheckout }) => {
               <div className="space-y-4 py-4">
                 {cart.map((item) => (
                   <div key={item.product_id} className="flex gap-4 p-4 bg-[#F8FAFC] rounded-xl" data-testid={`cart-item-${item.product_id}`}>
-                    <img src={item.image_url} alt={item.name} className="w-20 h-20 object-cover rounded-lg" />
+                    <img src={resolveImage(item.image_url)} alt={item.name} className="w-20 h-20 object-cover rounded-lg" />
                     <div className="flex-1 min-w-0">
                       <h4 className="font-medium text-[#0F172A] truncate">{item.name}</h4>
                       <p className="text-[#0055FF] font-semibold mt-1">{formatVND(item.price)}</p>

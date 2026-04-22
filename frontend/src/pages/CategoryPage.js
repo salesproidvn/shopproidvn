@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useLanguage } from '../context/LanguageContext';
 import { formatVND } from '../utils/format';
+import { resolveImage } from '../utils/imageUrl';
 import { Button } from '../components/ui/button';
 import { ArrowLeft, ShoppingCart, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
@@ -59,7 +60,7 @@ const CategoryPage = () => {
             </Button>
             <div className="flex items-center gap-2">
               {shop?.logo_url ? (
-                <img src={shop.logo_url} alt={shop.name} className="w-8 h-8 rounded-full object-cover" />
+                <img src={resolveImage(shop.logo_url)} alt={shop.name} className="w-8 h-8 rounded-full object-cover" />
               ) : (
                 <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: themeColor }}>
                   <span className="text-white font-bold text-xs">{shop?.name?.[0]}</span>
@@ -110,7 +111,7 @@ const CategoryPage = () => {
                       className="group bg-white border border-[#E2E8F0] rounded-[5px] overflow-hidden hover:shadow-lg transition-all"
                       data-testid={`catpage-product-${product.id}`}>
                       <div className="aspect-square bg-[#F8FAFC] overflow-hidden">
-                        <img src={product.image_url} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                        <img src={resolveImage(product.image_url)} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                       </div>
                       <div className="p-3 text-center">
                         <h3 className="font-medium text-[#0F172A] text-sm line-clamp-2 mb-1">{product.name}</h3>

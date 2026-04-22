@@ -4,13 +4,13 @@
   "description": "Nền tảng thương mại điện tử thông minh - Quản lý gian hàng, đơn hàng, sản phẩm",
   "icons": [
     {
-      "src": "%PUBLIC_URL%/icon-192.png",
+      "src": "/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "%PUBLIC_URL%/icon-512.png",
+      "src": "/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"

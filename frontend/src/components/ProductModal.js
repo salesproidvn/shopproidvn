@@ -4,6 +4,7 @@ import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
 import { useLanguage } from '../context/LanguageContext';
 import { formatVND } from '../utils/format';
+import { resolveImage } from '../utils/imageUrl';
 import { Dialog, DialogContent, DialogDescription } from '../components/ui/dialog';
 import { Button } from '../components/ui/button';
 import { toast } from 'sonner';
@@ -65,7 +66,7 @@ const ProductModal = ({ product, open, onOpenChange }) => {
                   allowFullScreen
                 />
               ) : (
-                <img src={images[activeImage]} alt={product.name} className="w-full h-full object-cover" />
+                <img src={resolveImage(images[activeImage])} alt={product.name} className="w-full h-full object-cover" />
               )}
             </div>
             {/* Thumbnails */}
@@ -80,7 +81,7 @@ const ProductModal = ({ product, open, onOpenChange }) => {
                     }`}
                     data-testid={`thumbnail-${idx}`}
                   >
-                    <img src={img} alt="" className="w-full h-full object-cover" />
+                    <img src={resolveImage(img)} alt="" className="w-full h-full object-cover" />
                   </button>
                 ))}
                 {embedUrl && (

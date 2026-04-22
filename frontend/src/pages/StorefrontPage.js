@@ -4,7 +4,8 @@ import axios from 'axios';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
-import { formatVND, optimizeImageUrl } from '../utils/format';
+import { formatVND } from '../utils/format';
+import { resolveImage } from '../utils/imageUrl';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
@@ -529,7 +530,7 @@ const StorefrontPage = () => {
               )}
               <div className="aspect-square bg-[#F8FAFC] overflow-hidden">
                 {post.thumbnail ? (
-                  <img src={optimizeImageUrl(post.thumbnail, 500)} alt={post.title} loading="lazy" decoding="async" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                  <img src={resolveImage(post.thumbnail)} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#F0F9FF] to-[#E0F2FE]">
                     <FileText className="w-10 h-10 text-[#CBD5E1]" />
@@ -584,7 +585,7 @@ const StorefrontPage = () => {
         <span className="absolute top-2 left-2 z-10 px-1.5 py-0.5 text-[10px] font-bold rounded bg-[#0F172A] text-white">Dịch vụ</span>
       )}
       <div className={`aspect-square bg-[#F8FAFC] overflow-hidden ${isOut ? 'opacity-60' : ''}`}>
-        <img src={optimizeImageUrl(product.image_url, 400) || '/product-fallback.png'} alt={product.name} loading="lazy" decoding="async" onError={(e) => { e.target.src = '/product-fallback.png'; }} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+        <img src={resolveImage(product.image_url)} alt={product.name} onError={(e) => { e.target.src = '/product-fallback.png'; }} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
       </div>
       <div className="p-3 sm:p-4 text-center">
         <h3 className="font-medium text-[#0F172A] text-sm sm:text-base line-clamp-2 mb-1">{product.name}</h3>
@@ -742,7 +743,7 @@ const StorefrontPage = () => {
             >
               <div className="aspect-square bg-[#F8FAFC] overflow-hidden">
                 {cat.image_url ? (
-                  <img src={optimizeImageUrl(cat.image_url, 400)} alt={cat.name} loading="lazy" decoding="async" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                  <img src={resolveImage(cat.image_url)} alt={cat.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
                     <FolderOpen className="w-10 h-10 text-[#CBD5E1]" />
@@ -869,7 +870,7 @@ const StorefrontPage = () => {
           <div className="flex items-center justify-between h-14">
             <a href={`/shop/${slug}`} onClick={(e) => { const homePath = `/shop/${slug}`; if (window.location.pathname === homePath || window.location.pathname === homePath + '/') { e.preventDefault(); window.location.reload(); } }} className="flex items-center gap-3 hover:opacity-80 transition-opacity cursor-pointer">
               {shop.logo_url ? (
-                <img src={shop.logo_url} alt={shop.name} className="w-9 h-9 rounded-full object-cover" />
+                <img src={resolveImage(shop.logo_url)} alt={shop.name} className="w-9 h-9 rounded-full object-cover" />
               ) : (
                 <div className="w-9 h-9 rounded-full flex items-center justify-center" style={{ backgroundColor: themeColor }}>
                   <span className="text-white font-bold text-sm">{shop.name[0]}</span>
@@ -938,7 +939,7 @@ const StorefrontPage = () => {
             {/* Header */}
             <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 border-b border-[#E2E8F0] bg-white">
               <a href={`/shop/${slug}`} onClick={(e) => { setMobileMenuOpen(false); setMobileExpandedCat(null); const homePath = `/shop/${slug}`; if (window.location.pathname === homePath || window.location.pathname === homePath + '/') { e.preventDefault(); window.location.reload(); } }} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-                {shop.logo_url && <img src={shop.logo_url} alt="" className="w-7 h-7 rounded-lg object-cover" />}
+                {shop.logo_url && <img src={resolveImage(shop.logo_url)} alt="" className="w-7 h-7 rounded-lg object-cover" />}
                 <span className="font-bold text-[#0F172A] text-sm">{shop.name}</span>
               </a>
               <button onClick={closeMobileMenu} className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-[#F1F5F9]" data-testid="mobile-menu-close">
@@ -1110,7 +1111,7 @@ const StorefrontPage = () => {
                                   className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-[#F8FAFC] cursor-pointer transition-colors"
                                   onClick={() => { navigate(`/shop/${slug}/product/${p.id}`); }}
                                 >
-                                  <img src={p.image_url || '/product-fallback.png'} alt={p.name} onError={(e) => { e.target.src = '/product-fallback.png'; }} className="w-10 h-10 rounded-md object-cover shrink-0" />
+                                  <img src={resolveImage(p.image_url)} alt={p.name} onError={(e) => { e.target.src = '/product-fallback.png'; }} className="w-10 h-10 rounded-md object-cover shrink-0" />
                                   <div className="min-w-0">
                                     <p className="text-xs font-medium text-[#0F172A] truncate">{p.name}</p>
                                     <p className="text-xs font-bold" style={{ color: themeColor }}>{formatVND(p.price)}</p>
@@ -1204,7 +1205,7 @@ const StorefrontPage = () => {
           <div className="mt-8 pt-6 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               {shop.logo_url ? (
-                <img src={shop.logo_url} alt={shop.name} className="w-8 h-8 rounded-full object-cover" />
+                <img src={resolveImage(shop.logo_url)} alt={shop.name} className="w-8 h-8 rounded-full object-cover" />
               ) : (
                 <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: themeColor }}>
                   <span className="text-white font-bold text-xs">{shop.name[0]}</span>
@@ -1322,7 +1323,7 @@ const StorefrontPage = () => {
                 <div className="space-y-4 py-4">
                   {cart.map((item) => (
                     <div key={item.product_id} className="flex gap-4 p-3 bg-[#F8FAFC] rounded-xl">
-                      <img src={item.image_url || '/product-fallback.png'} alt={item.name} onError={(e) => { e.target.src = '/product-fallback.png'; }} className="w-16 h-16 rounded-lg object-cover" />
+                      <img src={resolveImage(item.image_url)} alt={item.name} onError={(e) => { e.target.src = '/product-fallback.png'; }} className="w-16 h-16 rounded-lg object-cover" />
                       <div className="flex-1 min-w-0">
                         <h4 className="font-medium text-[#0F172A] text-sm truncate">{item.name}</h4>
                         <p className="font-semibold text-sm" style={{ color: themeColor }}>{formatVND(item.price)}</p>
@@ -1396,7 +1397,7 @@ const StorefrontPage = () => {
                   <div className="space-y-3 mb-4">
                     {cart.map((item) => (
                       <div key={item.product_id} className="flex gap-3">
-                        <img src={item.image_url} alt={item.name} className="w-12 h-12 rounded-lg object-cover" />
+                        <img src={resolveImage(item.image_url)} alt={item.name} className="w-12 h-12 rounded-lg object-cover" />
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-[#0F172A] truncate">{item.name}</p>
                           <p className="text-xs text-[#64748B]">x{item.quantity}</p>
@@ -1507,7 +1508,7 @@ const StorefrontPage = () => {
                 <div className="flex gap-2 flex-wrap">
                   {(editProduct.images || []).map((img, idx) => (
                     <div key={idx} className="relative w-16 h-16 rounded-lg overflow-hidden border">
-                      <img src={img} alt="" className="w-full h-full object-cover" />
+                      <img src={resolveImage(img)} alt="" className="w-full h-full object-cover" />
                       <button type="button" onClick={() => { const imgs = [...(editProduct.images || [])]; imgs.splice(idx, 1); setEditProduct({...editProduct, images: imgs, image_url: imgs[0] || ''}); }}
                         className="absolute top-0 right-0 w-4 h-4 bg-red-500 text-white rounded-full flex items-center justify-center text-[8px]">x</button>
                     </div>
@@ -1547,7 +1548,7 @@ const StorefrontPage = () => {
               <div>
                 <label className="text-xs font-medium text-[#334155] mb-1 block">Ảnh đại diện</label>
                 <div className="flex items-center gap-2">
-                  {editPost.thumbnail && <img src={editPost.thumbnail} alt="" className="w-20 h-14 rounded-lg object-cover border" />}
+                  {editPost.thumbnail && <img src={resolveImage(editPost.thumbnail)} alt="" className="w-20 h-14 rounded-lg object-cover border" />}
                   <button type="button" onClick={() => { setEditMediaTarget('post'); setEditMediaOpen(true); }}
                     className="px-3 py-1.5 rounded-lg border border-[#E2E8F0] text-xs text-[#475569] hover:bg-[#F8FAFC] transition-colors" data-testid="inline-edit-post-thumbnail">
                     Chọn ảnh

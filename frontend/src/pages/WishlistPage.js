@@ -4,6 +4,7 @@ import { useWishlist } from '../context/WishlistContext';
 import { useCart } from '../context/CartContext';
 import { useLanguage } from '../context/LanguageContext';
 import { formatVND } from '../utils/format';
+import { resolveImage } from '../utils/imageUrl';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { Button } from '../components/ui/button';
@@ -67,7 +68,7 @@ const WishlistPage = () => {
               {wishlist.map((product) => (
                 <div key={product.id} className="product-card group" data-testid={`wishlist-item-${product.id}`}>
                   <div className="relative aspect-square overflow-hidden bg-[#F8FAFC]">
-                    <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
+                    <img src={resolveImage(product.image_url)} alt={product.name} className="w-full h-full object-cover" />
                     <Button variant="destructive" size="icon"
                       className="absolute top-4 right-4 w-10 h-10 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                       onClick={() => handleRemove(product.id)} data-testid={`remove-wishlist-${product.id}`}>

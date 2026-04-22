@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import { useLanguage } from '../context/LanguageContext';
 import { formatVND } from '../utils/format';
+import { resolveImage } from '../utils/imageUrl';
 import { Button } from '../components/ui/button';
 import { Phone, Mail, MapPin, Facebook, Globe, Download, MessageCircle, Share2, X, QrCode } from 'lucide-react';
 import { toast } from 'sonner';
@@ -136,7 +137,7 @@ const BusinessCardPage = () => {
       {/* Profile Section */}
       <div className="max-w-md mx-auto w-full flex flex-col items-center pt-10 relative z-10">
         {(card.avatar_url || card.logo_url) && (
-          <img src={card.avatar_url || card.logo_url} alt="" className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg bg-white" data-testid="card-avatar" />
+          <img src={resolveImage(card.avatar_url || card.logo_url)} alt="" className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg bg-white" data-testid="card-avatar" />
         )}
         <h1 className="text-2xl font-bold mb-1 mt-3 text-[#0F172A]" data-testid="card-name">{card.display_name}</h1>
         {card.title && <p className="text-[#64748B] text-sm mb-0.5" data-testid="card-title">{card.title}</p>}
@@ -258,7 +259,7 @@ const BusinessCardPage = () => {
             {card.products.map(p => (
               <a key={p.id} href={`/shop/${card.shop_slug}?product=${p.id}`} className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow" data-testid={`card-product-${p.id}`}>
                 <div className="aspect-square bg-[#F8FAFC]">
-                  <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" />
+                  <img src={resolveImage(p.image_url)} alt={p.name} className="w-full h-full object-cover" />
                 </div>
                 <div className="p-2.5 text-center">
                   <h3 className="text-xs font-medium text-[#0F172A] line-clamp-2 mb-0.5">{p.name}</h3>

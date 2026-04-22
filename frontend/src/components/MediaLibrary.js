@@ -4,6 +4,7 @@ import axios from 'axios';
 import { Button } from '../components/ui/button';
 import { Upload, Check, Trash2, Loader2, Image as ImageIcon, X } from 'lucide-react';
 import { toast } from 'sonner';
+import { resolveImage } from '../utils/imageUrl';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -151,7 +152,7 @@ export default function MediaLibrary({ open, onClose, onSelect, multiple = false
                     onClick={() => toggleSelect(item)}
                     className={`relative aspect-square rounded-lg overflow-hidden cursor-pointer border-2 transition-all group ${isSelected ? 'border-blue-500 ring-2 ring-blue-200' : 'border-transparent hover:border-[#CBD5E1]'}`}
                     data-testid={`media-item-${item.id}`}>
-                    <img src={`${API}/files/${item.id}`} alt={item.original_filename} className="w-full h-full object-cover" loading="lazy" />
+                    <img src={resolveImage(item.url)} alt={item.original_filename} className="w-full h-full object-cover" loading="lazy" />
                     {isSelected && (
                       <div className="absolute inset-0 bg-blue-500/20 flex items-center justify-center">
                         <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
