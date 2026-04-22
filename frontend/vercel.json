@@ -4,6 +4,10 @@
   "buildCommand": "CI=false npm run build",
   "outputDirectory": "build",
   "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "https://shopproidvn-backend-production.up.railway.app/api/$1"
+    },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
