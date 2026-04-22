@@ -1,8 +1,13 @@
 {
-  "experimentalServices": {
-    "backend": {
-      "entrypoint": "backend",
-      "routePrefix": "/"
-    }
-  }
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "installCommand": "cd frontend && npm install --legacy-peer-deps",
+  "buildCommand": "cd frontend && CI=false npm run build",
+  "outputDirectory": "frontend/build",
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "https://shopproidvn-backend-production.up.railway.app/api/$1"
+    },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
 }
