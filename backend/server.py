@@ -272,6 +272,11 @@ def delete_object(path: str):
     except Exception as e:
         logger.error(f"R2 delete failed for {path}: {e}")
 
+def file_public_url(file_id: str, storage_path: str) -> str:
+    if R2_PUBLIC_URL and storage_path:
+        return f"{R2_PUBLIC_URL.rstrip('/')}/{storage_path.lstrip('/')}"
+    return f"/api/files/{file_id}"
+
 # ==================== IMAGE COMPRESSION ====================
 
 MAX_IMAGE_SIZE_BYTES = 200 * 1024  # 200KB target - WebP is much more efficient
@@ -1327,7 +1332,7 @@ async def upload_image(file: UploadFile = File(...), request: Request = None):
             "size": compressed_size, "original_size": original_size,
             "is_deleted": False, "created_at": datetime.now(timezone.utc)
         })
-        return {"id": file_id, "path": result["path"], "url": f"/api/files/{file_id}",
+        return {"id": file_id, "path": result["path"], "url": file_public_url(file_id, result["path"]),
                 "size": compressed_size, "original_size": original_size}
     except Exception as e:
         logger.error(f"Upload to R2 failed: {e}")
@@ -1341,11 +1346,12 @@ async def get_media_library(request: Request, page: int = 1, limit: int = 40):
     total = await db.files.count_documents({"shop_id": shop_id, "is_deleted": False})
     files = await db.files.find(
         {"shop_id": shop_id, "is_deleted": False},
-        {"_id": 0, "id": 1, "original_filename": 1, "size": 1, "created_at": 1}
+        {"_id": 0, "id": 1, "original_filename": 1, "size": 1, "created_at": 1, "storage_path": 1}
     ).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
     for f in files:
-        f["url"] = f"/api/files/{f['id']}"
+        f["url"] = file_public_url(f["id"], f.get("storage_path", ""))
         f["created_at"] = serialize_datetime(f.get("created_at"))
+        f.pop("storage_path", None)
     return {"items": files, "total": total, "page": page, "pages": (total + limit - 1) // limit}
 
 @api_router.delete("/dashboard/media/{file_id}")
@@ -3387,7 +3393,7 @@ async def startup_event():
     await seed_shop(SHOP3_USER, SHOP3, get_shop3_categories, get_shop3_products, get_shop3_orders, get_shop3_posts)
 
     # Write test credentials
-    memory_dir = Path("/app/memory")
+    memory_dir = ROOT_DIR.parent / "memory"
     memory_dir.mkdir(exist_ok=True)
     with open(memory_dir / "test_credentials.md", "w") as f:
         f.write("# Test Credentials\n\n")

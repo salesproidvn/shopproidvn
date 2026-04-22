@@ -587,7 +587,7 @@ const ShopOwnerDashboard = () => {
   useEffect(() => {
     if (authLoading) return;
     if (!user || (user.role !== 'shop_owner' && user.role !== 'super_admin')) {
-      navigate('/');
+      navigate('/')
       return;
     }
     fetchData();
