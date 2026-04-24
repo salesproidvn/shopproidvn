@@ -1831,7 +1831,7 @@ const ShopOwnerDashboard = () => {
                               )}
                               <Button variant="outline" size="sm" className="h-7 gap-1" onClick={() => setExpandedOrderId(isExpanded ? null : order.id)} data-testid={`toggle-order-${order.id}`}>
                                 {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-                                <span className="text-[11px] hidden sm:inline">{isExpanded ? 'Ẩn' : 'Chi tiết'}</span>
+                                <span className="text-[11px]">{isExpanded ? 'Ẩn' : 'Chi tiết'}</span>
                               </Button>
                             </div>
                           </div>
