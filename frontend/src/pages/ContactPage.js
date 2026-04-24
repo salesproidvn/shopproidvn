@@ -68,115 +68,98 @@ const ContactPage = () => {
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid md:grid-cols-2 gap-8">
-          {/* Contact Info */}
-          <div className="space-y-6" data-testid="contact-info">
-            <Card className="border-0 shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-lg">{shop?.name}</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {shop?.contact_phone && (
-                  <a href={`tel:${shop.contact_phone}`} className="flex items-center gap-3 text-[#334155] hover:text-[#0055FF] transition-colors" data-testid="contact-phone">
-                    <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: themeColor + '15' }}>
-                      <Phone className="w-5 h-5" style={{ color: themeColor }} />
-                    </div>
-                    <div>
-                      <p className="text-xs text-[#94A3B8]">{t.phone}</p>
-                      <p className="font-medium">{shop.contact_phone}</p>
-                    </div>
-                  </a>
-                )}
-                {shop?.contact_email && (
-                  <a href={`mailto:${shop.contact_email}`} className="flex items-center gap-3 text-[#334155] hover:text-[#0055FF] transition-colors" data-testid="contact-email">
-                    <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: themeColor + '15' }}>
-                      <Mail className="w-5 h-5" style={{ color: themeColor }} />
-                    </div>
-                    <div>
-                      <p className="text-xs text-[#94A3B8]">{t.email}</p>
-                      <p className="font-medium">{shop.contact_email}</p>
-                    </div>
-                  </a>
-                )}
-                {shop?.address && (
-                  <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(shop.address)}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 text-[#334155] hover:text-[#0055FF] transition-colors" data-testid="contact-address">
-                    <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: themeColor + '15' }}>
-                      <MapPin className="w-5 h-5" style={{ color: themeColor }} />
-                    </div>
-                    <div>
-                      <p className="text-xs text-[#94A3B8]">{t.address}</p>
-                      <p className="font-medium">{shop.address}</p>
-                    </div>
-                  </a>
-                )}
-                <div className="flex items-center gap-3 text-[#334155]">
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: themeColor + '15' }}>
-                    <Clock className="w-5 h-5" style={{ color: themeColor }} />
-                  </div>
-                  <div>
-                    <p className="text-xs text-[#94A3B8]">{t.businessHours}</p>
-                    <p className="font-medium">{t.businessHoursValue}</p>
-                  </div>
-                </div>
-                <div className="flex flex-wrap gap-3 pt-2">
-                  {shop?.social_facebook && (
-                    <a href={shop.social_facebook} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full flex items-center justify-center transition-colors hover:opacity-80 shadow-sm" style={{ backgroundColor: '#1877F2' }} data-testid="contact-social-facebook" title="Facebook">
-                      <Facebook className="w-5 h-5 text-white" />
-                    </a>
-                  )}
-                  {shop?.social_tiktok && (
-                    <a href={shop.social_tiktok} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full flex items-center justify-center transition-colors hover:opacity-80 shadow-sm bg-black" data-testid="contact-social-tiktok" title="TikTok">
-                      <span className="text-white font-bold text-sm leading-none">T</span>
-                    </a>
-                  )}
-                  {shop?.social_instagram && (
-                    <a href={shop.social_instagram} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full flex items-center justify-center transition-colors hover:opacity-80 shadow-sm" style={{ background: 'linear-gradient(45deg, #F58529, #DD2A7B, #8134AF, #515BD4)' }} data-testid="contact-social-instagram" title="Instagram">
-                      <Instagram className="w-5 h-5 text-white" />
-                    </a>
-                  )}
-                  {shop?.social_shopee && (
-                    <a href={shop.social_shopee} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full flex items-center justify-center transition-colors hover:opacity-80 shadow-sm" style={{ backgroundColor: '#EE4D2D' }} data-testid="contact-social-shopee" title="Shopee">
-                      <ShoppingBag className="w-5 h-5 text-white" />
-                    </a>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Contact Form */}
-          <Card className="border-0 shadow-sm" data-testid="contact-form-card">
-            <CardHeader>
-              <CardTitle className="text-lg">{t.sendMessage || 'Send Message'}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1.5">{t.customerName} *</label>
-                  <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required data-testid="contact-form-name" />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-1.5">{t.email}</label>
-                    <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} data-testid="contact-form-email" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1.5">{t.phone}</label>
-                    <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} data-testid="contact-form-phone" />
-                  </div>
+      <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <Card className="border-0 shadow-sm" data-testid="contact-info">
+          {/* Shop logo + name + description */}
+          <CardHeader className="flex flex-col items-center text-center gap-3 pb-4 border-b border-[#E2E8F0]">
+            {shop?.logo_url ? (
+              <div className="w-20 h-20 rounded-full overflow-hidden bg-[#F8FAFC] border-2 border-white shadow-md flex-shrink-0">
+                <img src={shop.logo_url} alt={shop.name} className="w-full h-full object-cover" />
+              </div>
+            ) : (
+              <div className="w-20 h-20 rounded-full flex items-center justify-center text-2xl font-bold text-white flex-shrink-0" style={{ backgroundColor: themeColor }}>
+                {(shop?.name || '?').charAt(0).toUpperCase()}
+              </div>
+            )}
+            <div>
+              <CardTitle className="text-xl">{shop?.name}</CardTitle>
+              {shop?.description && (
+                <p className="text-sm text-[#64748B] mt-2 max-w-xl mx-auto leading-relaxed" data-testid="shop-description">
+                  {shop.description}
+                </p>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4 pt-6">
+            {shop?.contact_phone && (
+              <a href={`tel:${shop.contact_phone}`} className="flex items-center gap-3 text-[#334155] hover:text-[#0055FF] transition-colors" data-testid="contact-phone">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: themeColor + '15' }}>
+                  <Phone className="w-5 h-5" style={{ color: themeColor }} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1.5">{t.message || 'Message'} *</label>
-                  <Textarea value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} required rows={5} data-testid="contact-form-message" />
+                  <p className="text-xs text-[#94A3B8]">{t.phone}</p>
+                  <p className="font-medium">{shop.contact_phone}</p>
                 </div>
-                <Button type="submit" className="w-full hover:opacity-90" style={{ backgroundColor: themeColor }} disabled={sending} data-testid="contact-form-submit">
-                  <Send className="w-4 h-4 mr-2" /> {sending ? '...' : (t.send || 'Send')}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-        </div>
+              </a>
+            )}
+            {shop?.contact_email && (
+              <a href={`mailto:${shop.contact_email}`} className="flex items-center gap-3 text-[#334155] hover:text-[#0055FF] transition-colors" data-testid="contact-email">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: themeColor + '15' }}>
+                  <Mail className="w-5 h-5" style={{ color: themeColor }} />
+                </div>
+                <div>
+                  <p className="text-xs text-[#94A3B8]">{t.email}</p>
+                  <p className="font-medium break-all">{shop.contact_email}</p>
+                </div>
+              </a>
+            )}
+            {shop?.address && (
+              <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(shop.address)}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 text-[#334155] hover:text-[#0055FF] transition-colors" data-testid="contact-address">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: themeColor + '15' }}>
+                  <MapPin className="w-5 h-5" style={{ color: themeColor }} />
+                </div>
+                <div>
+                  <p className="text-xs text-[#94A3B8]">{t.address}</p>
+                  <p className="font-medium">{shop.address}</p>
+                </div>
+              </a>
+            )}
+            <div className="flex items-center gap-3 text-[#334155]">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: themeColor + '15' }}>
+                <Clock className="w-5 h-5" style={{ color: themeColor }} />
+              </div>
+              <div>
+                <p className="text-xs text-[#94A3B8]">{t.businessHours}</p>
+                <p className="font-medium">{t.businessHoursValue}</p>
+              </div>
+            </div>
+            {(shop?.social_facebook || shop?.social_tiktok || shop?.social_instagram || shop?.social_shopee) && (
+              <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-[#E2E8F0]">
+                <span className="text-xs text-[#94A3B8] font-semibold uppercase tracking-wider mr-1">Theo dõi</span>
+                {shop?.social_facebook && (
+                  <a href={shop.social_facebook} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full flex items-center justify-center transition-all hover:opacity-80 hover:scale-105 shadow-sm" style={{ backgroundColor: '#1877F2' }} data-testid="contact-social-facebook" title="Facebook">
+                    <Facebook className="w-5 h-5 text-white" />
+                  </a>
+                )}
+                {shop?.social_tiktok && (
+                  <a href={shop.social_tiktok} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full flex items-center justify-center transition-all hover:opacity-80 hover:scale-105 shadow-sm bg-black" data-testid="contact-social-tiktok" title="TikTok">
+                    <span className="text-white font-bold text-sm leading-none">T</span>
+                  </a>
+                )}
+                {shop?.social_instagram && (
+                  <a href={shop.social_instagram} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full flex items-center justify-center transition-all hover:opacity-80 hover:scale-105 shadow-sm" style={{ background: 'linear-gradient(45deg, #F58529, #DD2A7B, #8134AF, #515BD4)' }} data-testid="contact-social-instagram" title="Instagram">
+                    <Instagram className="w-5 h-5 text-white" />
+                  </a>
+                )}
+                {shop?.social_shopee && (
+                  <a href={shop.social_shopee} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full flex items-center justify-center transition-all hover:opacity-80 hover:scale-105 shadow-sm" style={{ backgroundColor: '#EE4D2D' }} data-testid="contact-social-shopee" title="Shopee">
+                    <ShoppingBag className="w-5 h-5 text-white" />
+                  </a>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </main>
     </div>
   );
