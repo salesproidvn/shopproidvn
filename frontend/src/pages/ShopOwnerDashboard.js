@@ -717,14 +717,18 @@ const ShopOwnerDashboard = () => {
 
 
 
+  const [productToDelete, setProductToDelete] = useState(null);
   const handleDeleteProduct = async (prodId) => {
-    if (!window.confirm(t.deleteConfirmProduct)) return;
+    const target = prodId || productToDelete;
+    if (!target) return;
     try {
-      await axios.delete(`${API}/dashboard/products/${prodId}`);
+      await axios.delete(`${API}/dashboard/products/${target}`);
       toast.success(t.productDeleted);
       fetchProductsOnly();
     } catch (err) {
       toast.error(t.failedToDelete);
+    } finally {
+      setProductToDelete(null);
     }
   };
 
@@ -1648,7 +1652,7 @@ const ShopOwnerDashboard = () => {
                               <Button variant="outline" size="sm" className="h-7 lg:h-8 px-1 lg:px-2 rounded-[5px]" onClick={() => handleCopyProductLink(product.id)} data-testid={`copy-product-link-${product.id}`} title="Copy link sản phẩm">
                                 <Link2 className="w-3 h-3" />
                               </Button>
-                              <Button variant="destructive" size="sm" className="h-7 lg:h-8 px-1 lg:px-2 rounded-[5px]" onClick={() => handleDeleteProduct(product.id)} data-testid={`delete-product-${product.id}`}>
+                              <Button variant="destructive" size="sm" className="h-7 lg:h-8 px-1 lg:px-2 rounded-[5px]" onClick={() => setProductToDelete(product.id)} data-testid={`delete-product-${product.id}`}>
                                 <Trash2 className="w-3 h-3" />
                               </Button>
                             </div>
@@ -3578,9 +3582,26 @@ const ShopOwnerDashboard = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Product Delete Confirmation */}
+      <Dialog open={!!productToDelete} onOpenChange={(o) => !o && setProductToDelete(null)}>
+        <DialogContent className="sm:max-w-sm bg-white" data-testid="delete-product-dialog">
+          <DialogHeader>
+            <DialogTitle className="text-base">Xóa sản phẩm?</DialogTitle>
+            <DialogDescription className="text-sm text-[#475569]">
+              {t.deleteConfirmProduct || 'Bạn chắc chắn muốn xóa sản phẩm này? Hành động không thể hoàn tác.'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-3 pt-2">
+            <Button type="button" variant="outline" className="flex-1 text-sm" onClick={() => setProductToDelete(null)} data-testid="delete-product-cancel">{t.cancel}</Button>
+            <Button type="button" variant="destructive" className="flex-1 text-sm" onClick={() => handleDeleteProduct()} data-testid="delete-product-confirm">
+              <Trash2 className="w-3.5 h-3.5 mr-1" /> Xóa
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Custom Section Delete Confirmation */}
-      <Dialog open={!!customSectionToDelete} onOpenChange={(o) => !o && setCustomSectionToDelete(null)}>
-        <DialogContent className="sm:max-w-sm bg-white" data-testid="delete-custom-section-dialog">
+      <Dialog open={!!customSectionToDelete} onOpenChange={(o) => !o && setCustomSectionToDelete(null)}>        <DialogContent className="sm:max-w-sm bg-white" data-testid="delete-custom-section-dialog">
           <DialogHeader>
             <DialogTitle className="text-base">Xóa section?</DialogTitle>
             <DialogDescription className="text-sm text-[#475569]">
