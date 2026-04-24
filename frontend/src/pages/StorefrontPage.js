@@ -16,7 +16,7 @@ import {
   Search, ShoppingCart, Phone, Mail, MapPin, Facebook, Instagram, Download,
   Plus, Minus, Trash2, ArrowLeft, LayoutDashboard, X, AlertTriangle, Play,
   MessageCircle, Map, FolderOpen, ChevronLeft, ChevronRight, FileText, Calendar, Share2,
-  Home, Store, Grid3X3, BookOpen, PhoneCall, Menu as MenuIcon, ChevronDown, Globe, Pencil
+  Home, Store, Grid3X3, BookOpen, PhoneCall, Menu as MenuIcon, ChevronDown, Globe, Pencil, ShoppingBag
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { emitNotification } from '../context/NotificationContext';
@@ -1218,8 +1218,10 @@ const StorefrontPage = () => {
                 <h3 className="font-bold text-xl mb-4">{shop.name}</h3>
                 {shop.description && <p className="text-[#94A3B8] mb-4">{shop.description}</p>}
                 <div className="flex gap-4">
-                  {shop.social_facebook && (<a href={shop.social_facebook} target="_blank" rel="noopener noreferrer" className="hover:text-[#0055FF]"><Facebook className="w-6 h-6" /></a>)}
-                  {shop.social_instagram && (<a href={shop.social_instagram} target="_blank" rel="noopener noreferrer" className="hover:text-[#0055FF]"><Instagram className="w-6 h-6" /></a>)}
+                  {shop.social_facebook && (<a href={shop.social_facebook} target="_blank" rel="noopener noreferrer" className="hover:text-[#0055FF]" title="Facebook"><Facebook className="w-6 h-6" /></a>)}
+                  {shop.social_tiktok && (<a href={shop.social_tiktok} target="_blank" rel="noopener noreferrer" className="hover:text-white w-6 h-6 flex items-center justify-center rounded bg-black" title="TikTok"><span className="text-white font-bold text-sm leading-none">T</span></a>)}
+                  {shop.social_instagram && (<a href={shop.social_instagram} target="_blank" rel="noopener noreferrer" className="hover:text-[#E4405F]" title="Instagram"><Instagram className="w-6 h-6" /></a>)}
+                  {shop.social_shopee && (<a href={shop.social_shopee} target="_blank" rel="noopener noreferrer" className="hover:text-[#EE4D2D]" title="Shopee"><ShoppingBag className="w-6 h-6" /></a>)}
                 </div>
               </div>
               <div>

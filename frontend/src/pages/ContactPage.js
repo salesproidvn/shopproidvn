@@ -6,7 +6,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Textarea } from '../components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-import { ArrowLeft, Phone, Mail, MapPin, Clock, Facebook, Instagram, Send } from 'lucide-react';
+import { ArrowLeft, Phone, Mail, MapPin, Clock, Facebook, Instagram, Send, ShoppingBag } from 'lucide-react';
 import { toast } from 'sonner';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -119,15 +119,25 @@ const ContactPage = () => {
                     <p className="font-medium">{t.businessHoursValue}</p>
                   </div>
                 </div>
-                <div className="flex gap-3 pt-2">
+                <div className="flex flex-wrap gap-3 pt-2">
                   {shop?.social_facebook && (
-                    <a href={shop.social_facebook} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full flex items-center justify-center transition-colors hover:opacity-80" style={{ backgroundColor: themeColor + '15' }}>
-                      <Facebook className="w-5 h-5" style={{ color: themeColor }} />
+                    <a href={shop.social_facebook} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full flex items-center justify-center transition-colors hover:opacity-80 shadow-sm" style={{ backgroundColor: '#1877F2' }} data-testid="contact-social-facebook" title="Facebook">
+                      <Facebook className="w-5 h-5 text-white" />
+                    </a>
+                  )}
+                  {shop?.social_tiktok && (
+                    <a href={shop.social_tiktok} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full flex items-center justify-center transition-colors hover:opacity-80 shadow-sm bg-black" data-testid="contact-social-tiktok" title="TikTok">
+                      <span className="text-white font-bold text-sm leading-none">T</span>
                     </a>
                   )}
                   {shop?.social_instagram && (
-                    <a href={shop.social_instagram} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full flex items-center justify-center transition-colors hover:opacity-80" style={{ backgroundColor: themeColor + '15' }}>
-                      <Instagram className="w-5 h-5" style={{ color: themeColor }} />
+                    <a href={shop.social_instagram} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full flex items-center justify-center transition-colors hover:opacity-80 shadow-sm" style={{ background: 'linear-gradient(45deg, #F58529, #DD2A7B, #8134AF, #515BD4)' }} data-testid="contact-social-instagram" title="Instagram">
+                      <Instagram className="w-5 h-5 text-white" />
+                    </a>
+                  )}
+                  {shop?.social_shopee && (
+                    <a href={shop.social_shopee} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full flex items-center justify-center transition-colors hover:opacity-80 shadow-sm" style={{ backgroundColor: '#EE4D2D' }} data-testid="contact-social-shopee" title="Shopee">
+                      <ShoppingBag className="w-5 h-5 text-white" />
                     </a>
                   )}
                 </div>

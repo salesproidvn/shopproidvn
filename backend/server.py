@@ -485,6 +485,8 @@ class ShopUpdate(BaseModel):
     address: Optional[str] = None
     social_facebook: Optional[str] = None
     social_instagram: Optional[str] = None
+    social_tiktok: Optional[str] = None
+    social_shopee: Optional[str] = None
     theme_color: Optional[str] = None
     custom_domain: Optional[str] = None
     banners: Optional[List[str]] = None
@@ -1122,7 +1124,7 @@ async def create_shop_owner(data: ShopOwnerCreate, request: Request):
     slug = generate_shop_slug(data.shop_name)
     if await db.shops.find_one({"slug": slug}):
         slug = f"{slug}-{secrets.token_hex(3)}"
-    shop_doc = {"name": data.shop_name, "slug": slug, "description": "", "logo_url": "", "contact_phone": data.phone or "", "contact_email": email, "address": "", "social_facebook": "", "social_instagram": "", "theme_color": "#0055FF", "status": "active", "expiry_date": "", "banners": [], "banner_enabled": True, "blog_enabled": True, "layout_sections": [], "footer_columns": [], "menu_items": [], "mega_menu_categories": [], "custom_pages": [], "post_carousel_position": "top", "max_products": 100, "max_posts": 50, "max_pages": 20, "max_categories": 50, "created_at": datetime.now(timezone.utc)}
+    shop_doc = {"name": data.shop_name, "slug": slug, "description": "", "logo_url": "", "contact_phone": data.phone or "", "contact_email": email, "address": "", "social_facebook": "", "social_instagram": "", "social_tiktok": "", "social_shopee": "", "theme_color": "#0055FF", "status": "active", "expiry_date": "", "banners": [], "banner_enabled": True, "blog_enabled": True, "layout_sections": [], "footer_columns": [], "menu_items": [], "mega_menu_categories": [], "custom_pages": [], "post_carousel_position": "top", "max_products": 100, "max_posts": 50, "max_pages": 20, "max_categories": 50, "created_at": datetime.now(timezone.utc)}
     shop_result = await db.shops.insert_one(shop_doc)
     shop_id = str(shop_result.inserted_id)
     user_doc = {"email": email, "password_hash": hash_password(data.password), "name": data.name, "role": "shop_owner", "shop_id": shop_id, "phone": data.phone or "", "status": "active", "created_at": datetime.now(timezone.utc)}
@@ -1427,7 +1429,10 @@ async def get_shop_details(request: Request):
         "contact_phone": shop.get("contact_phone", ""), "contact_email": shop.get("contact_email", ""),
         "address": shop.get("address", ""), "google_map_url": shop.get("google_map_url", ""),
         "social_facebook": shop.get("social_facebook", ""),
-        "social_instagram": shop.get("social_instagram", ""), "theme_color": shop.get("theme_color", "#0055FF"),
+        "social_instagram": shop.get("social_instagram", ""),
+        "social_tiktok": shop.get("social_tiktok", ""),
+        "social_shopee": shop.get("social_shopee", ""),
+        "theme_color": shop.get("theme_color", "#0055FF"),
         "status": shop.get("status", "active"), "expiry_date": shop.get("expiry_date", ""),
         "custom_domain": shop.get("custom_domain", ""),
         "banners": shop.get("banners", []), "banner_enabled": shop.get("banner_enabled", True),
@@ -2553,7 +2558,10 @@ async def get_shop_by_slug(slug: str):
         "contact_phone": shop.get("contact_phone", ""), "contact_email": shop.get("contact_email", ""),
         "address": shop.get("address", ""), "google_map_url": shop.get("google_map_url", ""),
         "social_facebook": shop.get("social_facebook", ""),
-        "social_instagram": shop.get("social_instagram", ""), "theme_color": shop.get("theme_color", "#0055FF"),
+        "social_instagram": shop.get("social_instagram", ""),
+        "social_tiktok": shop.get("social_tiktok", ""),
+        "social_shopee": shop.get("social_shopee", ""),
+        "theme_color": shop.get("theme_color", "#0055FF"),
         "custom_domain": shop.get("custom_domain", ""),
         "banners": shop.get("banners", []), "banner_enabled": shop.get("banner_enabled", True),
         "blog_enabled": shop.get("blog_enabled", True),

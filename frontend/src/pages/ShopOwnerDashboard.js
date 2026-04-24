@@ -18,7 +18,8 @@ import {
   Bold, Italic, List, ChevronUp, ChevronDown, Play, FileText, Image, Calendar, Search, LayoutGrid, GripVertical,
   Globe, Navigation, Link2, Video, Type, ArrowUp, ArrowDown, EyeOff, Copy, Grid3X3,
   Bell, BellOff, Smartphone, Download, Mail, Loader2, Check, Ticket, Users, Lock, Phone,
-  AlignLeft, AlignCenter, AlignRight, ChevronLeft, ChevronRight
+  AlignLeft, AlignCenter, AlignRight, ChevronLeft, ChevronRight,
+  Facebook, Instagram, ShoppingBag
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { DndContext, closestCenter, PointerSensor, TouchSensor, KeyboardSensor, useSensor, useSensors } from '@dnd-kit/core';
@@ -3505,6 +3506,64 @@ const ShopOwnerDashboard = () => {
                       <Input value={shopForm.google_map_url || ''} onChange={(e) => setShopForm({ ...shopForm, google_map_url: e.target.value })} className="text-sm" placeholder="https://maps.app.goo.gl/..." data-testid="google-map-url-input" />
                       <p className="text-[10px] text-[#94A3B8] mt-1">Dán link Google Maps để hiện nút Bản đồ chính xác trên storefront</p>
                     </div>
+
+                    {/* Social / Marketplace Links */}
+                    <div className="pt-3 border-t border-[#E2E8F0]">
+                      <p className="text-sm font-semibold text-[#0F172A] mb-1">Mạng xã hội & Sàn TMĐT</p>
+                      <p className="text-[11px] text-[#94A3B8] mb-3">Các link này hiển thị trên trang Liên hệ và footer để khách kết nối với bạn.</p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs font-medium mb-1 flex items-center gap-1.5">
+                            <Facebook className="w-3.5 h-3.5 text-[#1877F2]" /> Facebook
+                          </label>
+                          <Input
+                            value={shopForm.social_facebook || ''}
+                            onChange={(e) => setShopForm({ ...shopForm, social_facebook: e.target.value })}
+                            placeholder="https://facebook.com/..."
+                            className="text-sm"
+                            data-testid="shop-social-facebook"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium mb-1 flex items-center gap-1.5">
+                            <span className="inline-block w-3.5 h-3.5 bg-black rounded-sm flex items-center justify-center text-white text-[8px] font-bold">T</span>
+                            TikTok
+                          </label>
+                          <Input
+                            value={shopForm.social_tiktok || ''}
+                            onChange={(e) => setShopForm({ ...shopForm, social_tiktok: e.target.value })}
+                            placeholder="https://tiktok.com/@..."
+                            className="text-sm"
+                            data-testid="shop-social-tiktok"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium mb-1 flex items-center gap-1.5">
+                            <Instagram className="w-3.5 h-3.5 text-[#E4405F]" /> Instagram
+                          </label>
+                          <Input
+                            value={shopForm.social_instagram || ''}
+                            onChange={(e) => setShopForm({ ...shopForm, social_instagram: e.target.value })}
+                            placeholder="https://instagram.com/..."
+                            className="text-sm"
+                            data-testid="shop-social-instagram"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium mb-1 flex items-center gap-1.5">
+                            <ShoppingBag className="w-3.5 h-3.5 text-[#EE4D2D]" /> Shopee
+                          </label>
+                          <Input
+                            value={shopForm.social_shopee || ''}
+                            onChange={(e) => setShopForm({ ...shopForm, social_shopee: e.target.value })}
+                            placeholder="https://shopee.vn/shop..."
+                            className="text-sm"
+                            data-testid="shop-social-shopee"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
                     <Button type="submit" style={{ backgroundColor: themeColor }} className="hover:opacity-90 text-sm" data-testid="save-shop-btn">
                       {t.saveChanges}
                     </Button>
