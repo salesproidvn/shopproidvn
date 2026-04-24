@@ -587,8 +587,8 @@ const StorefrontPage = () => {
         <img src={optimizeImageUrl(product.image_url, 400) || '/product-fallback.png'} alt={product.name} loading="lazy" decoding="async" onError={(e) => { e.target.src = '/product-fallback.png'; }} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
       </div>
       <div className="p-3 sm:p-4 text-center">
-        <h3 className="font-medium text-[#0F172A] text-sm sm:text-base line-clamp-2 mb-1">{product.name}</h3>
-        <p className="text-base sm:text-lg font-bold mb-2" style={{ color: themeColor }}>{formatVND(product.price)}</p>
+        <h3 className="font-medium text-[#0F172A] text-sm line-clamp-2 mb-1">{product.name}</h3>
+        <p className="text-base font-bold mb-2" style={{ color: themeColor }}>{formatVND(product.price)}</p>
       </div>
     </Link>
     );
