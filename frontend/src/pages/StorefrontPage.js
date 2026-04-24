@@ -427,7 +427,7 @@ const StorefrontPage = () => {
       <div className="min-h-screen bg-[#F8FAFC]">
         {/* Skeleton Header */}
         <header className="sticky top-0 z-40 bg-white border-b border-[#E2E8F0]">
-          <div className="max-w-7xl lg:max-w-[80vw] mx-auto px-4">
+          <div className="max-w-7xl lg:max-w-[65vw] mx-auto px-4">
             <div className="flex items-center justify-between h-14">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-full bg-[#E2E8F0] animate-pulse" />
@@ -443,7 +443,7 @@ const StorefrontPage = () => {
         {/* Skeleton Banner */}
         <div className="h-48 sm:h-72 bg-[#E2E8F0] animate-pulse" />
         {/* Skeleton Products */}
-        <div className="max-w-7xl lg:max-w-[80vw] mx-auto px-4 py-8">
+        <div className="max-w-7xl lg:max-w-[65vw] mx-auto px-4 py-8">
           <div className="h-7 w-40 bg-[#E2E8F0] rounded animate-pulse mb-6" />
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 lg:gap-5">
             {[1,2,3,4,5,6,7,8,9,10].map(i => (
@@ -897,7 +897,7 @@ const StorefrontPage = () => {
 
       {/* Header */}
       <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-lg border-b border-[#E2E8F0]">
-        <div className="max-w-7xl lg:max-w-[80vw] mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl lg:max-w-[65vw] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-14">
             <a href={`/shop/${slug}`} onClick={(e) => { const homePath = `/shop/${slug}`; if (window.location.pathname === homePath || window.location.pathname === homePath + '/') { e.preventDefault(); window.location.reload(); } }} className="flex items-center gap-3 hover:opacity-80 transition-opacity cursor-pointer">
               {shop.logo_url ? (
@@ -1069,7 +1069,7 @@ const StorefrontPage = () => {
 
       {/* Shopee-style Mega Menu - Desktop Only */}
       <div className="hidden lg:block sticky top-14 z-30 bg-white border-b border-[#E2E8F0] shadow-sm" data-testid="mega-menu-bar">
-        <div className="max-w-7xl lg:max-w-[80vw] mx-auto px-4 sm:px-6 lg:px-8 relative">
+        <div className="max-w-7xl lg:max-w-[65vw] mx-auto px-4 sm:px-6 lg:px-8 relative">
           <nav className="flex items-center justify-center gap-0">
             {(() => {
               const parentCats = categories.filter(c => !c.parent_id);
@@ -1183,7 +1183,7 @@ const StorefrontPage = () => {
 
       {/* Footer */}
       <footer className="bg-[#0F172A] text-white py-12" data-testid="storefront-footer">
-        <div className="max-w-7xl lg:max-w-[80vw] mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl lg:max-w-[65vw] mx-auto px-4 sm:px-6 lg:px-8">
           {/* Editable footer columns */}
           {shop.footer_columns && shop.footer_columns.length > 0 ? (
             <div className={`grid gap-8 ${shop.footer_columns.length === 1 ? 'grid-cols-1' : shop.footer_columns.length === 2 ? 'grid-cols-1 sm:grid-cols-2' : shop.footer_columns.length === 3 ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4'}`}>
@@ -1250,7 +1250,7 @@ const StorefrontPage = () => {
 
       {/* Bottom Contact Bar */}
       <div className="fixed bottom-0 left-0 right-0 z-40 shadow-[0_-4px_20px_rgba(0,0,0,0.12)] sm:bottom-4 sm:left-1/2 sm:-translate-x-1/2 sm:right-auto sm:w-auto sm:rounded-full sm:shadow-[0_4px_24px_rgba(0,0,0,0.18)] sm:px-2" style={{ backgroundColor: themeColor }} data-testid="bottom-bar">
-        <div className="grid grid-cols-5 h-14 max-w-7xl lg:max-w-[80vw] mx-auto sm:flex sm:h-11 sm:gap-0">
+        <div className="grid grid-cols-5 h-14 max-w-7xl lg:max-w-[65vw] mx-auto sm:flex sm:h-11 sm:gap-0">
           {shop.contact_phone ? (
             <a href={`tel:${shop.contact_phone}`} className="flex flex-col items-center justify-center gap-0.5 text-white/80 hover:text-white active:bg-white/10 transition-colors sm:px-4 sm:rounded-full sm:h-full sm:flex-row sm:gap-1.5" data-testid="bottom-call">
               <Phone className="w-5 h-5 sm:w-4 sm:h-4" />
@@ -1322,7 +1322,7 @@ const StorefrontPage = () => {
         <>
           <div className="fixed inset-0 z-[41]" onClick={() => setShowCategoryMenu(false)} />
           <div className="fixed bottom-[60px] left-0 right-0 z-[42] bg-white border-t border-[#E2E8F0] shadow-xl p-4 max-h-64 overflow-y-auto sm:bottom-20 sm:left-1/2 sm:-translate-x-1/2 sm:right-auto sm:w-[90vw] sm:max-w-md sm:rounded-xl sm:border sm:border-[#E2E8F0]" data-testid="category-menu-popup">
-            <div className="max-w-7xl lg:max-w-[80vw] mx-auto grid grid-cols-3 sm:grid-cols-3 gap-2">
+            <div className="max-w-7xl lg:max-w-[65vw] mx-auto grid grid-cols-3 sm:grid-cols-3 gap-2">
               {categories.filter(c => !c.parent_id).map(cat => (
                 <Link key={cat.id} to={`/shop/${slug}/category/${cat.id}`} onClick={() => setShowCategoryMenu(false)} className="text-left p-3 bg-[#F8FAFC] hover:bg-[#EFF6FF] rounded-lg transition-colors text-sm font-medium text-[#0F172A]" data-testid={`cat-menu-${cat.id}`}>
                   {cat.name}

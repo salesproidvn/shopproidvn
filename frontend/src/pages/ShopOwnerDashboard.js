@@ -1254,16 +1254,20 @@ const ShopOwnerDashboard = () => {
     }
   };
 
+  const [customSectionToDelete, setCustomSectionToDelete] = useState(null);
   const handleDeleteCustomSection = async (cs) => {
-    if (!window.confirm(`Xóa section "${cs.title}"?`)) return;
-    const nextCs = (shopForm.custom_sections || []).filter(x => x.id !== cs.id);
-    const nextLayout = (shopForm.layout_sections || []).filter(s => s.id !== `custom:${cs.id}`);
+    const target = cs || customSectionToDelete;
+    if (!target) return;
+    const nextCs = (shopForm.custom_sections || []).filter(x => x.id !== target.id);
+    const nextLayout = getLayoutSections().filter(s => s.id !== `custom:${target.id}`);
     try {
       await axios.put(`${API}/dashboard/shop`, { custom_sections: nextCs, layout_sections: nextLayout });
       setShopForm({ ...shopForm, custom_sections: nextCs, layout_sections: nextLayout });
       toast.success('Đã xóa section');
-    } catch {
-      toast.error(t.failedToSave);
+    } catch (err) {
+      toast.error(err.response?.data?.detail || t.failedToSave);
+    } finally {
+      setCustomSectionToDelete(null);
     }
   };
 
@@ -2464,7 +2468,7 @@ const ShopOwnerDashboard = () => {
                         <Button variant="outline" size="sm" className="text-xs" onClick={() => openEditCustomSection(cs)} data-testid={`edit-custom-section-btn-${cs.id}`}>
                           <Pencil className="w-3.5 h-3.5 mr-1" /> Sửa
                         </Button>
-                        <Button variant="destructive" size="sm" className="text-xs" onClick={() => handleDeleteCustomSection(cs)} data-testid={`delete-custom-section-btn-${cs.id}`}>
+                        <Button variant="destructive" size="sm" className="text-xs" onClick={() => setCustomSectionToDelete(cs)} data-testid={`delete-custom-section-btn-${cs.id}`}>
                           <Trash2 className="w-3.5 h-3.5" />
                         </Button>
                       </div>
@@ -3571,6 +3575,24 @@ const ShopOwnerDashboard = () => {
               <Button type="submit" className="flex-1 hover:opacity-90 text-sm text-white" style={{ backgroundColor: themeColor }} data-testid="save-custom-section-btn">{t.save}</Button>
             </div>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Custom Section Delete Confirmation */}
+      <Dialog open={!!customSectionToDelete} onOpenChange={(o) => !o && setCustomSectionToDelete(null)}>
+        <DialogContent className="sm:max-w-sm bg-white" data-testid="delete-custom-section-dialog">
+          <DialogHeader>
+            <DialogTitle className="text-base">Xóa section?</DialogTitle>
+            <DialogDescription className="text-sm text-[#475569]">
+              Section <strong className="text-[#0F172A]">"{customSectionToDelete?.title}"</strong> sẽ bị xóa khỏi cả danh sách bố cục và trang chủ. Hành động này không thể hoàn tác.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-3 pt-2">
+            <Button type="button" variant="outline" className="flex-1 text-sm" onClick={() => setCustomSectionToDelete(null)} data-testid="delete-custom-section-cancel">{t.cancel}</Button>
+            <Button type="button" variant="destructive" className="flex-1 text-sm" onClick={() => handleDeleteCustomSection()} data-testid="delete-custom-section-confirm">
+              <Trash2 className="w-3.5 h-3.5 mr-1" /> Xóa
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
 

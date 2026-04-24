@@ -130,7 +130,7 @@ const SingleCategoryPage = () => {
     <div className="min-h-screen bg-[#F8FAFC]" data-testid="single-category-page">
       {/* Header */}
       <header className="sticky top-0 z-40 border-b border-[#E2E8F0]" style={{ backgroundColor: themeColor }}>
-        <div className="max-w-7xl lg:max-w-[80vw] mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl lg:max-w-[65vw] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-14">
             <div className="flex items-center gap-3">
               <Button variant="ghost" size="icon" className="rounded-full text-white hover:bg-white/20" onClick={() => navigate(`/shop/${slug}`)} data-testid="single-cat-back-btn">
@@ -157,7 +157,7 @@ const SingleCategoryPage = () => {
         </div>
       </header>
 
-      <main className="max-w-7xl lg:max-w-[80vw] mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <main className="max-w-7xl lg:max-w-[65vw] mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Category Hero */}
         <div className="flex items-center gap-4 mb-6" data-testid="category-hero">
           <div className="w-16 h-16 rounded-full overflow-hidden bg-white border-2 flex items-center justify-center shrink-0" style={{ borderColor: themeColor }}>
