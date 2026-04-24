@@ -11,7 +11,7 @@ import {
 } from '../components/ui/select';
 import {
   ArrowLeft, Image as ImageIcon, Plus, X, Youtube,
-  Package, Tag, DollarSign, FileText, Eye, Loader2, TrendingUp, Save,
+  Package, Tag, DollarSign, FileText, Eye, Loader2, TrendingUp, Save, ExternalLink,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import MediaLibrary from '../components/MediaLibrary';
@@ -84,6 +84,7 @@ export default function ProductEditPage() {
     youtube_url: '',
     tiktok_url: '',
     position: 0,
+    affiliate_links: [],
   });
 
   const themeColor = shop?.theme_color || '#0055FF';
@@ -127,6 +128,7 @@ export default function ProductEditPage() {
             tiktok_url: tiktok || '',
             position: found.position || 0,
             _extra_videos: rest,
+            affiliate_links: Array.isArray(found.affiliate_links) ? found.affiliate_links : [],
           });
         }
       } catch (err) {
@@ -201,6 +203,9 @@ export default function ProductEditPage() {
       video_url: form.youtube_url?.trim() || form.tiktok_url?.trim() || '',
       video_links: videoLinks,
       position: parseInt(form.position, 10) || 0,
+      affiliate_links: (form.affiliate_links || [])
+        .map(a => ({ platform: (a.platform || 'other'), url: (a.url || '').trim(), label: (a.label || '').trim() }))
+        .filter(a => a.url),
     };
   };
 
@@ -513,6 +518,89 @@ export default function ProductEditPage() {
                   testId="edit-product-is-hidden-toggle"
                 />
               </div>
+            </Card>
+
+            {/* Section 6: Affiliate Links */}
+            <Card className="p-5 bg-white" data-testid="section-affiliate">
+              <div className="flex items-center justify-between gap-2 mb-1">
+                <div className="flex items-center gap-2">
+                  <span className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white" style={{ backgroundColor: themeColor }}>6</span>
+                  <h2 className="font-semibold text-[#0F172A] text-sm flex items-center gap-1.5">
+                    <ExternalLink className="w-3.5 h-3.5" /> Liên kết affiliate / nền tảng khác
+                  </h2>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="text-xs"
+                  disabled={(form.affiliate_links || []).length >= 10}
+                  onClick={() => setForm({ ...form, affiliate_links: [...(form.affiliate_links || []), { platform: 'shopee', url: '', label: '' }] })}
+                  data-testid="add-affiliate-link-btn"
+                >
+                  <Plus className="w-3.5 h-3.5 mr-1" /> Thêm link
+                </Button>
+              </div>
+              <p className="text-[11px] text-[#94A3B8] mb-3">
+                Gắn URL sản phẩm trên Shopee / TikTok Shop / Lazada / Amazon... Nút mua sẽ hiện trên trang chi tiết và mở tab mới.
+              </p>
+              {(form.affiliate_links || []).length === 0 ? (
+                <div className="py-6 text-center text-xs text-[#94A3B8] border border-dashed border-[#E2E8F0] rounded-[5px]">
+                  Chưa có link affiliate nào.
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {(form.affiliate_links || []).map((link, idx) => (
+                    <div key={idx} className="grid grid-cols-[120px_1fr_auto] gap-2 items-center" data-testid={`affiliate-row-${idx}`}>
+                      <Select
+                        value={link.platform || 'shopee'}
+                        onValueChange={(v) => {
+                          const next = [...form.affiliate_links];
+                          next[idx] = { ...next[idx], platform: v };
+                          setForm({ ...form, affiliate_links: next });
+                        }}
+                      >
+                        <SelectTrigger className="text-xs h-9" data-testid={`affiliate-platform-${idx}`}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-white">
+                          <SelectItem value="shopee">Shopee</SelectItem>
+                          <SelectItem value="tiktok">TikTok Shop</SelectItem>
+                          <SelectItem value="lazada">Lazada</SelectItem>
+                          <SelectItem value="amazon">Amazon</SelectItem>
+                          <SelectItem value="tiki">Tiki</SelectItem>
+                          <SelectItem value="sendo">Sendo</SelectItem>
+                          <SelectItem value="other">Khác</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Input
+                        value={link.url || ''}
+                        onChange={(e) => {
+                          const next = [...form.affiliate_links];
+                          next[idx] = { ...next[idx], url: e.target.value };
+                          setForm({ ...form, affiliate_links: next });
+                        }}
+                        placeholder="https://..."
+                        className="text-xs h-9"
+                        data-testid={`affiliate-url-${idx}`}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        className="h-9 w-9 flex-shrink-0 text-red-500 hover:text-red-600"
+                        onClick={() => {
+                          const next = form.affiliate_links.filter((_, i) => i !== idx);
+                          setForm({ ...form, affiliate_links: next });
+                        }}
+                        data-testid={`affiliate-remove-${idx}`}
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </Card>
 
             {/* Mobile save bar */}

@@ -520,6 +520,7 @@ class ProductCreate(BaseModel):
     out_of_stock: Optional[bool] = False
     sku: Optional[str] = ""
     type: Optional[str] = "product"
+    affiliate_links: Optional[List[dict]] = []
 
 class OrderCreate(BaseModel):
     customer_name: str
@@ -1552,6 +1553,26 @@ async def get_shop_products(request: Request):
     products = await db.products.find({"shop_id": shop_id}, {"_id": 0}).sort("position", 1).to_list(500)
     return products
 
+def _clean_affiliate_links(raw):
+    """Validate and clean affiliate links. Whitelist platforms + HTTPS only URLs."""
+    if not isinstance(raw, list):
+        return []
+    ALLOWED_PLATFORMS = ("shopee", "tiktok", "lazada", "amazon", "tiki", "sendo", "other")
+    clean = []
+    for item in raw[:10]:  # hard-cap 10 links
+        if not isinstance(item, dict):
+            continue
+        url = (item.get("url") or "").strip()
+        if not url or not url.startswith(("http://", "https://")):
+            continue
+        platform = (item.get("platform") or "other").strip().lower()
+        if platform not in ALLOWED_PLATFORMS:
+            platform = "other"
+        label = (item.get("label") or "").strip()[:60]
+        clean.append({"platform": platform, "url": url[:500], "label": label})
+    return clean
+
+
 @api_router.post("/dashboard/products")
 async def create_product(data: ProductCreate, request: Request):
     user = await require_shop_owner(request)
@@ -1587,6 +1608,7 @@ async def create_product(data: ProductCreate, request: Request):
         "out_of_stock": bool(data.out_of_stock),
         "is_featured": data.is_featured or False, "sku": data.sku or "",
         "type": data.type if data.type in ("product", "service") else "product",
+        "affiliate_links": _clean_affiliate_links(data.affiliate_links or []),
         "created_at": datetime.now(timezone.utc)
     }
     await db.products.insert_one(doc)
@@ -1600,6 +1622,8 @@ async def update_product(prod_id: str, request: Request):
     body = await request.json()
     # Remove deprecated field "stock" if present - we no longer use it
     body.pop("stock", None)
+    if "affiliate_links" in body:
+        body["affiliate_links"] = _clean_affiliate_links(body.get("affiliate_links") or [])
     # Security: Validate word limit and sanitize description
     if "description" in body and body["description"]:
         validate_word_limit(body["description"], "Mô tả sản phẩm")

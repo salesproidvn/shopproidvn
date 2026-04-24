@@ -4,7 +4,7 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import { useCart } from '../context/CartContext';
 import { useLanguage } from '../context/LanguageContext';
-import { ArrowLeft, ShoppingCart, Share2, Play, Plus, Minus, Trash2, Calendar } from 'lucide-react';
+import { ArrowLeft, ShoppingCart, Share2, Play, Plus, Minus, Trash2, Calendar, ShoppingBag } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog';
@@ -253,6 +253,40 @@ const ProductDetailPage = () => {
                 <Share2 className="w-5 h-5" />
               </Button>
             </div>
+
+            {/* Affiliate links */}
+            {Array.isArray(product.affiliate_links) && product.affiliate_links.length > 0 && (
+              <div className="mb-4 sm:mb-6" data-testid="product-affiliate-links">
+                <p className="text-xs font-semibold uppercase tracking-wider text-[#94A3B8] mb-2">Mua trên nền tảng khác</p>
+                <div className="flex flex-wrap gap-2">
+                  {product.affiliate_links.map((link, idx) => {
+                    const meta = {
+                      shopee:  { name: 'Shopee',      bg: '#EE4D2D', fg: '#FFFFFF' },
+                      tiktok:  { name: 'TikTok Shop', bg: '#000000', fg: '#FFFFFF' },
+                      lazada:  { name: 'Lazada',      bg: '#0F136D', fg: '#FFFFFF' },
+                      amazon:  { name: 'Amazon',      bg: '#FF9900', fg: '#111111' },
+                      tiki:    { name: 'Tiki',        bg: '#1A94FF', fg: '#FFFFFF' },
+                      sendo:   { name: 'Sendo',       bg: '#E4002B', fg: '#FFFFFF' },
+                      other:   { name: 'Mua ngoài',   bg: '#475569', fg: '#FFFFFF' },
+                    }[link.platform] || { name: link.platform || 'Mua ngoài', bg: '#475569', fg: '#FFFFFF' };
+                    return (
+                      <a
+                        key={idx}
+                        href={link.url}
+                        target="_blank"
+                        rel="noopener noreferrer sponsored"
+                        className="inline-flex items-center gap-2 px-4 py-2.5 rounded-[6px] text-sm font-semibold shadow-sm hover:opacity-90 hover:scale-[1.02] transition-all"
+                        style={{ backgroundColor: meta.bg, color: meta.fg }}
+                        data-testid={`affiliate-link-${idx}`}
+                      >
+                        <ShoppingBag className="w-4 h-4" />
+                        <span>{link.label || `Mua trên ${meta.name}`}</span>
+                      </a>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
             {product.description && (
               <div className="text-[#334155] text-sm sm:text-base leading-relaxed mb-4 sm:mb-6 prose prose-sm max-w-none break-words overflow-hidden [&_img]:max-w-full [&_pre]:overflow-x-auto [&_table]:overflow-x-auto [&_ol]:list-decimal [&_ol]:pl-6 [&_ul]:list-disc [&_ul]:pl-6"
                 data-testid="product-description" dangerouslySetInnerHTML={{ __html: product.description }} />
