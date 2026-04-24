@@ -316,14 +316,10 @@ const ShopOwnerDashboard = () => {
 
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showOrderModal, setShowOrderModal] = useState(false);
-  const [showProductDetailModal, setShowProductDetailModal] = useState(false);
   const [showPostModal, setShowPostModal] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
   const [editingPost, setEditingPost] = useState(null);
   const [selectedOrder, setSelectedOrder] = useState(null);
-  const [selectedProduct, setSelectedProduct] = useState(null);
-  const [detailActiveImage, setDetailActiveImage] = useState(0);
-  const [detailShowVideo, setDetailShowVideo] = useState(false);
   const [posts, setPosts] = useState([]);
 
   const [categoryForm, setCategoryForm] = useState({ name: '', description: '', parent_id: '', image_url: '' });
@@ -752,10 +748,8 @@ const ShopOwnerDashboard = () => {
 
 
   const openProductDetail = (product) => {
-    setSelectedProduct(product);
-    setDetailActiveImage(0);
-    setDetailShowVideo(false);
-    setShowProductDetailModal(true);
+    if (!shop?.slug || !product?.id) return;
+    window.open(`/shop/${shop.slug}/product/${product.id}`, '_blank', 'noopener,noreferrer');
   };
 
 
@@ -3784,95 +3778,6 @@ const ShopOwnerDashboard = () => {
               </div>
             </div>
           )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Product Detail Modal */}
-      <Dialog open={showProductDetailModal} onOpenChange={(v) => { setShowProductDetailModal(v); if (!v) { setDetailActiveImage(0); setDetailShowVideo(false); } }}>
-        <DialogContent className="sm:max-w-3xl bg-white p-0 overflow-hidden max-h-[90vh] overflow-y-auto" data-testid="product-detail-modal">
-          <DialogDescription className="sr-only">{t.productDetail}</DialogDescription>
-          {selectedProduct && (() => {
-            const images = selectedProduct.images?.length > 0 ? selectedProduct.images : [selectedProduct.image_url];
-            const getVideoEmbed = (url) => {
-              if (!url) return null;
-              const ytMatch = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-              if (ytMatch) return `https://www.youtube.com/embed/${ytMatch[1]}`;
-              const ttMatch = url.match(/tiktok\.com\/@[^/]+\/video\/(\d+)/);
-              if (ttMatch) return `https://www.tiktok.com/embed/v2/${ttMatch[1]}`;
-              return null;
-            };
-            const allVideoEmbeds = [];
-            const seenEmbeds = new Set();
-            const pushEmbed = (url) => {
-              const embed = getVideoEmbed(url);
-              if (!embed) return;
-              if (seenEmbeds.has(embed.src || embed)) return;
-              seenEmbeds.add(embed.src || embed);
-              allVideoEmbeds.push(embed);
-            };
-            pushEmbed(selectedProduct.video_url);
-            (selectedProduct.video_links || []).forEach(pushEmbed);
-            return (
-              <div className="grid md:grid-cols-2">
-                <div className="flex flex-col min-w-0">
-                  <div className="w-full aspect-square max-h-[60vh] bg-[#F8FAFC] relative overflow-hidden flex items-center justify-center">
-                    {detailShowVideo !== false && allVideoEmbeds[detailShowVideo] ? (
-                      <iframe src={allVideoEmbeds[detailShowVideo]} title="Product video" className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
-                    ) : (
-                      <img src={images[detailActiveImage]} alt={selectedProduct.name} className="w-full h-full object-contain" />
-                    )}
-                  </div>
-                  {(images.length > 1 || allVideoEmbeds.length > 0) && (
-                    <div className="flex gap-2 p-3 overflow-x-auto">
-                      {images.map((img, idx) => (
-                        <button key={idx} onClick={() => { setDetailActiveImage(idx); setDetailShowVideo(false); }}
-                          className={`w-14 h-14 rounded-lg overflow-hidden flex-shrink-0 border-2 transition-all ${detailShowVideo === false && detailActiveImage === idx ? 'border-[#0055FF] ring-1 ring-[#0055FF]' : 'border-transparent hover:border-[#E2E8F0]'}`}>
-                          <img src={img} alt="" className="w-full h-full object-cover" />
-                        </button>
-                      ))}
-                      {allVideoEmbeds.map((_, vidIdx) => (
-                        <button key={`vid-${vidIdx}`} onClick={() => setDetailShowVideo(vidIdx)}
-                          className={`w-14 h-14 rounded-lg flex-shrink-0 border-2 transition-all flex items-center justify-center bg-[#0F172A] ${detailShowVideo === vidIdx ? 'border-[#0055FF] ring-1 ring-[#0055FF]' : 'border-transparent hover:border-[#E2E8F0]'}`}>
-                          <Play className="w-5 h-5 text-white fill-white" />
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <div className="p-6 flex flex-col">
-                  <h2 className="text-xl font-bold text-[#0F172A] mb-2">{selectedProduct.name}</h2>
-                  <p className="text-2xl font-bold mb-3" style={{ color: themeColor }}>{formatVND(selectedProduct.price)}</p>
-                  <div className="flex flex-wrap gap-2 mb-3">
-                    {selectedProduct.out_of_stock && (
-                      <span className="text-xs px-2 py-0.5 bg-red-100 text-red-700 rounded font-medium">Hết hàng</span>
-                    )}
-                    {selectedProduct.is_hidden && (
-                      <span className="text-xs px-2 py-0.5 bg-[#F1F5F9] text-[#64748B] rounded font-medium inline-flex items-center gap-1">
-                        <EyeOff className="w-3 h-3" /> Đã ẩn
-                      </span>
-                    )}
-                    {selectedProduct.sku && (
-                      <span className="text-xs px-2 py-0.5 bg-[#F1F5F9] text-[#64748B] rounded">SKU: {selectedProduct.sku}</span>
-                    )}
-                  </div>
-                  {selectedProduct.description && (
-                    <div className="text-sm text-[#334155] mb-4 flex-1 prose prose-sm max-w-none break-words [&_ol]:list-decimal [&_ol]:pl-6 [&_ul]:list-disc [&_ul]:pl-6 [&_img]:max-w-full" dangerouslySetInnerHTML={{ __html: selectedProduct.description }} />
-                  )}
-                  <div className="flex gap-2 mt-auto pt-4">
-                    <Button variant="outline" className="flex-1 text-sm" onClick={(e) => { e.stopPropagation(); setShowProductDetailModal(false); navigate(`/dashboard/product/${selectedProduct.id}/edit`); }} data-testid="product-detail-edit-btn">
-                      <Pencil className="w-4 h-4 mr-2" /> {t.editProduct}
-                    </Button>
-                    <Button variant="outline" className="text-sm px-3" onClick={() => handleCopyProductLink(selectedProduct.id)} data-testid="product-detail-copy-link" title="Copy link">
-                      <Link2 className="w-4 h-4" />
-                    </Button>
-                    <Button className="flex-1 text-sm hover:opacity-90" style={{ backgroundColor: themeColor }} onClick={() => setShowProductDetailModal(false)}>
-                      {t.close}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            );
-          })()}
         </DialogContent>
       </Dialog>
 
