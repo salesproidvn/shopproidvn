@@ -18,7 +18,7 @@ import {
   Bold, Italic, List, ChevronUp, ChevronDown, Play, FileText, Image, Calendar, Search, LayoutGrid, GripVertical,
   Globe, Navigation, Link2, Video, Type, ArrowUp, ArrowDown, EyeOff, Copy, Grid3X3,
   Bell, BellOff, Smartphone, Download, Mail, Loader2, Check, Ticket, Users, Lock, Phone,
-  AlignLeft, AlignCenter, AlignRight
+  AlignLeft, AlignCenter, AlignRight, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { DndContext, closestCenter, PointerSensor, TouchSensor, KeyboardSensor, useSensor, useSensors } from '@dnd-kit/core';
@@ -65,6 +65,67 @@ function SortableLayoutItem({ section, sectionLabels, sectionIcons, themeColor, 
         </span>
         <span className={`absolute top-[3px] w-[26px] h-[26px] bg-white rounded-full shadow-md transition-transform ${section.enabled ? 'translate-x-[38px]' : 'translate-x-[3px]'}`} />
       </button>
+    </div>
+  );
+}
+
+function Pagination({ page, totalPages, onPageChange, themeColor, testIdPrefix = 'pagination' }) {
+  if (totalPages <= 1) return null;
+  const maxButtons = 5;
+  const start = Math.max(1, Math.min(page - Math.floor(maxButtons / 2), totalPages - maxButtons + 1));
+  const pages = [];
+  for (let i = start; i < Math.min(start + maxButtons, totalPages + 1); i++) pages.push(i);
+  return (
+    <div className="flex items-center justify-center gap-1.5 pt-4 mt-3 border-t border-[#E2E8F0]" data-testid={`${testIdPrefix}-pagination`}>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="h-8 px-2 text-xs"
+        disabled={page <= 1}
+        onClick={() => onPageChange(page - 1)}
+        data-testid={`${testIdPrefix}-prev`}
+      >
+        <ChevronLeft className="w-3.5 h-3.5" />
+      </Button>
+      {start > 1 && (
+        <>
+          <button type="button" className="h-8 w-8 rounded-[5px] text-xs font-medium text-[#475569] hover:bg-[#F1F5F9]" onClick={() => onPageChange(1)} data-testid={`${testIdPrefix}-page-1`}>1</button>
+          {start > 2 && <span className="text-xs text-[#94A3B8]">…</span>}
+        </>
+      )}
+      {pages.map((p) => {
+        const active = p === page;
+        return (
+          <button
+            key={p}
+            type="button"
+            onClick={() => onPageChange(p)}
+            className={`h-8 w-8 rounded-[5px] text-xs font-semibold transition-colors ${active ? 'text-white' : 'text-[#475569] hover:bg-[#F1F5F9]'}`}
+            style={active ? { backgroundColor: themeColor } : {}}
+            data-testid={`${testIdPrefix}-page-${p}`}
+          >
+            {p}
+          </button>
+        );
+      })}
+      {start + maxButtons - 1 < totalPages && (
+        <>
+          {start + maxButtons < totalPages && <span className="text-xs text-[#94A3B8]">…</span>}
+          <button type="button" className="h-8 w-8 rounded-[5px] text-xs font-medium text-[#475569] hover:bg-[#F1F5F9]" onClick={() => onPageChange(totalPages)} data-testid={`${testIdPrefix}-page-${totalPages}`}>{totalPages}</button>
+        </>
+      )}
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="h-8 px-2 text-xs"
+        disabled={page >= totalPages}
+        onClick={() => onPageChange(page + 1)}
+        data-testid={`${testIdPrefix}-next`}
+      >
+        <ChevronRight className="w-3.5 h-3.5" />
+      </Button>
     </div>
   );
 }
@@ -306,6 +367,10 @@ const ShopOwnerDashboard = () => {
   const [orders, setOrders] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [expandedOrderId, setExpandedOrderId] = useState(null);
+  const [orderPage, setOrderPage] = useState(1);
+  const [bookingPage, setBookingPage] = useState(1);
+  const [productPage, setProductPage] = useState(1);
+  const ORDERS_PER_PAGE = 10;
   const [activeTab, setActiveTab] = useState(() => searchParams.get('tab') || 'overview');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -1581,9 +1646,9 @@ const ShopOwnerDashboard = () => {
                 <div className="flex flex-col sm:flex-row gap-3 mb-4">
                   <div className="relative flex-1">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#64748B]" />
-                    <Input placeholder={t.searchShort} value={dashProductSearch} onChange={(e) => setDashProductSearch(e.target.value)} className="pl-9 h-9 text-sm rounded-[5px]" data-testid="dash-product-search" />
+                    <Input placeholder={t.searchShort} value={dashProductSearch} onChange={(e) => { setDashProductSearch(e.target.value); setProductPage(1); }} className="pl-9 h-9 text-sm rounded-[5px]" data-testid="dash-product-search" />
                   </div>
-                  <Select value={dashProductCategory} onValueChange={setDashProductCategory}>
+                  <Select value={dashProductCategory} onValueChange={(v) => { setDashProductCategory(v); setProductPage(1); }}>
                     <SelectTrigger className="w-full sm:w-[180px] h-9 text-sm rounded-[5px]" data-testid="dash-product-category-filter">
                       <SelectValue placeholder={t.allCategories} />
                     </SelectTrigger>
@@ -1600,14 +1665,19 @@ const ShopOwnerDashboard = () => {
                     filtered = filtered.filter(p => p.name.toLowerCase().includes(q) || (p.sku && p.sku.toLowerCase().includes(q)));
                   }
                   if (dashProductCategory !== 'all') filtered = filtered.filter(p => p.category_id === dashProductCategory);
+                  const PRODUCTS_PER_PAGE = 20;
+                  const totalPages = Math.ceil(filtered.length / PRODUCTS_PER_PAGE);
+                  const currentPage = Math.min(productPage, Math.max(1, totalPages));
+                  const paginated = filtered.slice((currentPage - 1) * PRODUCTS_PER_PAGE, currentPage * PRODUCTS_PER_PAGE);
                   return filtered.length === 0 ? (
                     <div className="text-center py-12">
                       <Package className="w-12 h-12 text-[#E2E8F0] mx-auto mb-4" />
                       <p className="text-[#64748B] text-sm">{t.noProductsYet}</p>
                     </div>
                   ) : (
+                    <>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 lg:gap-4" data-testid="products-grid">
-                      {filtered.map((product) => (
+                      {paginated.map((product) => (
                         <div key={product.id} className="border rounded-[5px] overflow-hidden bg-white hover:shadow-lg transition-shadow">
                           <div className="aspect-square bg-[#F8FAFC] cursor-pointer relative" onClick={() => openProductDetail(product)}>
                             <img src={product.image_url || '/product-fallback.png'} alt={product.name} onError={(e) => { e.target.src = '/product-fallback.png'; }} className="w-full h-full object-cover" />
@@ -1654,6 +1724,16 @@ const ShopOwnerDashboard = () => {
                         </div>
                       ))}
                     </div>
+                    {totalPages > 1 && (
+                      <Pagination
+                        page={currentPage}
+                        totalPages={totalPages}
+                        onPageChange={(p) => { setProductPage(p); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                        themeColor={themeColor}
+                        testIdPrefix="products"
+                      />
+                    )}
+                    </>
                   );
                 })()}
               </CardContent>
@@ -1795,7 +1875,7 @@ const ShopOwnerDashboard = () => {
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      {orders.map((order) => {
+                      {orders.slice((orderPage - 1) * ORDERS_PER_PAGE, orderPage * ORDERS_PER_PAGE).map((order) => {
                         const isExpanded = expandedOrderId === order.id;
                         return (
                         <div key={order.id} className={`border rounded-lg bg-white ${order.agent_name ? 'border-l-4 border-l-blue-400' : ''}`} data-testid={`order-card-${order.id}`}>
@@ -1925,6 +2005,16 @@ const ShopOwnerDashboard = () => {
                       })}
                     </div>
                   )}
+                  {/* Orders Pagination */}
+                  {orders.length > ORDERS_PER_PAGE && (
+                    <Pagination
+                      page={orderPage}
+                      totalPages={Math.ceil(orders.length / ORDERS_PER_PAGE)}
+                      onPageChange={(p) => { setOrderPage(p); setExpandedOrderId(null); }}
+                      themeColor={themeColor}
+                      testIdPrefix="orders"
+                    />
+                  )}
                 </CardContent>
               </Card>
 
@@ -1942,7 +2032,7 @@ const ShopOwnerDashboard = () => {
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      {bookings.map((bk) => {
+                      {bookings.slice((bookingPage - 1) * ORDERS_PER_PAGE, bookingPage * ORDERS_PER_PAGE).map((bk) => {
                         const bkStatusColors = {
                           pending: 'bg-amber-100 text-amber-700',
                           confirmed: 'bg-blue-100 text-blue-700',
@@ -2019,6 +2109,15 @@ const ShopOwnerDashboard = () => {
                         );
                       })}
                     </div>
+                  )}
+                  {bookings.length > ORDERS_PER_PAGE && (
+                    <Pagination
+                      page={bookingPage}
+                      totalPages={Math.ceil(bookings.length / ORDERS_PER_PAGE)}
+                      onPageChange={setBookingPage}
+                      themeColor={themeColor}
+                      testIdPrefix="bookings"
+                    />
                   )}
                 </CardContent>
               </Card>
