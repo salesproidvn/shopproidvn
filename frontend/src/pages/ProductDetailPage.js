@@ -199,9 +199,9 @@ const ProductDetailPage = () => {
       </header>
 
       <div className="max-w-5xl mx-auto px-3 sm:px-4 py-4 sm:py-8">
-        <div className="flex flex-col md:grid md:grid-cols-2 gap-4 sm:gap-8">
-          {/* Image Gallery */}
-          <div className="flex flex-col w-full">
+        <div className="flex flex-col md:grid md:grid-cols-2 md:items-start gap-4 sm:gap-8">
+          {/* Image Gallery — sticky on desktop so it stays visible while info scrolls */}
+          <div className="flex flex-col w-full md:sticky md:top-20 md:self-start">
             <div className="aspect-square bg-[#F8FAFC] relative overflow-hidden rounded-lg" data-testid="product-main-image">
               {activeVid ? (
                 <iframe src={activeVid.embed} title="Product video" className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowFullScreen style={activeVid.type === 'tiktok' ? { maxWidth: '325px', margin: '0 auto' } : {}} />
