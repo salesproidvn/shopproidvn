@@ -288,7 +288,7 @@ const ProductDetailPage = () => {
               </div>
             )}
             {product.description && (
-              <div className="text-[#334155] text-sm sm:text-base leading-relaxed mb-4 sm:mb-6 prose prose-sm max-w-none break-words overflow-hidden [&_img]:max-w-full [&_pre]:overflow-x-auto [&_table]:overflow-x-auto [&_ol]:list-decimal [&_ol]:pl-6 [&_ul]:list-disc [&_ul]:pl-6"
+              <div className="text-[#334155] text-base leading-relaxed mb-4 sm:mb-6 prose prose-base max-w-none break-words overflow-hidden [&_*]:text-base [&_img]:max-w-full [&_pre]:overflow-x-auto [&_table]:overflow-x-auto [&_ol]:list-decimal [&_ol]:pl-6 [&_ul]:list-disc [&_ul]:pl-6"
                 data-testid="product-description" dangerouslySetInnerHTML={{ __html: product.description }} />
             )}
           </div>
