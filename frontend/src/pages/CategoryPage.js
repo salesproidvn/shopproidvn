@@ -52,7 +52,7 @@ const CategoryPage = () => {
     <div className="min-h-screen bg-white" data-testid="category-page">
       {/* Header */}
       <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-lg border-b border-[#E2E8F0]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl lg:max-w-[80vw] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center h-14 gap-3">
             <Button variant="ghost" size="icon" className="rounded-full" onClick={() => navigate(-1)} data-testid="category-back-btn">
               <ArrowLeft className="w-5 h-5" />
@@ -71,7 +71,7 @@ const CategoryPage = () => {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <main className="max-w-7xl lg:max-w-[80vw] mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <h1 className="text-2xl sm:text-3xl font-bold text-[#0F172A] mb-6" data-testid="categories-title">{t.allCategoriesPage}</h1>
 
         <div className="space-y-8">
