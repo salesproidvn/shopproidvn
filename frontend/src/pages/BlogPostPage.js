@@ -124,7 +124,7 @@ const BlogPostPage = () => {
               <h3 className="text-lg font-bold text-[#0F172A] mb-4">{t.relatedProducts}</h3>
               <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {attachedProds.map(prod => (
-                  <Link key={prod.id} to={`/shop/${slug}?product=${prod.id}`} className="group border border-[#E2E8F0] rounded-[5px] overflow-hidden hover:shadow-lg transition-all" data-testid={`attached-product-${prod.id}`}>
+                  <Link key={prod.id} to={`/shop/${slug}/product/${prod.id}`} className="group border border-[#E2E8F0] rounded-[5px] overflow-hidden hover:shadow-lg transition-all" data-testid={`attached-product-${prod.id}`}>
                     <div className="aspect-square bg-[#F8FAFC] overflow-hidden">
                       <img src={prod.image_url} alt={prod.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                     </div>
