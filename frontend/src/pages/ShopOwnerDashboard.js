@@ -840,15 +840,19 @@ const ShopOwnerDashboard = () => {
     }
   };
 
+  const [categoryToDelete, setCategoryToDelete] = useState(null);
   const handleDeleteCategory = async (catId) => {
-    if (!window.confirm(t.deleteConfirmCategory)) return;
+    const target = catId || categoryToDelete;
+    if (!target) return;
     try {
-      await axios.delete(`${API}/dashboard/categories/${catId}`);
+      await axios.delete(`${API}/dashboard/categories/${target}`);
       toast.success(t.categoryDeleted);
       fetchCategoriesOnly();
       fetchMenuOnly();
     } catch (err) {
-      toast.error(t.failedToDelete);
+      toast.error(err.response?.data?.detail || t.failedToDelete);
+    } finally {
+      setCategoryToDelete(null);
     }
   };
 
@@ -1794,7 +1798,7 @@ const ShopOwnerDashboard = () => {
                                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditingCategory(cat); setCategoryForm({ name: cat.name, description: cat.description || '', parent_id: cat.parent_id || '', image_url: cat.image_url || '' }); setShowCategoryModal(true); }}>
                                   <Pencil className="w-4 h-4" />
                                 </Button>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500" onClick={() => handleDeleteCategory(cat.id)}>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500" onClick={() => setCategoryToDelete(cat.id)}>
                                   <Trash2 className="w-4 h-4" />
                                 </Button>
                               </div>
@@ -1812,7 +1816,7 @@ const ShopOwnerDashboard = () => {
                                   <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditingCategory(sub); setCategoryForm({ name: sub.name, description: sub.description || '', parent_id: sub.parent_id || '', image_url: sub.image_url || '' }); setShowCategoryModal(true); }}>
                                     <Pencil className="w-3 h-3" />
                                   </Button>
-                                  <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500" onClick={() => handleDeleteCategory(sub.id)}>
+                                  <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500" onClick={() => setCategoryToDelete(sub.id)}>
                                     <Trash2 className="w-3 h-3" />
                                   </Button>
                                 </div>
@@ -3731,6 +3735,24 @@ const ShopOwnerDashboard = () => {
               <Button type="submit" className="flex-1 hover:opacity-90 text-sm text-white" style={{ backgroundColor: themeColor }} data-testid="save-custom-section-btn">{t.save}</Button>
             </div>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Category Delete Confirmation */}
+      <Dialog open={!!categoryToDelete} onOpenChange={(o) => !o && setCategoryToDelete(null)}>
+        <DialogContent className="sm:max-w-sm bg-white" data-testid="delete-category-dialog">
+          <DialogHeader>
+            <DialogTitle className="text-base">Xóa danh mục?</DialogTitle>
+            <DialogDescription className="text-sm text-[#475569]">
+              {t.deleteConfirmCategory || 'Bạn chắc chắn muốn xóa danh mục này? Các danh mục con và sản phẩm trong danh mục sẽ không bị xóa nhưng sẽ không còn được gán danh mục.'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-3 pt-2">
+            <Button type="button" variant="outline" className="flex-1 text-sm" onClick={() => setCategoryToDelete(null)} data-testid="delete-category-cancel">{t.cancel}</Button>
+            <Button type="button" variant="destructive" className="flex-1 text-sm" onClick={() => handleDeleteCategory()} data-testid="delete-category-confirm">
+              <Trash2 className="w-3.5 h-3.5 mr-1" /> Xóa
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
 
