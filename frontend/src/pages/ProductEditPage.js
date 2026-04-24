@@ -182,9 +182,10 @@ export default function ProductEditPage() {
 
   const buildPayload = () => {
     const videoLinks = [];
-    if (form.youtube_url?.trim()) videoLinks.push(form.youtube_url.trim());
-    if (form.tiktok_url?.trim()) videoLinks.push(form.tiktok_url.trim());
-    if (form._extra_videos?.length) videoLinks.push(...form._extra_videos);
+    const pushUnique = (v) => { const s = (v || '').trim(); if (s && !videoLinks.includes(s)) videoLinks.push(s); };
+    pushUnique(form.youtube_url);
+    pushUnique(form.tiktok_url);
+    (form._extra_videos || []).forEach(pushUnique);
     return {
       name: form.name.trim(),
       type: form.type,

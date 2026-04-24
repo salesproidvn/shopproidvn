@@ -108,13 +108,21 @@ const ProductDetailPage = () => {
   }
 
   const images = product.images?.length > 0 ? product.images : [product.image_url || '/product-fallback.png'];
-  const allVideos = [];
-  const ytMatch = product.video_url?.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-  if (ytMatch) allVideos.push({ type: 'youtube', embed: `https://www.youtube.com/embed/${ytMatch[1]}` });
-  (product.video_links || []).forEach(vl => {
-    const parsed = getVideoEmbed(vl);
-    if (parsed) allVideos.push(parsed);
-  });
+  const allVideos = (() => {
+    const seen = new Set();
+    const out = [];
+    const addFromUrl = (url) => {
+      if (!url) return;
+      const v = getVideoEmbed(url);
+      if (!v) return;
+      if (seen.has(v.embed)) return;
+      seen.add(v.embed);
+      out.push(v);
+    };
+    addFromUrl(product.video_url);
+    (product.video_links || []).forEach(addFromUrl);
+    return out;
+  })();
   const activeVid = showVideo !== null ? allVideos[showVideo] : null;
 
   const handleShare = () => {

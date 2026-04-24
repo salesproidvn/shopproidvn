@@ -3781,12 +3781,16 @@ const ShopOwnerDashboard = () => {
               return null;
             };
             const allVideoEmbeds = [];
-            const mainEmbed = getVideoEmbed(selectedProduct.video_url);
-            if (mainEmbed) allVideoEmbeds.push(mainEmbed);
-            (selectedProduct.video_links || []).forEach(vl => {
-              const embed = getVideoEmbed(vl);
-              if (embed) allVideoEmbeds.push(embed);
-            });
+            const seenEmbeds = new Set();
+            const pushEmbed = (url) => {
+              const embed = getVideoEmbed(url);
+              if (!embed) return;
+              if (seenEmbeds.has(embed.src || embed)) return;
+              seenEmbeds.add(embed.src || embed);
+              allVideoEmbeds.push(embed);
+            };
+            pushEmbed(selectedProduct.video_url);
+            (selectedProduct.video_links || []).forEach(pushEmbed);
             return (
               <div className="grid md:grid-cols-2">
                 <div className="flex flex-col min-w-0">
