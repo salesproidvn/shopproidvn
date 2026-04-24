@@ -1041,6 +1041,7 @@ async def get_all_shops(request: Request):
             "owner": owner, "order_count": oc, "product_count": pc, "category_count": cc,
             "item_count": pc,
             "agents_enabled": s.get("agents_enabled", False),
+            "business_card_enabled": s.get("business_card_enabled", False),
         })
     return result
 
@@ -1102,6 +1103,7 @@ async def get_all_users(request: Request):
                     "max_agents": shop.get("max_agents", 100),
                     "max_images": shop.get("max_images", 500),
                     "agents_enabled": shop.get("agents_enabled", False),
+                    "business_card_enabled": shop.get("business_card_enabled", False),
                 }
         result.append({
             "id": str(u["_id"]), "email": u["email"], "name": u["name"], "role": u["role"],
@@ -1261,27 +1263,87 @@ async def send_login_email(user_id: str, request: Request):
 async def maintenance_preview(request: Request):
     await require_super_admin_only(request)
     one_year_ago = datetime.now(timezone.utc) - timedelta(days=365)
-    old_orders = await db.orders.count_documents({"created_at": {"$lt": one_year_ago}})
-    orphaned_files = await db.files.count_documents({"is_deleted": True})
-    return {"old_orders_count": old_orders, "orphaned_files_count": orphaned_files}
+
+    # Old orders aggregated per shop
+    pipeline = [
+        {"$match": {"created_at": {"$lt": one_year_ago}}},
+        {"$group": {"_id": "$shop_id", "count": {"$sum": 1}, "oldest": {"$min": "$created_at"}}},
+        {"$sort": {"count": -1}},
+    ]
+    agg = await db.orders.aggregate(pipeline).to_list(1000)
+    by_shop = []
+    total_old_orders = 0
+    for row in agg:
+        sid = row.get("_id") or ""
+        shop_name = "Unknown"
+        try:
+            if sid:
+                shop = await db.shops.find_one({"_id": ObjectId(sid)}, {"name": 1})
+                if shop:
+                    shop_name = shop.get("name", "Unknown")
+        except Exception:
+            pass
+        by_shop.append({
+            "shop_id": sid,
+            "shop_name": shop_name,
+            "count": row["count"],
+            "oldest": serialize_datetime(row.get("oldest")),
+        })
+        total_old_orders += row["count"]
+
+    # Orphaned images: soft-deleted files still pending storage cleanup
+    orphaned = await db.files.find(
+        {"is_deleted": True},
+        {"_id": 0, "id": 1, "original_filename": 1, "size": 1, "created_at": 1}
+    ).sort("created_at", 1).to_list(500)
+    items = []
+    total_size_kb = 0.0
+    for f in orphaned:
+        size_kb = round((f.get("size", 0) or 0) / 1024, 1)
+        items.append({
+            "url": f.get("original_filename") or f"/api/files/{f.get('id')}",
+            "size_kb": size_kb,
+            "uploaded_at": serialize_datetime(f.get("created_at")),
+        })
+        total_size_kb += size_kb
+
+    return {
+        "old_orders": {
+            "total": total_old_orders,
+            "by_shop": by_shop,
+            "cutoff_date": one_year_ago.isoformat(),
+        },
+        "orphaned_images": {
+            "total": len(items),
+            "total_size_kb": round(total_size_kb, 1),
+            "items": items,
+        },
+    }
 
 @api_router.post("/admin/maintenance/cleanup-orders")
 async def cleanup_orders(request: Request):
     await require_super_admin(request)
     one_year_ago = datetime.now(timezone.utc) - timedelta(days=365)
     result = await db.orders.delete_many({"created_at": {"$lt": one_year_ago}})
-    return {"deleted_count": result.deleted_count, "message": f"Deleted {result.deleted_count} old orders"}
+    return {"deleted": result.deleted_count, "message": f"Đã xóa {result.deleted_count} đơn hàng cũ hơn 1 năm"}
 
 @api_router.post("/admin/maintenance/cleanup-images")
 async def cleanup_images(request: Request):
     await require_super_admin(request)
-    orphaned = await db.files.find({"is_deleted": True}).to_list(100)
+    orphaned = await db.files.find({"is_deleted": True}).to_list(1000)
     count = 0
+    freed_bytes = 0
     for f in orphaned:
-        delete_object(f.get("storage_path", ""))
+        try:
+            delete_object(f.get("storage_path", ""))
+        except Exception as e:
+            logger.warning(f"Failed to delete R2 object {f.get('storage_path')}: {e}")
+        freed_bytes += f.get("size", 0) or 0
         await db.files.delete_one({"_id": f["_id"]})
         count += 1
-    return {"deleted_count": count, "message": f"Cleaned up {count} orphaned files"}
+    freed_kb = round(freed_bytes / 1024, 1)
+    freed_mb = round(freed_bytes / (1024 * 1024), 2)
+    return {"deleted": count, "freed_kb": freed_kb, "message": f"Đã xóa {count} hình ảnh, giải phóng {freed_mb} MB"}
 
 # ==================== IMAGE UPLOAD ====================
 
@@ -1443,6 +1505,7 @@ async def get_shop_details(request: Request):
         "post_carousel_position": shop.get("post_carousel_position", "top"),
         "max_products": shop.get("max_products", 100), "max_posts": shop.get("max_posts", 50),
         "agents_enabled": shop.get("agents_enabled", False),
+        "business_card_enabled": shop.get("business_card_enabled", False),
     }
 
 @api_router.put("/dashboard/shop")
@@ -2174,6 +2237,15 @@ async def toggle_agents_feature(shop_id: str, request: Request):
     await db.shops.update_one({"_id": ObjectId(shop_id)}, {"$set": {"agents_enabled": enabled}})
     return {"message": f"Agents feature {'enabled' if enabled else 'disabled'}"}
 
+# Super Admin: Toggle business card feature for a shop
+@api_router.put("/admin/shops/{shop_id}/business-card-toggle")
+async def toggle_business_card_feature(shop_id: str, request: Request):
+    await require_super_admin_only(request)
+    body = await request.json()
+    enabled = bool(body.get("business_card_enabled", False))
+    await db.shops.update_one({"_id": ObjectId(shop_id)}, {"$set": {"business_card_enabled": enabled}})
+    return {"message": f"Business card feature {'enabled' if enabled else 'disabled'}"}
+
 # Track sale via agent referral code
 @api_router.get("/shop/{slug}/ref/{tracking_code}")
 async def track_agent_referral(slug: str, tracking_code: str):
@@ -2192,10 +2264,12 @@ async def track_agent_referral(slug: str, tracking_code: str):
 async def get_business_card(request: Request):
     user = await require_shop_owner(request)
     shop_id = await resolve_shop_id(request, user)
+    shop = await db.shops.find_one({"_id": ObjectId(shop_id)})
+    if not shop or not shop.get("business_card_enabled", False):
+        raise HTTPException(status_code=403, detail="Business card feature is not enabled for this shop")
     card = await db.business_cards.find_one({"owner_id": user["_id"], "owner_type": "shop_owner"}, {"_id": 0})
     if not card:
         # Return default from shop info
-        shop = await db.shops.find_one({"_id": ObjectId(shop_id)})
         card = {
             "id": f"card-{uuid_lib.uuid4().hex[:12]}", "shop_id": shop_id,
             "owner_id": user["_id"], "owner_type": "shop_owner",
@@ -2214,6 +2288,9 @@ async def get_business_card(request: Request):
 async def update_business_card(request: Request):
     user = await require_shop_owner(request)
     shop_id = await resolve_shop_id(request, user)
+    shop = await db.shops.find_one({"_id": ObjectId(shop_id)}, {"business_card_enabled": 1})
+    if not shop or not shop.get("business_card_enabled", False):
+        raise HTTPException(status_code=403, detail="Business card feature is not enabled for this shop")
     body = await request.json()
     card = await db.business_cards.find_one({"owner_id": user["_id"], "owner_type": "shop_owner"})
     update_fields = {}
@@ -2248,9 +2325,11 @@ async def get_agent_business_card(request: Request):
     agent = await db.agents.find_one({"id": agent_id}, {"_id": 0, "password_hash": 0})
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
+    shop = await db.shops.find_one({"_id": ObjectId(agent["shop_id"])})
+    if not shop or not shop.get("business_card_enabled", False):
+        raise HTTPException(status_code=403, detail="Business card feature is not enabled for this shop")
     card = await db.business_cards.find_one({"owner_id": agent_id, "owner_type": "agent"}, {"_id": 0})
     if not card:
-        shop = await db.shops.find_one({"_id": ObjectId(agent["shop_id"])})
         card = {
             "id": f"card-{uuid_lib.uuid4().hex[:12]}", "shop_id": agent["shop_id"],
             "owner_id": agent_id, "owner_type": "agent",
@@ -2278,6 +2357,9 @@ async def update_agent_business_card(request: Request):
     agent = await db.agents.find_one({"id": agent_id})
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
+    shop = await db.shops.find_one({"_id": ObjectId(agent["shop_id"])}, {"business_card_enabled": 1})
+    if not shop or not shop.get("business_card_enabled", False):
+        raise HTTPException(status_code=403, detail="Business card feature is not enabled for this shop")
     body = await request.json()
     card = await db.business_cards.find_one({"owner_id": agent_id, "owner_type": "agent"})
     update_fields = {}
@@ -2304,6 +2386,8 @@ async def get_public_business_card(card_slug: str):
     # Try shop owner first (by shop slug)
     shop = await db.shops.find_one({"slug": card_slug, "status": "active"})
     if shop:
+        if not shop.get("business_card_enabled", False):
+            raise HTTPException(status_code=404, detail="Business card not found")
         shop_id = str(shop["_id"])
         owner = await db.users.find_one({"shop_id": shop_id})
         card = await db.business_cards.find_one({"owner_id": str(owner["_id"]) if owner else "", "owner_type": "shop_owner"}, {"_id": 0})
@@ -2331,6 +2415,8 @@ async def get_public_business_card(card_slug: str):
     agent = await db.agents.find_one({"tracking_code": card_slug, "is_active": True}, {"_id": 0, "password_hash": 0})
     if agent:
         shop = await db.shops.find_one({"_id": ObjectId(agent["shop_id"]), "status": "active"})
+        if not shop or not shop.get("business_card_enabled", False):
+            raise HTTPException(status_code=404, detail="Business card not found")
         card = await db.business_cards.find_one({"owner_id": agent["id"], "owner_type": "agent"}, {"_id": 0})
         if not card:
             card = {

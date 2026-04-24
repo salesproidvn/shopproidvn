@@ -593,8 +593,8 @@ const ShopOwnerDashboard = () => {
     if (activeTab === 'media') fetchMediaList(1);
     if (activeTab === 'vouchers') fetchVouchers();
     if (activeTab === 'agents' && shop?.agents_enabled) { fetchAgents(); fetchAgentSales(); }
-    if (activeTab === 'card') fetchBusinessCard();
-  }, [activeTab, shop?.agents_enabled]);
+    if (activeTab === 'card' && shop?.business_card_enabled) fetchBusinessCard();
+  }, [activeTab, shop?.agents_enabled, shop?.business_card_enabled]);
 
   const openMediaLibrary = (callback, { multiple = false, maxSelect = 1 } = {}) => {
     setMediaCallback(() => callback);
@@ -1350,8 +1350,8 @@ const ShopOwnerDashboard = () => {
     { id: 'menu', label: t.menuManager, icon: Navigation },
     { id: 'layout', label: t.displayLayout, icon: LayoutGrid },
     { id: 'vouchers', label: t.vouchers || 'Voucher', icon: Ticket },
-    { id: 'agents', label: t.agents || 'Đại lý', icon: Users },
-    { id: 'card', label: t.businessCard || 'Danh thiếp', icon: Globe },
+    ...(shop?.agents_enabled ? [{ id: 'agents', label: t.agents || 'Đại lý', icon: Users }] : []),
+    ...(shop?.business_card_enabled ? [{ id: 'card', label: t.businessCard || 'Danh thiếp', icon: Globe }] : []),
     { id: 'settings', label: t.settings, icon: Settings },
   ];
 
