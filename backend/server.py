@@ -1476,10 +1476,12 @@ async def update_shop(request: Request):
                 "id": s.get("id") or f"cs-{secrets.token_hex(6)}",
                 "title": (s.get("title") or "").strip()[:200],
                 "image_url": s.get("image_url", "") or "",
+                "video_url": (s.get("video_url") or "").strip()[:500],
                 "content": content,
                 "enabled": bool(s.get("enabled", True)),
-                "title_size": s.get("title_size") if s.get("title_size") in ("sm", "md", "lg", "xl") else "lg",
+                "title_level": s.get("title_level") if s.get("title_level") in ("h1", "h2", "h3") else "h2",
                 "title_align": s.get("title_align") if s.get("title_align") in ("left", "center", "right") else "left",
+                "element_order": [x for x in (s.get("element_order") or ["title", "image", "video", "content"]) if x in ("title", "image", "video", "content")] or ["title", "image", "video", "content"],
             })
         body["custom_sections"] = clean
     await db.shops.update_one({"_id": ObjectId(shop_id)}, {"$set": body})

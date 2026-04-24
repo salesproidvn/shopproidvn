@@ -69,6 +69,31 @@ function SortableLayoutItem({ section, sectionLabels, sectionIcons, themeColor, 
   );
 }
 
+function SortableElementRow({ elKey, themeColor }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: elKey });
+  const style = { transform: CSS.Transform.toString(transform), transition, zIndex: isDragging ? 50 : 'auto', opacity: isDragging ? 0.85 : 1 };
+  const meta = {
+    title: { label: 'Tiêu đề', Icon: Type },
+    image: { label: 'Ảnh minh họa', Icon: Image },
+    video: { label: 'Video YouTube', Icon: Play },
+    content: { label: 'Nội dung (rich text)', Icon: FileText },
+  }[elKey] || { label: elKey, Icon: Package };
+  const { Icon } = meta;
+  return (
+    <div ref={setNodeRef} style={style}
+      className={`flex items-center gap-2 p-2.5 rounded-[5px] bg-white border border-[#E2E8F0] ${isDragging ? 'shadow-lg ring-2 ring-blue-300' : ''}`}
+      data-testid={`element-row-${elKey}`}>
+      <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing touch-none">
+        <GripVertical className="w-4 h-4 text-[#94A3B8]" />
+      </div>
+      <div className="w-7 h-7 rounded-[5px] flex items-center justify-center flex-shrink-0" style={{ backgroundColor: themeColor + '15' }}>
+        <Icon className="w-3.5 h-3.5" style={{ color: themeColor }} />
+      </div>
+      <span className="text-sm text-[#0F172A] font-medium">{meta.label}</span>
+    </div>
+  );
+}
+
 function SortableCategoryItem({ cat, idx, themeColor, parentName }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: cat.id });
   const style = { transform: CSS.Transform.toString(transform), transition, zIndex: isDragging ? 50 : 'auto', opacity: isDragging ? 0.85 : 1 };
@@ -1167,7 +1192,7 @@ const ShopOwnerDashboard = () => {
   // ==================== Custom Sections ====================
   const [showCustomSectionModal, setShowCustomSectionModal] = useState(false);
   const [editingCustomSection, setEditingCustomSection] = useState(null);
-  const [customSectionForm, setCustomSectionForm] = useState({ title: '', image_url: '', content: '', title_size: 'lg', title_align: 'left' });
+  const [customSectionForm, setCustomSectionForm] = useState({ title: '', image_url: '', content: '', video_url: '', title_level: 'h2', title_align: 'left', element_order: ['title', 'image', 'video', 'content'] });
 
   const openCreateCustomSection = () => {
     if ((shopForm.custom_sections || []).length >= 5) {
@@ -1175,7 +1200,7 @@ const ShopOwnerDashboard = () => {
       return;
     }
     setEditingCustomSection(null);
-    setCustomSectionForm({ title: '', image_url: '', content: '', title_size: 'lg', title_align: 'left' });
+    setCustomSectionForm({ title: '', image_url: '', content: '', video_url: '', title_level: 'h2', title_align: 'left', element_order: ['title', 'image', 'video', 'content'] });
     setShowCustomSectionModal(true);
   };
 
@@ -1185,8 +1210,12 @@ const ShopOwnerDashboard = () => {
       title: cs.title || '',
       image_url: cs.image_url || '',
       content: cs.content || '',
-      title_size: cs.title_size || 'lg',
+      video_url: cs.video_url || '',
+      title_level: cs.title_level || 'h2',
       title_align: cs.title_align || 'left',
+      element_order: Array.isArray(cs.element_order) && cs.element_order.length
+        ? cs.element_order.filter(x => ['title', 'image', 'video', 'content'].includes(x))
+        : ['title', 'image', 'video', 'content'],
     });
     setShowCustomSectionModal(true);
   };
@@ -1197,8 +1226,10 @@ const ShopOwnerDashboard = () => {
     if (countWords(customSectionForm.content) > 1000) { toast.error(t.maxWordsReached || 'Nội dung vượt quá 1000 từ'); return; }
     const current = shopForm.custom_sections || [];
     const payloadExtras = {
-      title_size: customSectionForm.title_size || 'lg',
+      title_level: customSectionForm.title_level || 'h2',
       title_align: customSectionForm.title_align || 'left',
+      video_url: (customSectionForm.video_url || '').trim(),
+      element_order: customSectionForm.element_order || ['title', 'image', 'video', 'content'],
     };
     let next;
     let newSectionId = null;
@@ -3405,25 +3436,24 @@ const ShopOwnerDashboard = () => {
                 data-testid="custom-section-title-input"
               />
             </div>
-            {/* Title size + alignment */}
+            {/* Title level + alignment */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-medium mb-2">Cỡ chữ tiêu đề</label>
-                <div className="flex gap-1" data-testid="custom-section-title-size">
+                <label className="block text-xs font-medium mb-2">Cấp tiêu đề</label>
+                <div className="flex gap-1" data-testid="custom-section-title-level">
                   {[
-                    { k: 'sm', label: 'Nhỏ', cls: 'text-sm' },
-                    { k: 'md', label: 'Vừa', cls: 'text-base' },
-                    { k: 'lg', label: 'Lớn', cls: 'text-lg' },
-                    { k: 'xl', label: 'Rất lớn', cls: 'text-xl' },
+                    { k: 'h1', label: 'H1', cls: 'text-xl' },
+                    { k: 'h2', label: 'H2', cls: 'text-lg' },
+                    { k: 'h3', label: 'H3', cls: 'text-base' },
                   ].map(opt => {
-                    const sel = customSectionForm.title_size === opt.k;
+                    const sel = customSectionForm.title_level === opt.k;
                     return (
                       <button key={opt.k} type="button"
-                        onClick={() => setCustomSectionForm({ ...customSectionForm, title_size: opt.k })}
-                        className={`flex-1 py-2 px-1 rounded-[5px] border text-xs font-medium transition-colors ${sel ? 'text-white border-transparent' : 'bg-white border-[#E2E8F0] text-[#475569] hover:bg-[#F8FAFC]'}`}
+                        onClick={() => setCustomSectionForm({ ...customSectionForm, title_level: opt.k })}
+                        className={`flex-1 py-2 px-1 rounded-[5px] border font-semibold transition-colors ${opt.cls} ${sel ? 'text-white border-transparent' : 'bg-white border-[#E2E8F0] text-[#475569] hover:bg-[#F8FAFC]'}`}
                         style={sel ? { backgroundColor: themeColor } : {}}
-                        data-testid={`title-size-${opt.k}`}>
-                        <span className={`${opt.cls} font-semibold leading-none`}>A</span> <span className="text-[10px] ml-0.5 opacity-80">{opt.label}</span>
+                        data-testid={`title-level-${opt.k}`}>
+                        {opt.label}
                       </button>
                     );
                   })}
@@ -3477,6 +3507,21 @@ const ShopOwnerDashboard = () => {
                 <Image className="w-3.5 h-3.5 mr-1" /> {customSectionForm.image_url ? 'Đổi ảnh' : 'Chọn ảnh'}
               </Button>
             </div>
+            {/* Video URL (YouTube) */}
+            <div>
+              <label className="block text-xs font-medium mb-1 flex items-center gap-1.5">
+                <Play className="w-3.5 h-3.5 text-red-500" /> YouTube Video URL <span className="text-[#94A3B8] font-normal">(tùy chọn)</span>
+              </label>
+              <Input
+                value={customSectionForm.video_url || ''}
+                onChange={(e) => setCustomSectionForm({ ...customSectionForm, video_url: e.target.value })}
+                placeholder="https://youtube.com/watch?v=..."
+                maxLength={500}
+                className="text-sm"
+                data-testid="custom-section-video-input"
+              />
+              <p className="text-[10px] text-[#94A3B8] mt-1">Hỗ trợ URL youtube.com/watch, youtu.be hoặc youtube.com/embed.</p>
+            </div>
             <div>
               <div className="flex items-center justify-between mb-1">
                 <label className="block text-xs font-medium">Nội dung</label>
@@ -3493,6 +3538,34 @@ const ShopOwnerDashboard = () => {
                 data-testid="custom-section-content-input"
               />
             </div>
+
+            {/* Drag & drop element order */}
+            <div>
+              <label className="block text-xs font-medium mb-2">Thứ tự hiển thị các thành phần</label>
+              <p className="text-[11px] text-[#94A3B8] mb-2">Kéo để sắp xếp — ẩn thành phần bằng cách để trống dữ liệu tương ứng.</p>
+              <DndContext
+                sensors={dndSensors}
+                collisionDetection={closestCenter}
+                onDragEnd={(event) => {
+                  const { active, over } = event;
+                  if (!over || active.id === over.id) return;
+                  const order = customSectionForm.element_order || ['title', 'image', 'video', 'content'];
+                  const oldIdx = order.indexOf(active.id);
+                  const newIdx = order.indexOf(over.id);
+                  if (oldIdx < 0 || newIdx < 0) return;
+                  const next = arrayMove(order, oldIdx, newIdx);
+                  setCustomSectionForm({ ...customSectionForm, element_order: next });
+                }}>
+                <SortableContext items={customSectionForm.element_order || ['title', 'image', 'video', 'content']} strategy={verticalListSortingStrategy}>
+                  <div className="space-y-1.5" data-testid="custom-section-element-order">
+                    {(customSectionForm.element_order || ['title', 'image', 'video', 'content']).map((elKey) => (
+                      <SortableElementRow key={elKey} elKey={elKey} themeColor={themeColor} />
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
+            </div>
+
             <div className="flex gap-3 pt-2">
               <Button type="button" variant="outline" className="flex-1 text-sm" onClick={() => setShowCustomSectionModal(false)}>{t.cancel}</Button>
               <Button type="submit" className="flex-1 hover:opacity-90 text-sm text-white" style={{ backgroundColor: themeColor }} data-testid="save-custom-section-btn">{t.save}</Button>

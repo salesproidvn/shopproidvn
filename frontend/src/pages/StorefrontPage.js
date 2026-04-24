@@ -759,43 +759,75 @@ const StorefrontPage = () => {
     );
   };
 
+  // Parse YouTube URL -> embed URL
+  const getYouTubeEmbed = (url) => {
+    if (!url) return null;
+    const m = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+    if (m) return `https://www.youtube.com/embed/${m[1]}`;
+    return null;
+  };
+
   // Custom Section renderer
   const CustomSectionBlock = ({ sectionKey }) => {
     const cs = customSectionsById[sectionKey];
     if (!cs) return null;
     if (cs.enabled === false) return null;
     const hasContent = (cs.content || '').replace(/<[^>]+>/g, '').trim().length > 0;
-    if (!cs.title && !cs.image_url && !hasContent) return null;
-    const sizeCls = {
-      sm: 'text-base sm:text-lg',
-      md: 'text-lg sm:text-xl',
-      lg: 'text-xl sm:text-2xl',
-      xl: 'text-2xl sm:text-3xl md:text-4xl',
-    }[cs.title_size || 'lg'];
+    const videoEmbed = getYouTubeEmbed(cs.video_url);
+    if (!cs.title && !cs.image_url && !hasContent && !videoEmbed) return null;
+
+    // Heading size by level (H1 > H2 > H3)
+    const levelCls = {
+      h1: 'text-3xl sm:text-4xl md:text-5xl',
+      h2: 'text-2xl sm:text-3xl',
+      h3: 'text-xl sm:text-2xl',
+    }[cs.title_level || 'h2'];
     const alignCls = {
       left: 'text-left',
       center: 'text-center',
       right: 'text-right',
     }[cs.title_align || 'left'];
+    const Heading = cs.title_level === 'h1' ? 'h1' : cs.title_level === 'h3' ? 'h3' : 'h2';
+
+    const elementOrder = Array.isArray(cs.element_order) && cs.element_order.length
+      ? cs.element_order.filter(x => ['title', 'image', 'video', 'content'].includes(x))
+      : ['title', 'image', 'video', 'content'];
+
+    const renderEl = (el) => {
+      if (el === 'title' && cs.title) {
+        return <Heading key="title" className={`${levelCls} ${alignCls} font-bold text-[#0F172A] mb-4`}>{cs.title}</Heading>;
+      }
+      if (el === 'image' && cs.image_url) {
+        return (
+          <div key="image" className="w-full aspect-[16/6] bg-[#F8FAFC] overflow-hidden rounded-[10px] border border-[#E2E8F0] mb-4">
+            <img src={cs.image_url} alt={cs.title || ''} loading="lazy" className="w-full h-full object-cover" />
+          </div>
+        );
+      }
+      if (el === 'video' && videoEmbed) {
+        return (
+          <div key="video" className="w-full aspect-video rounded-[10px] overflow-hidden border border-[#E2E8F0] mb-4 bg-black">
+            <iframe src={videoEmbed} title={cs.title || 'Video'} loading="lazy"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen
+              className="w-full h-full" />
+          </div>
+        );
+      }
+      if (el === 'content' && hasContent) {
+        return (
+          <div key="content"
+            className="mb-4 text-sm sm:text-base text-[#334155] leading-relaxed prose prose-sm max-w-none break-words [&_img]:max-w-full [&_ol]:list-decimal [&_ol]:pl-6 [&_ul]:list-disc [&_ul]:pl-6 [&_a]:text-[#0055FF] [&_a]:underline"
+            dangerouslySetInnerHTML={{ __html: cs.content }}
+          />
+        );
+      }
+      return null;
+    };
+
     return (
-      <div className="mb-10" data-testid={`custom-section-${cs.id}`}>
-        {cs.title && (
-          <h3 className={`${sizeCls} ${alignCls} font-bold text-[#0F172A] mb-4`}>{cs.title}</h3>
-        )}
-        <div className="bg-white border border-[#E2E8F0] rounded-[10px] overflow-hidden">
-          {cs.image_url && (
-            <div className="w-full aspect-[16/6] bg-[#F8FAFC] overflow-hidden">
-              <img src={cs.image_url} alt={cs.title || ''} loading="lazy" className="w-full h-full object-cover" />
-            </div>
-          )}
-          {hasContent && (
-            <div
-              className="p-5 sm:p-6 text-sm sm:text-base text-[#334155] leading-relaxed prose prose-sm max-w-none break-words [&_img]:max-w-full [&_ol]:list-decimal [&_ol]:pl-6 [&_ul]:list-disc [&_ul]:pl-6 [&_a]:text-[#0055FF] [&_a]:underline"
-              dangerouslySetInnerHTML={{ __html: cs.content }}
-            />
-          )}
-        </div>
-      </div>
+      <section className="mb-10" data-testid={`custom-section-${cs.id}`}>
+        {elementOrder.map(renderEl)}
+      </section>
     );
   };
 
