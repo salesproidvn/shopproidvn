@@ -1212,12 +1212,6 @@ const StorefrontPage = () => {
               )}
               <span className="font-semibold text-sm">{shop.name}</span>
             </div>
-            <div className="flex items-center gap-4">
-              {shop.social_facebook && (<a href={shop.social_facebook} target="_blank" rel="noopener noreferrer" className="text-[#94A3B8] hover:text-white transition-colors"><Facebook className="w-5 h-5" /></a>)}
-              {shop.social_instagram && (<a href={shop.social_instagram} target="_blank" rel="noopener noreferrer" className="text-[#94A3B8] hover:text-white transition-colors"><Instagram className="w-5 h-5" /></a>)}
-              {shop.contact_phone && (<a href={`tel:${shop.contact_phone}`} className="text-[#94A3B8] hover:text-white transition-colors"><Phone className="w-5 h-5" /></a>)}
-              {shop.contact_email && (<a href={`mailto:${shop.contact_email}`} className="text-[#94A3B8] hover:text-white transition-colors"><Mail className="w-5 h-5" /></a>)}
-            </div>
           </div>
         </div>
       </footer>
