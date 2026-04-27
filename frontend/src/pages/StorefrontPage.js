@@ -70,7 +70,6 @@ const StorefrontPage = () => {
   const [editMediaTarget, setEditMediaTarget] = useState(null); // 'product' or 'post'
   const isOwner = user?.shop_id === shop?.id;
   const [expandedCategories, setExpandedCategories] = useState({});
-  const [bannerIndex, setBannerIndex] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileExpandedCat, setMobileExpandedCat] = useState(null);
 
@@ -140,16 +139,6 @@ const StorefrontPage = () => {
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, [slug, loading]);
-
-  // Auto-slide banner
-  useEffect(() => {
-    const banners = shop?.banners || [];
-    if (banners.length <= 1 || !shop?.banner_enabled) return;
-    const interval = setInterval(() => {
-      setBannerIndex(prev => (prev + 1) % banners.length);
-    }, 4000);
-    return () => clearInterval(interval);
-  }, [shop]);
 
   // Auto-open product/checkout from query param
   useEffect(() => {
@@ -279,7 +268,6 @@ const StorefrontPage = () => {
 
   const layoutSections = (() => {
     const defaults = [
-      { id: 'banner', enabled: true },
       { id: 'categories', enabled: true },
       { id: 'blog', enabled: true },
       { id: 'featured', enabled: true },
@@ -288,26 +276,15 @@ const StorefrontPage = () => {
     ];
     const existing = shop?.layout_sections?.length ? [...shop.layout_sections] : null;
     if (!existing) return defaults;
+    // Filter out deprecated sections (banner, custom:*)
+    const filtered = existing.filter(s => s.id !== 'banner' && !(typeof s.id === 'string' && s.id.startsWith('custom:')));
     // Auto-inject 'services' before 'products' if missing (backward compat)
-    if (!existing.some(s => s.id === 'services')) {
-      const prodIdx = existing.findIndex(s => s.id === 'products');
-      const insertAt = prodIdx >= 0 ? prodIdx : existing.length;
-      existing.splice(insertAt, 0, { id: 'services', enabled: true });
+    if (!filtered.some(s => s.id === 'services')) {
+      const prodIdx = filtered.findIndex(s => s.id === 'products');
+      const insertAt = prodIdx >= 0 ? prodIdx : filtered.length;
+      filtered.splice(insertAt, 0, { id: 'services', enabled: true });
     }
-    // Auto-append any custom sections not yet in layout
-    (shop?.custom_sections || []).forEach(cs => {
-      if (!existing.some(s => s.id === `custom:${cs.id}`)) {
-        existing.push({ id: `custom:${cs.id}`, enabled: cs.enabled !== false });
-      }
-    });
-    return existing;
-  })();
-
-  // Index custom sections by id for quick lookup when rendering
-  const customSectionsById = (() => {
-    const map = {};
-    (shop?.custom_sections || []).forEach(cs => { map[cs.id] = cs; });
-    return map;
+    return filtered;
   })();
 
   const isSectionEnabled = (id) => {
@@ -390,8 +367,6 @@ const StorefrontPage = () => {
             </div>
           </div>
         </header>
-        {/* Skeleton Banner */}
-        <div className="h-48 sm:h-72 bg-[#E2E8F0] animate-pulse" />
         {/* Skeleton Products */}
         <div className="max-w-7xl lg:max-w-[65vw] mx-auto px-4 py-8">
           <div className="h-7 w-40 bg-[#E2E8F0] rounded animate-pulse mb-6" />
@@ -420,41 +395,6 @@ const StorefrontPage = () => {
       </div>
     );
   }
-
-  // Banner Slider Component
-  const BannerSlider = () => {
-    const banners = shop?.banners || [];
-    if (!banners.length || !shop?.banner_enabled) return null;
-    return (
-      <div className="mb-8" data-testid="banner-slider">
-        <div className="relative w-full overflow-hidden rounded-[5px]">
-          <div className="relative aspect-[3/1] bg-[#F8FAFC]">
-            {banners.map((url, idx) => (
-              <img key={idx} src={url} alt="" className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ${idx === bannerIndex ? 'opacity-100' : 'opacity-0'}`} />
-            ))}
-          </div>
-          {banners.length > 1 && (
-            <>
-              <button onClick={() => setBannerIndex((bannerIndex - 1 + banners.length) % banners.length)}
-                className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/30 hover:bg-black/50 text-white rounded-full flex items-center justify-center transition-colors" data-testid="banner-prev">
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <button onClick={() => setBannerIndex((bannerIndex + 1) % banners.length)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/30 hover:bg-black/50 text-white rounded-full flex items-center justify-center transition-colors" data-testid="banner-next">
-                <ChevronRight className="w-4 h-4" />
-              </button>
-              <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5">
-                {banners.map((_, idx) => (
-                  <button key={idx} onClick={() => setBannerIndex(idx)}
-                    className={`w-2 h-2 rounded-full transition-all ${idx === bannerIndex ? 'bg-white w-4' : 'bg-white/50'}`} />
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-    );
-  };
 
   // Post Grid Component (grid listing like products)
   const PostCarousel = () => {
@@ -712,78 +652,10 @@ const StorefrontPage = () => {
   };
 
   // Custom Section renderer
-  const CustomSectionBlock = ({ sectionKey }) => {
-    const cs = customSectionsById[sectionKey];
-    if (!cs) return null;
-    if (cs.enabled === false) return null;
-    const hasContent = (cs.content || '').replace(/<[^>]+>/g, '').trim().length > 0;
-    const videoEmbed = getYouTubeEmbed(cs.video_url);
-    if (!cs.title && !cs.image_url && !hasContent && !videoEmbed) return null;
-
-    // Heading size by level (H1 > H2 > H3)
-    const levelCls = {
-      h1: 'text-3xl sm:text-4xl md:text-5xl',
-      h2: 'text-2xl sm:text-3xl',
-      h3: 'text-xl sm:text-2xl',
-    }[cs.title_level || 'h2'];
-    const alignCls = {
-      left: 'text-left',
-      center: 'text-center',
-      right: 'text-right',
-    }[cs.title_align || 'left'];
-    const Heading = cs.title_level === 'h1' ? 'h1' : cs.title_level === 'h3' ? 'h3' : 'h2';
-
-    const elementOrder = Array.isArray(cs.element_order) && cs.element_order.length
-      ? cs.element_order.filter(x => ['title', 'image', 'video', 'content'].includes(x))
-      : ['title', 'image', 'video', 'content'];
-
-    const renderEl = (el) => {
-      if (el === 'title' && cs.title) {
-        return <Heading key="title" className={`${levelCls} ${alignCls} font-bold text-[#0F172A] mb-4`}>{cs.title}</Heading>;
-      }
-      if (el === 'image' && cs.image_url) {
-        return (
-          <div key="image" className="w-full aspect-[16/6] bg-[#F8FAFC] overflow-hidden rounded-[10px] border border-[#E2E8F0] mb-4">
-            <img src={cs.image_url} alt={cs.title || ''} loading="lazy" className="w-full h-full object-cover" />
-          </div>
-        );
-      }
-      if (el === 'video' && videoEmbed) {
-        return (
-          <div key="video" className="w-full aspect-video rounded-[10px] overflow-hidden border border-[#E2E8F0] mb-4 bg-black">
-            <iframe src={videoEmbed} title={cs.title || 'Video'} loading="lazy"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen
-              className="w-full h-full" />
-          </div>
-        );
-      }
-      if (el === 'content' && hasContent) {
-        return (
-          <div key="content"
-            className="mb-4 text-sm sm:text-base text-[#334155] leading-relaxed prose prose-sm max-w-none break-words [&_img]:max-w-full [&_ol]:list-decimal [&_ol]:pl-6 [&_ul]:list-disc [&_ul]:pl-6 [&_a]:text-[#0055FF] [&_a]:underline"
-            dangerouslySetInnerHTML={{ __html: cs.content }}
-          />
-        );
-      }
-      return null;
-    };
-
-    return (
-      <section className="mb-10" data-testid={`custom-section-${cs.id}`}>
-        {elementOrder.map(renderEl)}
-      </section>
-    );
-  };
-
   // Section renderer based on layout order
   const renderSection = (section) => {
     if (!section.enabled) return null;
-    if (typeof section.id === 'string' && section.id.startsWith('custom:')) {
-      const key = section.id.replace('custom:', '');
-      return <CustomSectionBlock key={section.id} sectionKey={key} />;
-    }
     switch (section.id) {
-      case 'banner': return <BannerSlider key="banner" />;
       case 'categories': return <CategoryGrid key="categories" />;
       case 'blog': return <PostCarousel key="blog" />;
       case 'featured': return <FeaturedProducts key="featured" />;

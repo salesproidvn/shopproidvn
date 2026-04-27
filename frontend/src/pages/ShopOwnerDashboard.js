@@ -17,7 +17,7 @@ import {
   LogOut, Menu, X, Plus, Pencil, Trash2, TrendingUp, Clock, Eye, Palette, Upload, ExternalLink,
   Bold, Italic, List, ChevronUp, ChevronDown, Play, FileText, Image, Calendar, Search, LayoutGrid, GripVertical,
   Globe, Navigation, Link2, Video, Type, ArrowUp, ArrowDown, EyeOff, Copy, Grid3X3,
-  Bell, BellOff, Smartphone, Download, Mail, Loader2, Check, Ticket, Users, Lock, Phone,
+  Bell, BellOff, Smartphone, Download, Mail, Loader2, Check, Ticket, Users, Lock, Phone, User,
   AlignLeft, AlignCenter, AlignRight, ChevronLeft, ChevronRight,
   Facebook, Instagram, ShoppingBag
 } from 'lucide-react';
@@ -131,30 +131,6 @@ function Pagination({ page, totalPages, onPageChange, themeColor, testIdPrefix =
   );
 }
 
-function SortableElementRow({ elKey, themeColor }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: elKey });
-  const style = { transform: CSS.Transform.toString(transform), transition, zIndex: isDragging ? 50 : 'auto', opacity: isDragging ? 0.85 : 1 };
-  const meta = {
-    title: { label: 'Tiêu đề', Icon: Type },
-    image: { label: 'Ảnh minh họa', Icon: Image },
-    video: { label: 'Video YouTube', Icon: Play },
-    content: { label: 'Nội dung (rich text)', Icon: FileText },
-  }[elKey] || { label: elKey, Icon: Package };
-  const { Icon } = meta;
-  return (
-    <div ref={setNodeRef} style={style}
-      className={`flex items-center gap-2 p-2.5 rounded-[5px] bg-white border border-[#E2E8F0] ${isDragging ? 'shadow-lg ring-2 ring-blue-300' : ''}`}
-      data-testid={`element-row-${elKey}`}>
-      <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing touch-none">
-        <GripVertical className="w-4 h-4 text-[#94A3B8]" />
-      </div>
-      <div className="w-7 h-7 rounded-[5px] flex items-center justify-center flex-shrink-0" style={{ backgroundColor: themeColor + '15' }}>
-        <Icon className="w-3.5 h-3.5" style={{ color: themeColor }} />
-      </div>
-      <span className="text-sm text-[#0F172A] font-medium">{meta.label}</span>
-    </div>
-  );
-}
 
 function SortableCategoryItem({ cat, idx, themeColor, parentName }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: cat.id });
@@ -222,7 +198,6 @@ const ShopOwnerDashboard = () => {
   const [postForm, setPostForm] = useState({ title: '', description: '', thumbnail: '', images: [], attached_products: [] });
   const postFileInputRef = useRef(null);
   const postImagesInputRef = useRef(null);
-  const bannerInputRef = useRef(null);
 
   const [dashProductSearch, setDashProductSearch] = useState('');
   const [dashProductCategory, setDashProductCategory] = useState('all');
@@ -784,39 +759,6 @@ const ShopOwnerDashboard = () => {
 
   const quillModules = { toolbar: [[{ size: ['small', false, 'large', 'huge'] }], ['bold', 'italic', 'underline'], [{ list: 'ordered' }, { list: 'bullet' }], ['link'], ['clean']] };
 
-  const handleBannerUpload = async (e) => {
-    const files = Array.from(e.target.files || []);
-    if (!files.length) return;
-    const currentBanners = shopForm.banners || [];
-    const remaining = 8 - currentBanners.length;
-    if (remaining <= 0) { toast.error(t.bannerMaxReached); return; }
-    const toUpload = files.slice(0, remaining);
-    if (files.length > remaining) toast.info(`Chỉ upload ${remaining} ảnh (tối đa 8)`);
-    try {
-      const uploaded = [];
-      for (const file of toUpload) {
-        const formData = new FormData();
-        formData.append('file', file);
-        const { data } = await axios.post(`${API}/upload/image`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
-        uploaded.push(data.url || `${API}/files/${data.id}`);
-      }
-      const newBanners = [...currentBanners, ...uploaded];
-      setShopForm({ ...shopForm, banners: newBanners });
-      await axios.put(`${API}/dashboard/shop`, { banners: newBanners });
-      toast.success(`${uploaded.length} banner đã tải lên`);
-    } catch { toast.error(t.uploadFailed); }
-    if (bannerInputRef.current) bannerInputRef.current.value = '';
-  };
-
-  const removeBanner = async (idx) => {
-    const newBanners = (shopForm.banners || []).filter((_, i) => i !== idx);
-    setShopForm({ ...shopForm, banners: newBanners });
-    try {
-      await axios.put(`${API}/dashboard/shop`, { banners: newBanners });
-      toast.success(t.shopUpdated);
-    } catch { toast.error(t.failedToSave); }
-  };
-
   const toggleShopSetting = async (field) => {
     const newVal = !shopForm[field];
     setShopForm({ ...shopForm, [field]: newVal });
@@ -827,7 +769,6 @@ const ShopOwnerDashboard = () => {
   };
 
   const sectionLabels = {
-    banner: t.sectionBanner,
     categories: t.categories,
     blog: t.sectionBlog,
     featured: t.sectionFeatured,
@@ -835,17 +776,7 @@ const ShopOwnerDashboard = () => {
     products: t.sectionProducts,
   };
 
-  // Build labels for custom: sections on-the-fly
-  const buildSectionLabels = () => {
-    const base = { ...sectionLabels };
-    (shopForm.custom_sections || []).forEach(cs => {
-      base[`custom:${cs.id}`] = cs.title || 'Section tùy chỉnh';
-    });
-    return base;
-  };
-
   const sectionIcons = {
-    banner: Image,
     categories: FolderOpen,
     blog: FileText,
     featured: TrendingUp,
@@ -853,36 +784,25 @@ const ShopOwnerDashboard = () => {
     products: Package,
   };
 
-  const VALID_SECTION_IDS = ['banner', 'categories', 'blog', 'featured', 'services', 'products'];
-  const customSections = shopForm.custom_sections || [];
-  const isCustomSectionId = (id) => typeof id === 'string' && id.startsWith('custom:');
+  const VALID_SECTION_IDS = ['categories', 'blog', 'featured', 'services', 'products'];
 
   const getLayoutSections = () => {
     const sections = shopForm.layout_sections;
-    const customItems = customSections.map(cs => ({ id: `custom:${cs.id}`, label: cs.title || 'Section tùy chỉnh', enabled: cs.enabled !== false }));
     if (sections && sections.length > 0) {
-      // Filter invalid + append 'services' if missing (migrate existing shops)
-      const valid = sections.filter(s => VALID_SECTION_IDS.includes(s.id) || isCustomSectionId(s.id));
+      const valid = sections.filter(s => VALID_SECTION_IDS.includes(s.id));
       if (!valid.some(s => s.id === 'services')) {
         const prodIdx = valid.findIndex(s => s.id === 'products');
         const insertAt = prodIdx >= 0 ? prodIdx : valid.length;
         valid.splice(insertAt, 0, { id: 'services', label: 'Dịch vụ', enabled: true });
       }
-      // Append newly-created custom sections that aren't in layout yet
-      customItems.forEach(ci => {
-        if (!valid.some(v => v.id === ci.id)) valid.push(ci);
-      });
-      // Drop stale custom: entries whose source was deleted
-      return valid.filter(s => !isCustomSectionId(s.id) || customItems.some(c => c.id === s.id));
+      return valid;
     }
     return [
-      { id: 'banner', label: 'Banner', enabled: true },
       { id: 'categories', label: 'Categories', enabled: true },
       { id: 'blog', label: 'Blog', enabled: true },
       { id: 'featured', label: 'Featured Products', enabled: true },
       { id: 'services', label: 'Dịch vụ', enabled: true },
       { id: 'products', label: 'Products', enabled: true },
-      ...customItems,
     ];
   };
 
@@ -901,18 +821,9 @@ const ShopOwnerDashboard = () => {
   const toggleSection = async (idx) => {
     const sections = [...getLayoutSections()];
     sections[idx] = { ...sections[idx], enabled: !sections[idx].enabled };
-    const patch = { layout_sections: sections };
-    // If toggling a custom section, also sync enabled flag in custom_sections
-    if (isCustomSectionId(sections[idx].id)) {
-      const csId = sections[idx].id.replace('custom:', '');
-      const updatedCs = (shopForm.custom_sections || []).map(cs => cs.id === csId ? { ...cs, enabled: sections[idx].enabled } : cs);
-      patch.custom_sections = updatedCs;
-      setShopForm({ ...shopForm, layout_sections: sections, custom_sections: updatedCs });
-    } else {
-      setShopForm({ ...shopForm, layout_sections: sections });
-    }
+    setShopForm({ ...shopForm, layout_sections: sections });
     try {
-      await axios.put(`${API}/dashboard/shop`, patch);
+      await axios.put(`${API}/dashboard/shop`, { layout_sections: sections });
       toast.success(t.shopUpdated);
     } catch { toast.error(t.failedToSave); }
   };
@@ -938,88 +849,6 @@ const ShopOwnerDashboard = () => {
     } catch { toast.error(t.failedToSave); }
   };
 
-  // ==================== Custom Sections ====================
-  const [showCustomSectionModal, setShowCustomSectionModal] = useState(false);
-  const [editingCustomSection, setEditingCustomSection] = useState(null);
-  const [customSectionForm, setCustomSectionForm] = useState({ title: '', image_url: '', content: '', video_url: '', title_level: 'h2', title_align: 'left', element_order: ['title', 'image', 'video', 'content'] });
-
-  const openCreateCustomSection = () => {
-    if ((shopForm.custom_sections || []).length >= 5) {
-      toast.error('Đã đạt giới hạn tối đa 5 section tùy chỉnh');
-      return;
-    }
-    setEditingCustomSection(null);
-    setCustomSectionForm({ title: '', image_url: '', content: '', video_url: '', title_level: 'h2', title_align: 'left', element_order: ['title', 'image', 'video', 'content'] });
-    setShowCustomSectionModal(true);
-  };
-
-  const openEditCustomSection = (cs) => {
-    setEditingCustomSection(cs);
-    setCustomSectionForm({
-      title: cs.title || '',
-      image_url: cs.image_url || '',
-      content: cs.content || '',
-      video_url: cs.video_url || '',
-      title_level: cs.title_level || 'h2',
-      title_align: cs.title_align || 'left',
-      element_order: Array.isArray(cs.element_order) && cs.element_order.length
-        ? cs.element_order.filter(x => ['title', 'image', 'video', 'content'].includes(x))
-        : ['title', 'image', 'video', 'content'],
-    });
-    setShowCustomSectionModal(true);
-  };
-
-  const handleSaveCustomSection = async (e) => {
-    e?.preventDefault?.();
-    if (!customSectionForm.title.trim()) { toast.error('Vui lòng nhập tiêu đề'); return; }
-    if (countWords(customSectionForm.content) > 1000) { toast.error(t.maxWordsReached || 'Nội dung vượt quá 1000 từ'); return; }
-    const current = shopForm.custom_sections || [];
-    const payloadExtras = {
-      title_level: customSectionForm.title_level || 'h2',
-      title_align: customSectionForm.title_align || 'left',
-      video_url: (customSectionForm.video_url || '').trim(),
-      element_order: customSectionForm.element_order || ['title', 'image', 'video', 'content'],
-    };
-    let next;
-    let newSectionId = null;
-    if (editingCustomSection) {
-      next = current.map(cs => cs.id === editingCustomSection.id ? { ...cs, title: customSectionForm.title.trim(), image_url: customSectionForm.image_url, content: customSectionForm.content, ...payloadExtras } : cs);
-    } else {
-      newSectionId = `cs-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
-      next = [...current, { id: newSectionId, title: customSectionForm.title.trim(), image_url: customSectionForm.image_url, content: customSectionForm.content, enabled: true, ...payloadExtras }];
-    }
-    // Also append to layout_sections if it's a new one and not already listed
-    let nextLayout = shopForm.layout_sections ? [...shopForm.layout_sections] : [...getLayoutSections()];
-    if (newSectionId && !nextLayout.some(s => s.id === `custom:${newSectionId}`)) {
-      nextLayout.push({ id: `custom:${newSectionId}`, label: customSectionForm.title.trim(), enabled: true });
-    }
-    try {
-      await axios.put(`${API}/dashboard/shop`, { custom_sections: next, layout_sections: nextLayout });
-      setShopForm({ ...shopForm, custom_sections: next, layout_sections: nextLayout });
-      toast.success(editingCustomSection ? 'Đã cập nhật section' : 'Đã tạo section');
-      setShowCustomSectionModal(false);
-    } catch (err) {
-      toast.error(err.response?.data?.detail || t.failedToSave);
-    }
-  };
-
-  const [customSectionToDelete, setCustomSectionToDelete] = useState(null);
-  const handleDeleteCustomSection = async (cs) => {
-    const target = cs || customSectionToDelete;
-    if (!target) return;
-    const nextCs = (shopForm.custom_sections || []).filter(x => x.id !== target.id);
-    const nextLayout = getLayoutSections().filter(s => s.id !== `custom:${target.id}`);
-    try {
-      await axios.put(`${API}/dashboard/shop`, { custom_sections: nextCs, layout_sections: nextLayout });
-      setShopForm({ ...shopForm, custom_sections: nextCs, layout_sections: nextLayout });
-      toast.success('Đã xóa section');
-    } catch (err) {
-      toast.error(err.response?.data?.detail || t.failedToSave);
-    } finally {
-      setCustomSectionToDelete(null);
-    }
-  };
-
   const menuItems = [
     { id: 'overview', label: t.overview, icon: LayoutDashboard },
     { id: 'products', label: t.products, icon: Package },
@@ -1029,6 +858,7 @@ const ShopOwnerDashboard = () => {
     { id: 'media', label: t.mediaLibrary || 'Thư viện ảnh', icon: Image },
     { id: 'megamenu', label: t.megaMenu || 'Mega Menu', icon: Grid3X3 },
     { id: 'layout', label: t.displayLayout, icon: LayoutGrid },
+    { id: 'profile', label: t.shopProfile || 'Hồ sơ shop', icon: User },
     { id: 'settings', label: t.settings, icon: Settings },
   ];
 
@@ -1189,6 +1019,7 @@ const ShopOwnerDashboard = () => {
                   {activeTab === 'media' && (t.mediaLibrary || 'Thư viện ảnh')}
                   {activeTab === 'megamenu' && (t.megaMenu || 'Mega Menu')}
                   {activeTab === 'layout' && t.displayLayout}
+                  {activeTab === 'profile' && (t.shopProfile || 'Hồ sơ shop')}
                   {activeTab === 'settings' && t.settings}
                 </h1>
                 <p className="text-sm text-[#64748B] mt-1">{t.welcomeBack}, {user?.name}</p>
@@ -1962,15 +1793,11 @@ const ShopOwnerDashboard = () => {
                           <SortableLayoutItem
                             key={section.id}
                             section={section}
-                            sectionLabels={buildSectionLabels()}
+                            sectionLabels={sectionLabels}
                             sectionIcons={sectionIcons}
                             themeColor={themeColor}
                             onToggle={() => toggleSection(idx)}
-                            onEdit={section.id.startsWith('custom:') ? () => {
-                              const csId = section.id.replace('custom:', '');
-                              const cs = (shopForm.custom_sections || []).find(x => x.id === csId);
-                              if (cs) openEditCustomSection(cs);
-                            } : null}
+                            onEdit={null}
                           />
                         ))}
                       </div>
@@ -1979,106 +1806,6 @@ const ShopOwnerDashboard = () => {
                 </CardContent>
               </Card>
 
-              {/* Custom Sections Manager */}
-              <Card className="border-0 shadow-sm">
-                <CardHeader className="p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <CardTitle className="text-base flex items-center gap-2">
-                        <LayoutGrid className="w-4 h-4" /> Section tùy chỉnh
-                      </CardTitle>
-                      <p className="text-sm text-[#64748B] mt-1">
-                        Tạo section riêng (tiêu đề + ảnh + nội dung) để hiển thị chen giữa các khối khác ở trang chủ. Tối đa 5 section.
-                      </p>
-                    </div>
-                    <Button
-                      type="button"
-                      onClick={openCreateCustomSection}
-                      disabled={(shopForm.custom_sections || []).length >= 5}
-                      className="text-sm flex-shrink-0"
-                      style={{ backgroundColor: themeColor }}
-                      data-testid="add-custom-section-btn"
-                    >
-                      <Plus className="w-4 h-4 mr-1" /> Thêm section
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent className="p-4 pt-0 space-y-2" data-testid="custom-sections-list">
-                  {(shopForm.custom_sections || []).length === 0 ? (
-                    <div className="py-8 text-center text-sm text-[#94A3B8] border border-dashed border-[#E2E8F0] rounded-[5px]">
-                      Chưa có section tùy chỉnh nào. Nhấn "Thêm section" để tạo mới.
-                    </div>
-                  ) : (
-                    (shopForm.custom_sections || []).map((cs) => (
-                      <div
-                        key={cs.id}
-                        className="flex items-center gap-3 p-3 border border-[#E2E8F0] rounded-[5px] bg-white"
-                        data-testid={`custom-section-row-${cs.id}`}
-                      >
-                        <div className="w-12 h-12 rounded-[5px] overflow-hidden bg-[#F8FAFC] flex-shrink-0">
-                          {cs.image_url ? (
-                            <img src={cs.image_url} alt="" className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              <Image className="w-5 h-5 text-[#94A3B8]" />
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm text-[#0F172A] truncate">{cs.title || 'Section tùy chỉnh'}</p>
-                          <p className="text-[11px] text-[#94A3B8]">
-                            {cs.enabled === false ? 'Đã tắt' : 'Đang hiển thị'} · {countWords(cs.content || '')} từ
-                          </p>
-                        </div>
-                        <Button variant="outline" size="sm" className="text-xs" onClick={() => openEditCustomSection(cs)} data-testid={`edit-custom-section-btn-${cs.id}`}>
-                          <Pencil className="w-3.5 h-3.5 mr-1" /> Sửa
-                        </Button>
-                        <Button variant="destructive" size="sm" className="text-xs" onClick={() => setCustomSectionToDelete(cs)} data-testid={`delete-custom-section-btn-${cs.id}`}>
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </Button>
-                      </div>
-                    ))
-                  )}
-                </CardContent>
-              </Card>
-
-              <Card className="border-0 shadow-sm">
-                <CardHeader className="p-4">
-                  <CardTitle className="text-base flex items-center gap-2"><Image className="w-4 h-4" /> {t.bannerSettings}</CardTitle>
-                </CardHeader>
-                <CardContent className="p-4 pt-0 space-y-4">
-                  <div>
-                    <label className="block text-xs font-medium mb-2">{t.banners} ({(shopForm.banners || []).length}/8)</label>
-                    <div className="flex gap-3 flex-wrap">
-                      {(shopForm.banners || []).map((url, idx) => (
-                        <div key={idx} className="relative w-40 h-20 rounded-[5px] overflow-hidden bg-[#F8FAFC] border">
-                          <img src={url} alt="" className="w-full h-full object-cover" />
-                          <button onClick={() => removeBanner(idx)} className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs" data-testid={`layout-remove-banner-${idx}`}>
-                            <X className="w-3 h-3" />
-                          </button>
-                        </div>
-                      ))}
-                      {(shopForm.banners || []).length < 8 && (
-                        <>
-                          <button type="button" onClick={() => openMediaLibrary((urls) => {
-                            const current = shopForm.banners || [];
-                            const newUrls = Array.isArray(urls) ? urls : [urls];
-                            const combined = [...current, ...newUrls].slice(0, 8);
-                            setShopForm({ ...shopForm, banners: combined });
-                            axios.put(`${API}/dashboard/shop`, { banners: combined });
-                            toast.success(`Banner đã cập nhật`);
-                          }, { multiple: true, maxSelect: 8 - (shopForm.banners || []).length })}
-                            className="w-40 h-20 rounded-[5px] border-2 border-dashed border-[#E2E8F0] flex flex-col items-center justify-center gap-1 text-[#94A3B8] hover:border-[#94A3B8] transition-colors"
-                            data-testid="layout-add-banner-btn">
-                            <Image className="w-5 h-5" />
-                            <span className="text-[10px]">{t.addBanner}</span>
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
 
             </div>
           )}
@@ -2390,22 +2117,9 @@ const ShopOwnerDashboard = () => {
               </Card>
               <Card className="border-0 shadow-sm">
                 <CardHeader className="p-4">
-                  <CardTitle className="text-base flex items-center gap-2"><Image className="w-4 h-4" /> {t.bannerSettings}</CardTitle>
+                  <CardTitle className="text-base flex items-center gap-2"><FileText className="w-4 h-4" /> Hiển thị blog</CardTitle>
                 </CardHeader>
-                <CardContent className="p-4 pt-0 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-[#334155]">{t.enableBanner}</span>
-                    <button onClick={() => toggleShopSetting('banner_enabled')}
-                      className={`w-[68px] h-8 rounded-full transition-all relative overflow-hidden ${shopForm.banner_enabled ? '' : 'bg-[#E2E8F0]'}`}
-                      style={shopForm.banner_enabled ? { backgroundColor: themeColor } : {}}
-                      data-testid="toggle-banner">
-                      <span className={`absolute inset-0 flex items-center ${shopForm.banner_enabled ? 'justify-start pl-2.5' : 'justify-end pr-2.5'}`}>
-                        <span className="text-[10px] font-bold text-white tracking-wide select-none">{shopForm.banner_enabled ? 'BẬT' : ''}</span>
-                        <span className="text-[10px] font-bold text-[#94A3B8] tracking-wide select-none">{!shopForm.banner_enabled ? 'TẮT' : ''}</span>
-                      </span>
-                      <span className={`absolute top-[3px] w-[26px] h-[26px] bg-white rounded-full shadow-md transition-transform ${shopForm.banner_enabled ? 'translate-x-[38px]' : 'translate-x-[3px]'}`} />
-                    </button>
-                  </div>
+                <CardContent className="p-4 pt-0">
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-[#334155]">{t.enableBlog}</span>
                     <button onClick={() => toggleShopSetting('blog_enabled')}
@@ -2419,41 +2133,17 @@ const ShopOwnerDashboard = () => {
                       <span className={`absolute top-[3px] w-[26px] h-[26px] bg-white rounded-full shadow-md transition-transform ${shopForm.blog_enabled ? 'translate-x-[38px]' : 'translate-x-[3px]'}`} />
                     </button>
                   </div>
-                  <div>
-                    <label className="block text-xs font-medium mb-2">{t.banners} ({(shopForm.banners || []).length}/8)</label>
-                    <div className="flex gap-3 flex-wrap">
-                      {(shopForm.banners || []).map((url, idx) => (
-                        <div key={idx} className="relative w-40 h-20 rounded-[5px] overflow-hidden bg-[#F8FAFC] border">
-                          <img src={url} alt="" className="w-full h-full object-cover" />
-                          <button onClick={() => removeBanner(idx)} className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs" data-testid={`remove-banner-${idx}`}>
-                            <X className="w-3 h-3" />
-                          </button>
-                        </div>
-                      ))}
-                      {(shopForm.banners || []).length < 8 && (
-                        <>
-                          <button type="button" onClick={() => openMediaLibrary((urls) => {
-                            const current = shopForm.banners || [];
-                            const newUrls = Array.isArray(urls) ? urls : [urls];
-                            const combined = [...current, ...newUrls].slice(0, 8);
-                            setShopForm({ ...shopForm, banners: combined });
-                            axios.put(`${API}/dashboard/shop`, { banners: combined });
-                            toast.success(`Banner đã cập nhật`);
-                          }, { multiple: true, maxSelect: 8 - (shopForm.banners || []).length })}
-                            className="w-40 h-20 rounded-[5px] border-2 border-dashed border-[#E2E8F0] flex flex-col items-center justify-center gap-1 text-[#94A3B8] hover:border-[#94A3B8] transition-colors"
-                            data-testid="add-banner-btn">
-                            <Image className="w-5 h-5" />
-                            <span className="text-[10px]">{t.addBanner}</span>
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </div>
                 </CardContent>
               </Card>
+            </div>
+          )}
+
+          {/* Shop Profile Tab */}
+          {activeTab === 'profile' && shop && (
+            <div className="space-y-6" data-testid="profile-tab">
               <Card className="border-0 shadow-sm">
                 <CardHeader className="p-4">
-                  <CardTitle className="text-base">{t.shopProfile}</CardTitle>
+                  <CardTitle className="text-base">{t.shopProfile || 'Hồ sơ shop'}</CardTitle>
                 </CardHeader>
                 <CardContent className="p-4 pt-0">
                   <form onSubmit={handleSaveShop} className="space-y-4 max-w-2xl">
@@ -2521,8 +2211,6 @@ const ShopOwnerDashboard = () => {
                       <Input value={shopForm.google_map_url || ''} onChange={(e) => setShopForm({ ...shopForm, google_map_url: e.target.value })} className="text-sm" placeholder="https://maps.app.goo.gl/..." data-testid="google-map-url-input" />
                       <p className="text-[10px] text-[#94A3B8] mt-1">Dán link Google Maps để hiện nút Bản đồ chính xác trên storefront</p>
                     </div>
-
-                    {/* Social / Marketplace Links */}
                     <div className="pt-3 border-t border-[#E2E8F0]">
                       <p className="text-sm font-semibold text-[#0F172A] mb-1">Mạng xã hội & Sàn TMĐT</p>
                       <p className="text-[11px] text-[#94A3B8] mb-3">Các link này hiển thị trên trang Liên hệ và footer để khách kết nối với bạn.</p>
@@ -2531,54 +2219,29 @@ const ShopOwnerDashboard = () => {
                           <label className="block text-xs font-medium mb-1 flex items-center gap-1.5">
                             <Facebook className="w-3.5 h-3.5 text-[#1877F2]" /> Facebook
                           </label>
-                          <Input
-                            value={shopForm.social_facebook || ''}
-                            onChange={(e) => setShopForm({ ...shopForm, social_facebook: e.target.value })}
-                            placeholder="https://facebook.com/..."
-                            className="text-sm"
-                            data-testid="shop-social-facebook"
-                          />
+                          <Input value={shopForm.social_facebook || ''} onChange={(e) => setShopForm({ ...shopForm, social_facebook: e.target.value })} placeholder="https://facebook.com/..." className="text-sm" data-testid="shop-social-facebook" />
                         </div>
                         <div>
                           <label className="block text-xs font-medium mb-1 flex items-center gap-1.5">
                             <span className="inline-block w-3.5 h-3.5 bg-black rounded-sm flex items-center justify-center text-white text-[8px] font-bold">T</span>
                             TikTok
                           </label>
-                          <Input
-                            value={shopForm.social_tiktok || ''}
-                            onChange={(e) => setShopForm({ ...shopForm, social_tiktok: e.target.value })}
-                            placeholder="https://tiktok.com/@..."
-                            className="text-sm"
-                            data-testid="shop-social-tiktok"
-                          />
+                          <Input value={shopForm.social_tiktok || ''} onChange={(e) => setShopForm({ ...shopForm, social_tiktok: e.target.value })} placeholder="https://tiktok.com/@..." className="text-sm" data-testid="shop-social-tiktok" />
                         </div>
                         <div>
                           <label className="block text-xs font-medium mb-1 flex items-center gap-1.5">
                             <Instagram className="w-3.5 h-3.5 text-[#E4405F]" /> Instagram
                           </label>
-                          <Input
-                            value={shopForm.social_instagram || ''}
-                            onChange={(e) => setShopForm({ ...shopForm, social_instagram: e.target.value })}
-                            placeholder="https://instagram.com/..."
-                            className="text-sm"
-                            data-testid="shop-social-instagram"
-                          />
+                          <Input value={shopForm.social_instagram || ''} onChange={(e) => setShopForm({ ...shopForm, social_instagram: e.target.value })} placeholder="https://instagram.com/..." className="text-sm" data-testid="shop-social-instagram" />
                         </div>
                         <div>
                           <label className="block text-xs font-medium mb-1 flex items-center gap-1.5">
                             <ShoppingBag className="w-3.5 h-3.5 text-[#EE4D2D]" /> Shopee
                           </label>
-                          <Input
-                            value={shopForm.social_shopee || ''}
-                            onChange={(e) => setShopForm({ ...shopForm, social_shopee: e.target.value })}
-                            placeholder="https://shopee.vn/shop..."
-                            className="text-sm"
-                            data-testid="shop-social-shopee"
-                          />
+                          <Input value={shopForm.social_shopee || ''} onChange={(e) => setShopForm({ ...shopForm, social_shopee: e.target.value })} placeholder="https://shopee.vn/shop..." className="text-sm" data-testid="shop-social-shopee" />
                         </div>
                       </div>
                     </div>
-
                     <Button type="submit" style={{ backgroundColor: themeColor }} className="hover:opacity-90 text-sm" data-testid="save-shop-btn">
                       {t.saveChanges}
                     </Button>
@@ -2591,163 +2254,6 @@ const ShopOwnerDashboard = () => {
       </main>
 
 
-      {/* Custom Section Modal */}
-      <Dialog open={showCustomSectionModal} onOpenChange={setShowCustomSectionModal}>
-        <DialogContent className="sm:max-w-2xl bg-white max-h-[90vh] overflow-y-auto" data-testid="custom-section-modal">
-          <DialogHeader>
-            <DialogTitle className="text-lg">{editingCustomSection ? 'Sửa section tùy chỉnh' : 'Tạo section tùy chỉnh'}</DialogTitle>
-            <DialogDescription className="text-sm">Section sẽ hiển thị trên trang chủ ở vị trí bạn sắp xếp trong danh sách bố cục.</DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleSaveCustomSection} className="space-y-4">
-            <div>
-              <label className="block text-xs font-medium mb-1">Tiêu đề section *</label>
-              <Input
-                value={customSectionForm.title}
-                onChange={(e) => setCustomSectionForm({ ...customSectionForm, title: e.target.value })}
-                required
-                maxLength={200}
-                placeholder="VD: Câu chuyện thương hiệu"
-                className="text-sm"
-                data-testid="custom-section-title-input"
-              />
-            </div>
-            {/* Title level + alignment */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-medium mb-2">Cấp tiêu đề</label>
-                <div className="flex gap-1" data-testid="custom-section-title-level">
-                  {[
-                    { k: 'h1', label: 'H1', cls: 'text-xl' },
-                    { k: 'h2', label: 'H2', cls: 'text-lg' },
-                    { k: 'h3', label: 'H3', cls: 'text-base' },
-                  ].map(opt => {
-                    const sel = customSectionForm.title_level === opt.k;
-                    return (
-                      <button key={opt.k} type="button"
-                        onClick={() => setCustomSectionForm({ ...customSectionForm, title_level: opt.k })}
-                        className={`flex-1 py-2 px-1 rounded-[5px] border font-semibold transition-colors ${opt.cls} ${sel ? 'text-white border-transparent' : 'bg-white border-[#E2E8F0] text-[#475569] hover:bg-[#F8FAFC]'}`}
-                        style={sel ? { backgroundColor: themeColor } : {}}
-                        data-testid={`title-level-${opt.k}`}>
-                        {opt.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-medium mb-2">Căn lề tiêu đề</label>
-                <div className="flex gap-1" data-testid="custom-section-title-align">
-                  {[
-                    { k: 'left', label: 'Trái', Icon: AlignLeft },
-                    { k: 'center', label: 'Giữa', Icon: AlignCenter },
-                    { k: 'right', label: 'Phải', Icon: AlignRight },
-                  ].map(({ k, label, Icon }) => {
-                    const sel = customSectionForm.title_align === k;
-                    return (
-                      <button key={k} type="button"
-                        onClick={() => setCustomSectionForm({ ...customSectionForm, title_align: k })}
-                        className={`flex-1 py-2 rounded-[5px] border text-xs font-medium transition-colors flex items-center justify-center gap-1 ${sel ? 'text-white border-transparent' : 'bg-white border-[#E2E8F0] text-[#475569] hover:bg-[#F8FAFC]'}`}
-                        style={sel ? { backgroundColor: themeColor } : {}}
-                        data-testid={`title-align-${k}`}>
-                        <Icon className="w-3.5 h-3.5" /> <span className="text-[11px]">{label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-            <div>
-              <label className="block text-xs font-medium mb-2">Ảnh minh hoạ (tùy chọn)</label>
-              {customSectionForm.image_url ? (
-                <div className="relative w-40 h-28 rounded-[5px] overflow-hidden bg-[#F8FAFC] border border-[#E2E8F0] mb-2">
-                  <img src={customSectionForm.image_url} alt="" className="w-full h-full object-cover" />
-                  <button
-                    type="button"
-                    onClick={() => setCustomSectionForm({ ...customSectionForm, image_url: '' })}
-                    className="absolute top-1 right-1 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center"
-                    data-testid="custom-section-remove-image"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </div>
-              ) : null}
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="text-xs"
-                onClick={() => openMediaLibrary((url) => setCustomSectionForm((prev) => ({ ...prev, image_url: Array.isArray(url) ? url[0] : url })), { multiple: false, maxSelect: 1 })}
-                data-testid="custom-section-pick-image"
-              >
-                <Image className="w-3.5 h-3.5 mr-1" /> {customSectionForm.image_url ? 'Đổi ảnh' : 'Chọn ảnh'}
-              </Button>
-            </div>
-            {/* Video URL (YouTube) */}
-            <div>
-              <label className="block text-xs font-medium mb-1 flex items-center gap-1.5">
-                <Play className="w-3.5 h-3.5 text-red-500" /> YouTube Video URL <span className="text-[#94A3B8] font-normal">(tùy chọn)</span>
-              </label>
-              <Input
-                value={customSectionForm.video_url || ''}
-                onChange={(e) => setCustomSectionForm({ ...customSectionForm, video_url: e.target.value })}
-                placeholder="https://youtube.com/watch?v=..."
-                maxLength={500}
-                className="text-sm"
-                data-testid="custom-section-video-input"
-              />
-              <p className="text-[10px] text-[#94A3B8] mt-1">Hỗ trợ URL youtube.com/watch, youtu.be hoặc youtube.com/embed.</p>
-            </div>
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="block text-xs font-medium">Nội dung</label>
-                <span className={`text-[10px] ${countWords(customSectionForm.content) > 1000 ? 'text-red-500 font-bold' : 'text-[#94A3B8]'}`}>
-                  {countWords(customSectionForm.content)}/1000 {t.wordCount || 'từ'}
-                </span>
-              </div>
-              <ReactQuill
-                theme="snow"
-                value={customSectionForm.content}
-                onChange={(val) => setCustomSectionForm({ ...customSectionForm, content: val })}
-                modules={quillModulesProduct}
-                className="bg-white [&_.ql-container]:min-h-[160px]"
-                data-testid="custom-section-content-input"
-              />
-            </div>
-
-            {/* Drag & drop element order */}
-            <div>
-              <label className="block text-xs font-medium mb-2">Thứ tự hiển thị các thành phần</label>
-              <p className="text-[11px] text-[#94A3B8] mb-2">Kéo để sắp xếp — ẩn thành phần bằng cách để trống dữ liệu tương ứng.</p>
-              <DndContext
-                sensors={dndSensors}
-                collisionDetection={closestCenter}
-                onDragEnd={(event) => {
-                  const { active, over } = event;
-                  if (!over || active.id === over.id) return;
-                  const order = customSectionForm.element_order || ['title', 'image', 'video', 'content'];
-                  const oldIdx = order.indexOf(active.id);
-                  const newIdx = order.indexOf(over.id);
-                  if (oldIdx < 0 || newIdx < 0) return;
-                  const next = arrayMove(order, oldIdx, newIdx);
-                  setCustomSectionForm({ ...customSectionForm, element_order: next });
-                }}>
-                <SortableContext items={customSectionForm.element_order || ['title', 'image', 'video', 'content']} strategy={verticalListSortingStrategy}>
-                  <div className="space-y-1.5" data-testid="custom-section-element-order">
-                    {(customSectionForm.element_order || ['title', 'image', 'video', 'content']).map((elKey) => (
-                      <SortableElementRow key={elKey} elKey={elKey} themeColor={themeColor} />
-                    ))}
-                  </div>
-                </SortableContext>
-              </DndContext>
-            </div>
-
-            <div className="flex gap-3 pt-2">
-              <Button type="button" variant="outline" className="flex-1 text-sm" onClick={() => setShowCustomSectionModal(false)}>{t.cancel}</Button>
-              <Button type="submit" className="flex-1 hover:opacity-90 text-sm text-white" style={{ backgroundColor: themeColor }} data-testid="save-custom-section-btn">{t.save}</Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
 
       {/* Category Delete Confirmation */}
       <Dialog open={!!categoryToDelete} onOpenChange={(o) => !o && setCategoryToDelete(null)}>
@@ -2785,22 +2291,6 @@ const ShopOwnerDashboard = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Custom Section Delete Confirmation */}
-      <Dialog open={!!customSectionToDelete} onOpenChange={(o) => !o && setCustomSectionToDelete(null)}>        <DialogContent className="sm:max-w-sm bg-white" data-testid="delete-custom-section-dialog">
-          <DialogHeader>
-            <DialogTitle className="text-base">Xóa section?</DialogTitle>
-            <DialogDescription className="text-sm text-[#475569]">
-              Section <strong className="text-[#0F172A]">"{customSectionToDelete?.title}"</strong> sẽ bị xóa khỏi cả danh sách bố cục và trang chủ. Hành động này không thể hoàn tác.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex gap-3 pt-2">
-            <Button type="button" variant="outline" className="flex-1 text-sm" onClick={() => setCustomSectionToDelete(null)} data-testid="delete-custom-section-cancel">{t.cancel}</Button>
-            <Button type="button" variant="destructive" className="flex-1 text-sm" onClick={() => handleDeleteCustomSection()} data-testid="delete-custom-section-confirm">
-              <Trash2 className="w-3.5 h-3.5 mr-1" /> Xóa
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
 
 
       {/* Category Modal */}

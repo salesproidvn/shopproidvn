@@ -1030,7 +1030,7 @@ async def create_shop_owner(data: ShopOwnerCreate, request: Request):
     slug = generate_shop_slug(data.shop_name)
     if await db.shops.find_one({"slug": slug}):
         slug = f"{slug}-{secrets.token_hex(3)}"
-    shop_doc = {"name": data.shop_name, "slug": slug, "description": "", "logo_url": "", "contact_phone": data.phone or "", "contact_email": email, "address": "", "social_facebook": "", "social_instagram": "", "social_tiktok": "", "social_shopee": "", "theme_color": "#0055FF", "status": "active", "expiry_date": "", "banners": [], "banner_enabled": True, "blog_enabled": True, "layout_sections": [], "mega_menu_categories": [], "custom_pages": [], "post_carousel_position": "top", "max_products": 100, "max_posts": 50, "max_pages": 20, "max_categories": 50, "created_at": datetime.now(timezone.utc)}
+    shop_doc = {"name": data.shop_name, "slug": slug, "description": "", "logo_url": "", "contact_phone": data.phone or "", "contact_email": email, "address": "", "social_facebook": "", "social_instagram": "", "social_tiktok": "", "social_shopee": "", "theme_color": "#0055FF", "status": "active", "expiry_date": "", "blog_enabled": True, "layout_sections": [], "mega_menu_categories": [], "post_carousel_position": "top", "max_products": 100, "max_posts": 50, "max_pages": 20, "max_categories": 50, "created_at": datetime.now(timezone.utc)}
     shop_result = await db.shops.insert_one(shop_doc)
     shop_id = str(shop_result.inserted_id)
     user_doc = {"email": email, "password_hash": hash_password(data.password), "name": data.name, "role": "shop_owner", "shop_id": shop_id, "phone": data.phone or "", "status": "active", "created_at": datetime.now(timezone.utc)}
@@ -1404,7 +1404,6 @@ async def get_shop_details(request: Request):
         "banners": shop.get("banners", []), "banner_enabled": shop.get("banner_enabled", True),
         "blog_enabled": shop.get("blog_enabled", True),
         "layout_sections": shop.get("layout_sections", []),
-        "custom_sections": shop.get("custom_sections", []),
         "post_carousel_position": shop.get("post_carousel_position", "top"),
         "max_products": shop.get("max_products", 100), "max_posts": shop.get("max_posts", 50),
     }
@@ -1427,33 +1426,10 @@ async def update_shop(request: Request):
             body["slug"] = new_slug
         else:
             del body["slug"]
-    # Enforce max 5 custom sections + sanitize rich text content
-    if "custom_sections" in body:
-        sections = body.get("custom_sections") or []
-        if not isinstance(sections, list):
-            raise HTTPException(status_code=400, detail="custom_sections must be a list")
-        if len(sections) > 5:
-            raise HTTPException(status_code=400, detail="Tối đa 5 section tùy chỉnh")
-        clean = []
-        for s in sections:
-            if not isinstance(s, dict):
-                continue
-            content = s.get("content", "") or ""
-            if content:
-                validate_word_limit(content, "Nội dung section")
-                content = sanitize_html(content)
-            clean.append({
-                "id": s.get("id") or f"cs-{secrets.token_hex(6)}",
-                "title": (s.get("title") or "").strip()[:200],
-                "image_url": s.get("image_url", "") or "",
-                "video_url": (s.get("video_url") or "").strip()[:500],
-                "content": content,
-                "enabled": bool(s.get("enabled", True)),
-                "title_level": s.get("title_level") if s.get("title_level") in ("h1", "h2", "h3") else "h2",
-                "title_align": s.get("title_align") if s.get("title_align") in ("left", "center", "right") else "left",
-                "element_order": [x for x in (s.get("element_order") or ["title", "image", "video", "content"]) if x in ("title", "image", "video", "content")] or ["title", "image", "video", "content"],
-            })
-        body["custom_sections"] = clean
+    # Remove banners + custom_sections from updates (deprecated)
+    body.pop("custom_sections", None)
+    body.pop("banners", None)
+    body.pop("banner_enabled", None)
     await db.shops.update_one({"_id": ObjectId(shop_id)}, {"$set": body})
     return {"message": "Shop updated"}
 
@@ -1936,12 +1912,9 @@ async def get_shop_by_slug(slug: str):
         "social_shopee": shop.get("social_shopee", ""),
         "theme_color": shop.get("theme_color", "#0055FF"),
         "custom_domain": shop.get("custom_domain", ""),
-        "banners": shop.get("banners", []), "banner_enabled": shop.get("banner_enabled", True),
         "blog_enabled": shop.get("blog_enabled", True),
         "layout_sections": shop.get("layout_sections", []),
         "mega_menu_categories": shop.get("mega_menu_categories", []),
-        "custom_pages": shop.get("custom_pages", []),
-        "custom_sections": shop.get("custom_sections", []),
         "post_carousel_position": shop.get("post_carousel_position", "top"),
         "max_products": shop.get("max_products", 100), "max_posts": shop.get("max_posts", 50),
         "expiry_date": shop.get("expiry_date", ""),
