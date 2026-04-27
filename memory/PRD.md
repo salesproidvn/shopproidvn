@@ -62,11 +62,14 @@ Multi-tenant e-commerce platform allowing shop owners to create and manage onlin
 - Rebuilt the **mobile mega-menu** as a 2-column grid of main categories (image thumbnail + name). Tapping a category opens `/shop/:slug/category/:id`
 - **Custom homepage sections** (max 5 per shop): shop owner creates simple blocks (title + image + rich text) from the **Bố cục hiển thị** tab. Each custom section appears inside the draggable layout list alongside Banner/Categories/Featured/... with its own BẬT/TẮT toggle + inline Edit pencil, and renders inline on the public storefront at the chosen position.
 
-### Phase 8 - Maintenance Fix + Gated Features (April 24, 2026)
-- **Fixed Super Admin "Bảo trì hệ thống" (System Maintenance) scan**: backend now returns nested `{old_orders: {total, by_shop[], cutoff_date}, orphaned_images: {total, total_size_kb, items[]}}` matching frontend expectations (previously flat `{old_orders_count, orphaned_files_count}` caused UI crash)
-- **Cleanup endpoints** now return `{deleted, freed_kb, message}` and use Vietnamese messages
-- **Manual activation for Agent + Business Card features** (per-shop): new `business_card_enabled` flag on shops, new `PUT /api/admin/shops/{id}/business-card-toggle` endpoint, Super Admin Dashboard gains a "Danh thiếp ON/OFF" toggle beside the existing "Đại lý" toggle
-- Shop Owner Dashboard **hides** Agents / Business Card menu items unless enabled by Super Admin; backend `GET/PUT /api/dashboard/business-card`, `/api/agent/business-card`, and public `/api/card/{slug}` all gate on `business_card_enabled=true`
+### Phase 9 - Feature Removal + Default Storefront Menu (April 27, 2026)
+- **Removed Voucher feature** (UI, backend endpoints, MongoDB collection seed, cart UI). All voucher data permanently deleted from active code paths
+- **Removed Agent/Đại lý feature** (collections: `agents`, `agent_sales`; endpoints `/api/dashboard/agents`, `/api/dashboard/agent-sales`, `/api/admin/shops/{id}/agents-toggle`; AgentDashboard page + tab + referral tracking from cart/booking)
+- **Removed Business Card / Danh thiếp feature** (collection `business_cards`; endpoints `/api/dashboard/business-card`, `/api/agent/business-card`, public `/api/card/{slug}`, OG; BusinessCardPage + tab + Super Admin toggle)
+- **Removed Quản lý Menu** (Menu Manager) feature: storefront menu is now hard-coded to **4 default items** — `Trang chủ` / `Sản phẩm` / `Bài viết` / `Liên hệ`. Mega Menu Manager (separate tab) preserved
+- **Removed Footer Settings** customization. Footer simplified to: shop name + contact phone + address only (centered)
+- **Removed shop fields**: `agents_enabled`, `business_card_enabled`, `max_agents`, `menu_items`, `footer_columns` from API responses (still in DB until natural cleanup)
+- **Bonus**: removed `MenuLinkPicker`, `FooterLinkPicker` components, voucher/agent state hooks, modal dialogs, and ~1100 lines from `ShopOwnerDashboard.js` (4377 → 3303), ~500 lines from `server.py`
 
 ## DB Collections
 users, shops, products (+ type field), categories, orders, bookings (new), posts, pages, vouchers, agents, agent_sales, business_cards, push_subscriptions, password_resets, contacts

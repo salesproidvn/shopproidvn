@@ -51,52 +51,8 @@ const StorefrontPage = () => {
   const [checkoutForm, setCheckoutForm] = useState({
     customer_name: '', customer_phone: '', customer_email: '', customer_address: '', note: ''
   });
-  const [voucherCode, setVoucherCode] = useState('');
-  const [appliedVoucher, setAppliedVoucher] = useState(null);
-  const [voucherLoading, setVoucherLoading] = useState(false);
-  const [voucherError, setVoucherError] = useState('');
 
-  const discountAmount = (() => {
-    if (!appliedVoucher) return 0;
-    const { discount_type, discount_value, applicable_products } = appliedVoucher;
-    // Calculate applicable cart total
-    let applicableTotal = cartTotal;
-    if (applicable_products && applicable_products.length > 0) {
-      applicableTotal = cart.filter(i => applicable_products.includes(i.product_id)).reduce((sum, i) => sum + (i.price * i.quantity), 0);
-    }
-    if (discount_type === 'percentage') return Math.round(applicableTotal * discount_value / 100);
-    return Math.min(discount_value, applicableTotal);
-  })();
-  const finalTotal = Math.max(0, cartTotal - discountAmount);
-
-  const handleApplyVoucher = async () => {
-    if (!voucherCode.trim()) return;
-    setVoucherLoading(true);
-    setVoucherError('');
-    try {
-      const { data } = await axios.post(`${API}/shop/${slug}/voucher/validate`, { code: voucherCode });
-      // Check min order amount
-      if (data.min_order_amount && cartTotal < data.min_order_amount) {
-        setVoucherError(`Đơn hàng tối thiểu ${formatVND(data.min_order_amount)}`);
-        setAppliedVoucher(null);
-        return;
-      }
-      setAppliedVoucher(data);
-      setVoucherError('');
-    } catch (err) {
-      const msg = err.response?.data?.detail || 'Mã không hợp lệ';
-      setVoucherError(msg);
-      setAppliedVoucher(null);
-    } finally {
-      setVoucherLoading(false);
-    }
-  };
-
-  const handleRemoveVoucher = () => {
-    setAppliedVoucher(null);
-    setVoucherCode('');
-    setVoucherError('');
-  };
+  const finalTotal = cartTotal;
 
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [activeImage, setActiveImage] = useState(0);
@@ -295,7 +251,6 @@ const StorefrontPage = () => {
     }
     setBookingSubmitting(true);
     try {
-      const trackingCode = new URLSearchParams(window.location.search).get('ref') || localStorage.getItem(`agent_ref_${slug}`) || null;
       await axios.post(`${API}/shop/${slug}/bookings`, {
         service_id: bookingProduct.id,
         customer_name: bookingForm.customer_name.trim(),
@@ -303,7 +258,6 @@ const StorefrontPage = () => {
         customer_email: bookingForm.customer_email.trim(),
         preferred_datetime: bookingForm.preferred_datetime,
         note: bookingForm.note.trim(),
-        agent_tracking_code: trackingCode,
       });
       toast.success('Đã gửi yêu cầu đặt lịch! Chúng tôi sẽ liên hệ xác nhận sớm.');
       setBookingProduct(null);
@@ -393,18 +347,14 @@ const StorefrontPage = () => {
   const handleCheckout = async (e) => {
     e.preventDefault();
     try {
-      const agentRef = sessionStorage.getItem(`agent_ref_${slug}`) || null;
       const orderData = {
         ...checkoutForm,
         items: cart.map(item => ({ product_id: item.product_id, quantity: item.quantity })),
-        agent_tracking_code: agentRef,
-        voucher_code: appliedVoucher?.code || null,
       };
       const { data } = await axios.post(`${API}/shop/${slug}/orders`, orderData);
       emitNotification({ type: 'new_order', title: t.newOrder, message: `${checkoutForm.customer_name} - ${formatVND(data.total_amount)}`, order_id: data.id, shop_slug: slug });
       clearCart(); setShowCheckout(false); setShowCart(false);
       setCheckoutForm({ customer_name: '', customer_phone: '', customer_email: '', customer_address: '', note: '' });
-      setAppliedVoucher(null); setVoucherCode(''); setVoucherError('');
       navigate(`/shop/${slug}/thank-you`, { state: { order: data } });
     } catch { toast.error(t.orderFailed); }
   };
@@ -910,22 +860,17 @@ const StorefrontPage = () => {
               <span className="font-bold text-base text-[#0F172A]">{shop.name}</span>
             </a>
 
-            {/* Desktop Menu - Dynamic */}
+            {/* Desktop Menu - Default 4 items */}
             <nav className="hidden md:flex items-center gap-1" data-testid="storefront-menu-bar">
-              {(shop.menu_items || []).filter(mi => mi.enabled).sort((a, b) => a.position - b.position).map((mi, idx) => (
-                mi.type === 'scroll_shop' ? (
-                  <Button key={mi.id} variant="ghost" size="sm" className="text-sm" onClick={() => { setSelectedCategory('all'); window.scrollTo({ top: 400, behavior: 'smooth' }); }} data-testid={`menu-item-${idx}`}>
-                    {mi.label}
-                  </Button>
-                ) : mi.type === 'external' ? (
-                  <a key={mi.id} href={mi.url} target="_blank" rel="noopener noreferrer" data-testid={`menu-item-${idx}`}>
-                    <Button variant="ghost" size="sm" className="text-sm">{mi.label}</Button>
-                  </a>
-                ) : (
-                  <Link key={mi.id} to={mi.url} data-testid={`menu-item-${idx}`}>
-                    <Button variant="ghost" size="sm" className="text-sm">{mi.label}</Button>
-                  </Link>
-                )
+              {[
+                { id: 'home', label: t.home || 'Trang chủ', url: `/shop/${slug}` },
+                { id: 'products', label: t.products || 'Sản phẩm', url: `/shop/${slug}/categories` },
+                { id: 'posts', label: t.posts || 'Bài viết', url: `/shop/${slug}/posts` },
+                { id: 'contact', label: t.contact || 'Liên hệ', url: `/shop/${slug}/contact` },
+              ].map((mi, idx) => (
+                <Link key={mi.id} to={mi.url} data-testid={`menu-item-${idx}`}>
+                  <Button variant="ghost" size="sm" className="text-sm">{mi.label}</Button>
+                </Link>
               ))}
             </nav>
 
@@ -978,25 +923,18 @@ const StorefrontPage = () => {
               </button>
             </div>
 
-            {/* Menu Items */}
+            {/* Menu Items - Default 4 */}
             <div className="px-4 py-3 border-b border-[#F1F5F9]">
-              {(shop.menu_items || []).filter(mi => mi.enabled).sort((a, b) => a.position - b.position).map((mi, idx) => (
-                mi.type === 'scroll_shop' ? (
-                  <button key={mi.id} onClick={() => { setMobileMenuOpen(false); setMobileExpandedCat(null); setSelectedCategory('all'); setTimeout(() => document.getElementById('products-section')?.scrollIntoView({ behavior: 'smooth' }), 100); }}
-                    className="w-full py-3 text-sm font-medium text-[#0F172A] text-left" data-testid={`mobile-menu-${idx}`}>
-                    {mi.label}
-                  </button>
-                ) : mi.type === 'external' ? (
-                  <a key={mi.id} href={mi.url} target="_blank" rel="noopener noreferrer" onClick={() => { setMobileMenuOpen(false); setMobileExpandedCat(null); }}
-                    className="block py-3 text-sm font-medium text-[#0F172A]" data-testid={`mobile-menu-${idx}`}>
-                    {mi.label}
-                  </a>
-                ) : (
-                  <Link key={mi.id} to={mi.url} onClick={() => { setMobileMenuOpen(false); setMobileExpandedCat(null); }}
-                    className="block py-3 text-sm font-medium text-[#0F172A]" data-testid={`mobile-menu-${idx}`}>
-                    {mi.label}
-                  </Link>
-                )
+              {[
+                { id: 'home', label: t.home || 'Trang chủ', url: `/shop/${slug}` },
+                { id: 'products', label: t.products || 'Sản phẩm', url: `/shop/${slug}/categories` },
+                { id: 'posts', label: t.posts || 'Bài viết', url: `/shop/${slug}/posts` },
+                { id: 'contact', label: t.contact || 'Liên hệ', url: `/shop/${slug}/contact` },
+              ].map((mi, idx) => (
+                <Link key={mi.id} to={mi.url} onClick={() => { setMobileMenuOpen(false); setMobileExpandedCat(null); }}
+                  className="block py-3 text-sm font-medium text-[#0F172A]" data-testid={`mobile-menu-${idx}`}>
+                  {mi.label}
+                </Link>
               ))}
             </div>
 
@@ -1181,72 +1119,20 @@ const StorefrontPage = () => {
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="bg-[#0F172A] text-white py-12" data-testid="storefront-footer">
-        <div className="max-w-7xl lg:max-w-[65vw] mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Editable footer columns */}
-          {shop.footer_columns && shop.footer_columns.length > 0 ? (
-            <div className={`grid gap-8 ${shop.footer_columns.length === 1 ? 'grid-cols-1' : shop.footer_columns.length === 2 ? 'grid-cols-1 sm:grid-cols-2' : shop.footer_columns.length === 3 ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4'}`}>
-              {shop.footer_columns.map((col, idx) => (
-                <div key={idx} data-testid={`footer-column-${idx}`}>
-                  <h4 className="font-semibold text-base mb-3">{col.title}</h4>
-                  <div className="space-y-1.5 text-[#94A3B8] text-sm">
-                    {(col.items || []).map((item, itemIdx) => (
-                      item.url ? (
-                        item.url.startsWith('http') ? (
-                          <a key={itemIdx} href={item.url} target="_blank" rel="noopener noreferrer"
-                            className="block hover:text-white transition-colors" data-testid={`footer-link-${idx}-${itemIdx}`}>
-                            {item.text}
-                          </a>
-                        ) : (
-                          <Link key={itemIdx} to={item.url}
-                            className="block hover:text-white transition-colors" data-testid={`footer-link-${idx}-${itemIdx}`}>
-                            {item.text}
-                          </Link>
-                        )
-                      ) : (
-                        <p key={itemIdx}>{item.text}</p>
-                      )
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="grid md:grid-cols-2 gap-8">
-              <div>
-                <h3 className="font-bold text-xl mb-4">{shop.name}</h3>
-                {shop.description && <p className="text-[#94A3B8] mb-4">{shop.description}</p>}
-                <div className="flex gap-4">
-                  {shop.social_facebook && (<a href={shop.social_facebook} target="_blank" rel="noopener noreferrer" className="hover:text-[#0055FF]" title="Facebook"><Facebook className="w-6 h-6" /></a>)}
-                  {shop.social_tiktok && (<a href={shop.social_tiktok} target="_blank" rel="noopener noreferrer" className="hover:text-white w-6 h-6 flex items-center justify-center rounded bg-black" title="TikTok"><span className="text-white font-bold text-sm leading-none">T</span></a>)}
-                  {shop.social_instagram && (<a href={shop.social_instagram} target="_blank" rel="noopener noreferrer" className="hover:text-[#E4405F]" title="Instagram"><Instagram className="w-6 h-6" /></a>)}
-                  {shop.social_shopee && (<a href={shop.social_shopee} target="_blank" rel="noopener noreferrer" className="hover:text-[#EE4D2D]" title="Shopee"><ShoppingBag className="w-6 h-6" /></a>)}
-                </div>
-              </div>
-              <div>
-                <h4 className="font-semibold mb-4">{t.contact}</h4>
-                <div className="space-y-2 text-[#94A3B8]">
-                  {shop.contact_phone && <p className="flex items-center gap-2"><Phone className="w-4 h-4" /> {shop.contact_phone}</p>}
-                  {shop.contact_email && <p className="flex items-center gap-2"><Mail className="w-4 h-4" /> {shop.contact_email}</p>}
-                  {shop.address && <p className="flex items-center gap-2"><MapPin className="w-4 h-4" /> {shop.address}</p>}
-                </div>
-              </div>
-            </div>
+      {/* Footer - Simplified: Only shop name, phone, address */}
+      <footer className="bg-[#0F172A] text-white py-8" data-testid="storefront-footer">
+        <div className="max-w-7xl lg:max-w-[65vw] mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-2">
+          <h3 className="font-bold text-lg" data-testid="footer-shop-name">{shop.name}</h3>
+          {shop.contact_phone && (
+            <p className="flex items-center justify-center gap-2 text-sm text-[#94A3B8]" data-testid="footer-shop-phone">
+              <Phone className="w-4 h-4" /> {shop.contact_phone}
+            </p>
           )}
-          {/* Social + Contact row always shown below */}
-          <div className="mt-8 pt-6 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              {shop.logo_url ? (
-                <img src={shop.logo_url} alt={shop.name} className="w-8 h-8 rounded-full object-cover" />
-              ) : (
-                <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: themeColor }}>
-                  <span className="text-white font-bold text-xs">{shop.name[0]}</span>
-                </div>
-              )}
-              <span className="font-semibold text-sm">{shop.name}</span>
-            </div>
-          </div>
+          {shop.address && (
+            <p className="flex items-center justify-center gap-2 text-sm text-[#94A3B8]" data-testid="footer-shop-address">
+              <MapPin className="w-4 h-4" /> {shop.address}
+            </p>
+          )}
         </div>
       </footer>
 
@@ -1434,60 +1320,10 @@ const StorefrontPage = () => {
                     ))}
                   </div>
                   <div className="border-t pt-4 space-y-2">
-                    {/* Voucher Code Input */}
-                    <div className="mb-3">
-                      <label className="text-xs font-medium text-[#334155] mb-1.5 block">{t.voucherCode || 'Mã giảm giá'}</label>
-                      {appliedVoucher ? (
-                        <div className="flex items-center justify-between p-2.5 bg-green-50 border border-green-200 rounded-lg">
-                          <div className="flex items-center gap-2">
-                            <span className="w-5 h-5 bg-green-500 text-white rounded-full flex items-center justify-center text-xs">✓</span>
-                            <div>
-                              <span className="font-mono font-bold text-sm text-green-700">{appliedVoucher.code}</span>
-                              <span className="text-xs text-green-600 ml-2">
-                                -{appliedVoucher.discount_type === 'percentage' ? `${appliedVoucher.discount_value}%` : formatVND(appliedVoucher.discount_value)}
-                              </span>
-                            </div>
-                          </div>
-                          <button onClick={handleRemoveVoucher} className="text-[#94A3B8] hover:text-red-500 transition-colors" data-testid="remove-voucher-btn">
-                            <X className="w-4 h-4" />
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="flex gap-2">
-                          <Input
-                            value={voucherCode}
-                            onChange={(e) => { setVoucherCode(e.target.value.toUpperCase()); setVoucherError(''); }}
-                            placeholder="Nhập mã giảm giá..."
-                            className="text-sm font-mono flex-1"
-                            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleApplyVoucher(); } }}
-                            data-testid="voucher-code-input"
-                          />
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={handleApplyVoucher}
-                            disabled={voucherLoading || !voucherCode.trim()}
-                            className="text-sm px-4 flex-shrink-0"
-                            style={{ borderColor: themeColor, color: themeColor }}
-                            data-testid="apply-voucher-btn"
-                          >
-                            {voucherLoading ? '...' : (t.apply || 'Áp dụng')}
-                          </Button>
-                        </div>
-                      )}
-                      {voucherError && <p className="text-xs text-red-500 mt-1" data-testid="voucher-error">{voucherError}</p>}
-                    </div>
-
                     <div className="flex justify-between text-sm">
                       <span className="text-[#64748B]">{t.subtotal}</span>
                       <span className="text-[#0F172A]">{formatVND(cartTotal)}</span>
                     </div>
-                    {discountAmount > 0 && (
-                      <div className="flex justify-between text-sm">
-                        <span className="text-green-600">{t.discount || 'Giảm giá'}</span>
-                        <span className="text-green-600 font-medium">-{formatVND(discountAmount)}</span>
-                      </div>
-                    )}
                     <div className="flex justify-between text-sm">
                       <span className="text-[#64748B]">{t.shipping}</span>
                       <span className="text-green-500 font-medium">{t.freeShipping}</span>

@@ -90,7 +90,6 @@ const SingleCategoryPage = () => {
     }
     setBookingSubmitting(true);
     try {
-      const trackingCode = new URLSearchParams(window.location.search).get('ref') || localStorage.getItem(`agent_ref_${slug}`) || null;
       await axios.post(`${API}/shop/${slug}/bookings`, {
         service_id: bookingProduct.id,
         customer_name: bookingForm.customer_name.trim(),
@@ -98,7 +97,6 @@ const SingleCategoryPage = () => {
         customer_email: bookingForm.customer_email.trim(),
         preferred_datetime: bookingForm.preferred_datetime,
         note: bookingForm.note.trim(),
-        agent_tracking_code: trackingCode,
       });
       toast.success('Đã gửi yêu cầu đặt lịch! Chúng tôi sẽ liên hệ xác nhận sớm.');
       setBookingProduct(null);

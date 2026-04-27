@@ -375,11 +375,7 @@ async def get_current_user(request: Request) -> dict:
         payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
         if payload.get("type") != "access":
             raise HTTPException(status_code=401, detail="Invalid token type")
-        # Check if this is an agent token (agent IDs start with 'agt-')
         sub = payload.get("sub", "")
-        if sub.startswith("agt-"):
-            # This is an agent, raise HTTPException to be handled by /auth/me
-            raise HTTPException(status_code=401, detail="Agent token - use agent endpoint")
         user = await db.users.find_one({"_id": ObjectId(sub)})
         if not user:
             raise HTTPException(status_code=401, detail="User not found")
@@ -493,7 +489,7 @@ class ShopUpdate(BaseModel):
     banner_enabled: Optional[bool] = None
     blog_enabled: Optional[bool] = None
     layout_sections: Optional[List[dict]] = None
-    footer_columns: Optional[List[dict]] = None
+    footer_columns: Optional[List[dict]] = None  # deprecated, ignored
     post_carousel_position: Optional[str] = None
     max_products: Optional[int] = None
     max_posts: Optional[int] = None
@@ -531,8 +527,6 @@ class OrderCreate(BaseModel):
     customer_address: str
     items: List[dict]
     note: Optional[str] = ""
-    agent_tracking_code: Optional[str] = None
-    voucher_code: Optional[str] = None
 
 class OrderStatusUpdate(BaseModel):
     status: str
@@ -544,7 +538,6 @@ class BookingCreate(BaseModel):
     customer_email: Optional[str] = ""
     preferred_datetime: str  # ISO string "YYYY-MM-DDTHH:mm"
     note: Optional[str] = ""
-    agent_tracking_code: Optional[str] = None
 
 class BookingStatusUpdate(BaseModel):
     status: str
@@ -576,9 +569,6 @@ class PageCreate(BaseModel):
     is_published: Optional[bool] = True
     sections: Optional[List[dict]] = []
 
-class MenuUpdate(BaseModel):
-    items: List[dict]
-
 class MegaMenuUpdate(BaseModel):
     items: List[dict]
 
@@ -593,57 +583,6 @@ class ShopLimitsUpdate(BaseModel):
     max_posts: Optional[int] = None
     max_pages: Optional[int] = None
     max_categories: Optional[int] = None
-
-class VoucherCreate(BaseModel):
-    code: str
-    discount_type: str  # "percentage" or "fixed"
-    discount_value: float
-    min_order_amount: Optional[float] = 0
-    max_uses: Optional[int] = 0
-    applicable_products: Optional[List[str]] = []
-    expiry_date: Optional[str] = None
-    is_active: Optional[bool] = True
-
-class VoucherUpdate(BaseModel):
-    code: Optional[str] = None
-    discount_type: Optional[str] = None
-    discount_value: Optional[float] = None
-    min_order_amount: Optional[float] = None
-    max_uses: Optional[int] = None
-    applicable_products: Optional[List[str]] = None
-    expiry_date: Optional[str] = None
-    is_active: Optional[bool] = None
-
-class AgentCreate(BaseModel):
-    name: str
-    email: EmailStr
-    password: str
-    phone: Optional[str] = ""
-    level: int = 1  # 1, 2, or 3
-    parent_agent_id: Optional[str] = None
-
-class AgentUpdate(BaseModel):
-    name: Optional[str] = None
-    phone: Optional[str] = None
-    level: Optional[int] = None
-    parent_agent_id: Optional[str] = None
-    is_active: Optional[bool] = None
-
-class BusinessCardUpdate(BaseModel):
-    display_name: Optional[str] = None
-    title: Optional[str] = None
-    phone: Optional[str] = None
-    email: Optional[str] = None
-    address: Optional[str] = None
-    avatar_url: Optional[str] = None
-    logo_url: Optional[str] = None
-    social_facebook: Optional[str] = None
-    social_instagram: Optional[str] = None
-    social_tiktok: Optional[str] = None
-    social_zalo: Optional[str] = None
-    website: Optional[str] = None
-    selected_products: Optional[List[str]] = None
-    theme_color: Optional[str] = None
 
 # ==================== AUTH ENDPOINTS ====================
 
@@ -682,19 +621,6 @@ async def login(user_data: UserLogin, request: Request, response: Response):
 
     user = await db.users.find_one({"email": email})
     if not user:
-        # Check agents collection
-        agent = await db.agents.find_one({"email": email})
-        if agent:
-            if not agent.get("is_active", True):
-                raise HTTPException(status_code=403, detail="Account is blocked")
-            if not verify_password(user_data.password, agent["password_hash"]):
-                login_tracker.record_failure(lock_key)
-                raise HTTPException(status_code=401, detail="Invalid email or password")
-            login_tracker.clear(lock_key)
-            agent_id = agent["id"]
-            access_token = create_access_token(agent_id, email, "agent")
-            set_auth_cookies(response, access_token, create_refresh_token(agent_id))
-            return {"id": agent_id, "email": agent["email"], "name": agent["name"], "role": "agent", "shop_id": agent.get("shop_id"), "agent_id": agent_id, "token": access_token}
         login_tracker.record_failure(lock_key)
         raise HTTPException(status_code=401, detail="Invalid email or password")
     if user.get("status") == "blocked":
@@ -731,21 +657,6 @@ async def get_me(request: Request):
         user = await get_current_user(request)
         return {"id": user["_id"], "email": user["email"], "name": user["name"], "role": user["role"], "shop_id": user.get("shop_id"), "status": user.get("status", "active")}
     except HTTPException:
-        # Check if it's an agent token
-        token = request.cookies.get("access_token")
-        if not token:
-            auth_header = request.headers.get("Authorization", "")
-            if auth_header.startswith("Bearer "):
-                token = auth_header[7:]
-        if token:
-            try:
-                payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
-                if payload.get("role") == "agent":
-                    agent = await db.agents.find_one({"id": payload["sub"]}, {"_id": 0, "password_hash": 0})
-                    if agent:
-                        return {"id": agent["id"], "email": agent["email"], "name": agent["name"], "role": "agent", "shop_id": agent.get("shop_id"), "agent_id": agent["id"], "level": agent.get("level", 1), "status": "active"}
-            except Exception:
-                pass
         raise HTTPException(status_code=401, detail="Not authenticated")
 
 @api_router.post("/auth/forgot-password")
@@ -1040,8 +951,6 @@ async def get_all_shops(request: Request):
             "created_at": serialize_datetime(s.get("created_at")),
             "owner": owner, "order_count": oc, "product_count": pc, "category_count": cc,
             "item_count": pc,
-            "agents_enabled": s.get("agents_enabled", False),
-            "business_card_enabled": s.get("business_card_enabled", False),
         })
     return result
 
@@ -1066,7 +975,7 @@ async def update_shop_limits(shop_id: str, request: Request):
     await require_super_admin(request)
     body = await request.json()
     update = {}
-    for field in ["max_products", "max_posts", "max_pages", "max_categories", "max_agents", "max_images"]:
+    for field in ["max_products", "max_posts", "max_pages", "max_categories", "max_images"]:
         if field in body:
             update[field] = int(body[field])
     if update:
@@ -1100,10 +1009,7 @@ async def get_all_users(request: Request):
                     "max_posts": shop.get("max_posts", 50),
                     "max_pages": shop.get("max_pages", 20),
                     "max_categories": shop.get("max_categories", 50),
-                    "max_agents": shop.get("max_agents", 100),
                     "max_images": shop.get("max_images", 500),
-                    "agents_enabled": shop.get("agents_enabled", False),
-                    "business_card_enabled": shop.get("business_card_enabled", False),
                 }
         result.append({
             "id": str(u["_id"]), "email": u["email"], "name": u["name"], "role": u["role"],
@@ -1126,7 +1032,7 @@ async def create_shop_owner(data: ShopOwnerCreate, request: Request):
     slug = generate_shop_slug(data.shop_name)
     if await db.shops.find_one({"slug": slug}):
         slug = f"{slug}-{secrets.token_hex(3)}"
-    shop_doc = {"name": data.shop_name, "slug": slug, "description": "", "logo_url": "", "contact_phone": data.phone or "", "contact_email": email, "address": "", "social_facebook": "", "social_instagram": "", "social_tiktok": "", "social_shopee": "", "theme_color": "#0055FF", "status": "active", "expiry_date": "", "banners": [], "banner_enabled": True, "blog_enabled": True, "layout_sections": [], "footer_columns": [], "menu_items": [], "mega_menu_categories": [], "custom_pages": [], "post_carousel_position": "top", "max_products": 100, "max_posts": 50, "max_pages": 20, "max_categories": 50, "created_at": datetime.now(timezone.utc)}
+    shop_doc = {"name": data.shop_name, "slug": slug, "description": "", "logo_url": "", "contact_phone": data.phone or "", "contact_email": email, "address": "", "social_facebook": "", "social_instagram": "", "social_tiktok": "", "social_shopee": "", "theme_color": "#0055FF", "status": "active", "expiry_date": "", "banners": [], "banner_enabled": True, "blog_enabled": True, "layout_sections": [], "mega_menu_categories": [], "custom_pages": [], "post_carousel_position": "top", "max_products": 100, "max_posts": 50, "max_pages": 20, "max_categories": 50, "created_at": datetime.now(timezone.utc)}
     shop_result = await db.shops.insert_one(shop_doc)
     shop_id = str(shop_result.inserted_id)
     user_doc = {"email": email, "password_hash": hash_password(data.password), "name": data.name, "role": "shop_owner", "shop_id": shop_id, "phone": data.phone or "", "status": "active", "created_at": datetime.now(timezone.utc)}
@@ -1501,11 +1407,8 @@ async def get_shop_details(request: Request):
         "blog_enabled": shop.get("blog_enabled", True),
         "layout_sections": shop.get("layout_sections", []),
         "custom_sections": shop.get("custom_sections", []),
-        "footer_columns": shop.get("footer_columns", []),
         "post_carousel_position": shop.get("post_carousel_position", "top"),
         "max_products": shop.get("max_products", 100), "max_posts": shop.get("max_posts", 50),
-        "agents_enabled": shop.get("agents_enabled", False),
-        "business_card_enabled": shop.get("business_card_enabled", False),
     }
 
 @api_router.put("/dashboard/shop")
@@ -1730,16 +1633,8 @@ async def get_shop_orders(request: Request):
     user = await require_shop_owner(request)
     shop_id = await resolve_shop_id(request, user)
     orders = await db.orders.find({"shop_id": shop_id}, {"_id": 0}).sort("created_at", -1).to_list(500)
-    # Collect agent IDs and fetch agent names
-    agent_ids = set(o.get("agent_id") for o in orders if o.get("agent_id"))
-    agent_map = {}
-    if agent_ids:
-        agents = await db.agents.find({"id": {"$in": list(agent_ids)}}, {"_id": 0, "id": 1, "name": 1, "tracking_code": 1}).to_list(200)
-        agent_map = {a["id"]: a for a in agents}
     for o in orders:
         o["created_at"] = serialize_datetime(o.get("created_at"))
-        if o.get("agent_id") and o["agent_id"] in agent_map:
-            o["agent_name"] = agent_map[o["agent_id"]]["name"]
     return orders
 
 @api_router.put("/dashboard/orders/{order_id}/status")
@@ -1749,32 +1644,10 @@ async def update_order_status(order_id: str, data: OrderStatusUpdate, request: R
     valid = ["pending", "confirmed", "processing", "shipped", "completed", "cancelled"]
     if data.status not in valid:
         raise HTTPException(status_code=400, detail="Invalid status")
-    
-    # Get the order first to check for agent referral
     order = await db.orders.find_one({"id": order_id, "shop_id": shop_id})
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
-    
-    old_status = order.get("status", "pending")
     await db.orders.update_one({"id": order_id, "shop_id": shop_id}, {"$set": {"status": data.status, "updated_at": datetime.now(timezone.utc)}})
-    
-    # Record agent sale when order is confirmed/completed (and not already recorded)
-    if data.status in ["confirmed", "completed"] and old_status == "pending" and order.get("agent_id"):
-        existing_sale = await db.agent_sales.find_one({"order_id": order_id})
-        if not existing_sale:
-            await db.agent_sales.insert_one({
-                "id": f"as-{uuid_lib.uuid4().hex[:12]}",
-                "shop_id": shop_id,
-                "agent_id": order["agent_id"],
-                "order_id": order_id,
-                "amount": order.get("total_amount", 0),
-                "created_at": datetime.now(timezone.utc),
-            })
-    
-    # If order is cancelled, remove agent sale record
-    if data.status == "cancelled" and order.get("agent_id"):
-        await db.agent_sales.delete_one({"order_id": order_id})
-    
     return {"message": f"Order status updated to {data.status}"}
 
 # ==================== DASHBOARD - POSTS ====================
@@ -1901,22 +1774,6 @@ async def delete_page(page_id: str, request: Request):
         raise HTTPException(status_code=404, detail="Page not found")
     return {"message": "Page deleted"}
 
-# ==================== DASHBOARD - MENU ====================
-
-@api_router.get("/dashboard/menu")
-async def get_shop_menu(request: Request):
-    user = await require_shop_owner(request)
-    shop_id = await resolve_shop_id(request, user)
-    shop = await db.shops.find_one({"_id": ObjectId(shop_id)}, {"menu_items": 1})
-    return shop.get("menu_items", []) if shop else []
-
-@api_router.put("/dashboard/menu")
-async def update_shop_menu(data: MenuUpdate, request: Request):
-    user = await require_shop_owner(request)
-    shop_id = await resolve_shop_id(request, user)
-    await db.shops.update_one({"_id": ObjectId(shop_id)}, {"$set": {"menu_items": data.items}})
-    return {"message": "Menu updated"}
-
 # ==================== DASHBOARD - MEGA MENU ====================
 
 @api_router.get("/dashboard/mega-menu")
@@ -1959,511 +1816,6 @@ async def update_mega_menu(data: MegaMenuUpdate, request: Request):
     await db.shops.update_one({"_id": ObjectId(shop_id)}, {"$set": {"mega_menu_categories": data.items}})
     return {"message": "Mega menu updated"}
 
-# ==================== DASHBOARD - VOUCHERS ====================
-
-@api_router.get("/dashboard/vouchers")
-async def get_vouchers(request: Request):
-    user = await require_shop_owner(request)
-    shop_id = await resolve_shop_id(request, user)
-    vouchers = await db.vouchers.find({"shop_id": shop_id}, {"_id": 0}).sort("created_at", -1).to_list(200)
-    for v in vouchers:
-        v["created_at"] = serialize_datetime(v.get("created_at"))
-        v["updated_at"] = serialize_datetime(v.get("updated_at"))
-    return vouchers
-
-@api_router.post("/dashboard/vouchers")
-async def create_voucher(data: VoucherCreate, request: Request):
-    user = await require_shop_owner(request)
-    shop_id = await resolve_shop_id(request, user)
-    # Check uniqueness of code within this shop
-    existing = await db.vouchers.find_one({"shop_id": shop_id, "code": data.code.upper()})
-    if existing:
-        raise HTTPException(status_code=400, detail="Voucher code already exists")
-    voucher_id = f"vchr-{uuid_lib.uuid4().hex[:12]}"
-    doc = {
-        "id": voucher_id, "shop_id": shop_id,
-        "code": data.code.upper(),
-        "discount_type": data.discount_type,
-        "discount_value": data.discount_value,
-        "min_order_amount": data.min_order_amount or 0,
-        "max_uses": data.max_uses or 0,
-        "used_count": 0,
-        "applicable_products": data.applicable_products or [],
-        "expiry_date": data.expiry_date,
-        "is_active": data.is_active if data.is_active is not None else True,
-        "created_at": datetime.now(timezone.utc),
-        "updated_at": datetime.now(timezone.utc),
-    }
-    await db.vouchers.insert_one(doc)
-    doc.pop("_id", None)
-    doc["created_at"] = serialize_datetime(doc["created_at"])
-    doc["updated_at"] = serialize_datetime(doc["updated_at"])
-    return doc
-
-@api_router.put("/dashboard/vouchers/{voucher_id}")
-async def update_voucher(voucher_id: str, request: Request):
-    user = await require_shop_owner(request)
-    shop_id = await resolve_shop_id(request, user)
-    body = await request.json()
-    update_fields = {}
-    for key in ["code", "discount_type", "discount_value", "min_order_amount", "max_uses", "applicable_products", "expiry_date", "is_active"]:
-        if key in body:
-            val = body[key]
-            if key == "code" and val:
-                val = val.upper()
-                # Check uniqueness if code changed
-                existing = await db.vouchers.find_one({"shop_id": shop_id, "code": val, "id": {"$ne": voucher_id}})
-                if existing:
-                    raise HTTPException(status_code=400, detail="Voucher code already exists")
-            update_fields[key] = val
-    if not update_fields:
-        raise HTTPException(status_code=400, detail="No fields to update")
-    update_fields["updated_at"] = datetime.now(timezone.utc)
-    result = await db.vouchers.update_one({"id": voucher_id, "shop_id": shop_id}, {"$set": update_fields})
-    if result.matched_count == 0:
-        raise HTTPException(status_code=404, detail="Voucher not found")
-    return {"message": "Voucher updated"}
-
-@api_router.delete("/dashboard/vouchers/{voucher_id}")
-async def delete_voucher(voucher_id: str, request: Request):
-    user = await require_shop_owner(request)
-    shop_id = await resolve_shop_id(request, user)
-    result = await db.vouchers.delete_one({"id": voucher_id, "shop_id": shop_id})
-    if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Voucher not found")
-    return {"message": "Voucher deleted"}
-
-@api_router.post("/shop/{slug}/voucher/validate")
-async def validate_voucher(slug: str, request: Request):
-    """Public endpoint to validate a voucher code"""
-    shop = await db.shops.find_one({"slug": slug, "status": "active"})
-    if not shop:
-        raise HTTPException(status_code=404, detail="Shop not found")
-    shop_id = str(shop["_id"])
-    body = await request.json()
-    code = body.get("code", "").upper()
-    if not code:
-        raise HTTPException(status_code=400, detail="Voucher code required")
-    voucher = await db.vouchers.find_one({"shop_id": shop_id, "code": code, "is_active": True}, {"_id": 0})
-    if not voucher:
-        raise HTTPException(status_code=404, detail="Invalid voucher code")
-    # Check expiry
-    if voucher.get("expiry_date"):
-        try:
-            from dateutil.parser import parse as parse_date
-            expiry = parse_date(str(voucher["expiry_date"]))
-            if expiry.tzinfo is None:
-                expiry = expiry.replace(tzinfo=timezone.utc)
-            if expiry < datetime.now(timezone.utc):
-                raise HTTPException(status_code=400, detail="Voucher has expired")
-        except (ValueError, TypeError):
-            pass
-    # Check usage limit
-    if voucher.get("max_uses", 0) > 0 and voucher.get("used_count", 0) >= voucher["max_uses"]:
-        raise HTTPException(status_code=400, detail="Voucher usage limit reached")
-    voucher["created_at"] = serialize_datetime(voucher.get("created_at"))
-    voucher["updated_at"] = serialize_datetime(voucher.get("updated_at"))
-    return voucher
-
-# ==================== AGENT / DEALER SYSTEM ====================
-
-@api_router.get("/dashboard/agents")
-async def get_agents(request: Request):
-    user = await require_shop_owner(request)
-    shop_id = await resolve_shop_id(request, user)
-    # Check if agents feature is enabled
-    shop = await db.shops.find_one({"_id": ObjectId(shop_id)})
-    if not shop or not shop.get("agents_enabled", False):
-        raise HTTPException(status_code=403, detail="Agent feature not enabled for this shop")
-    agents = await db.agents.find({"shop_id": shop_id}, {"_id": 0, "password_hash": 0}).sort("created_at", -1).to_list(200)
-    for a in agents:
-        a["created_at"] = serialize_datetime(a.get("created_at"))
-    return agents
-
-@api_router.post("/dashboard/agents")
-async def create_agent(data: AgentCreate, request: Request):
-    user = await require_shop_owner(request)
-    shop_id = await resolve_shop_id(request, user)
-    shop = await db.shops.find_one({"_id": ObjectId(shop_id)})
-    if not shop or not shop.get("agents_enabled", False):
-        raise HTTPException(status_code=403, detail="Agent feature not enabled for this shop")
-    # Check limit
-    count = await db.agents.count_documents({"shop_id": shop_id})
-    if count >= 100:
-        raise HTTPException(status_code=400, detail="Maximum 100 agents reached")
-    # Check email uniqueness
-    existing = await db.agents.find_one({"email": data.email.lower()})
-    if existing:
-        raise HTTPException(status_code=400, detail="Email already used by another agent")
-    # Also check users table
-    existing_user = await db.users.find_one({"email": data.email.lower()})
-    if existing_user:
-        raise HTTPException(status_code=400, detail="Email already used by a user account")
-    if data.level not in [1, 2, 3]:
-        raise HTTPException(status_code=400, detail="Level must be 1, 2, or 3")
-    # Validate parent_agent_id if level > 1
-    if data.level > 1 and data.parent_agent_id:
-        parent = await db.agents.find_one({"id": data.parent_agent_id, "shop_id": shop_id})
-        if not parent:
-            raise HTTPException(status_code=400, detail="Parent agent not found")
-        if parent.get("level", 1) >= data.level:
-            raise HTTPException(status_code=400, detail="Parent agent must be a higher level (lower number)")
-    agent_id = f"agt-{uuid_lib.uuid4().hex[:12]}"
-    tracking_code = f"ref-{uuid_lib.uuid4().hex[:8]}"
-    doc = {
-        "id": agent_id, "shop_id": shop_id,
-        "name": data.name, "email": data.email.lower(),
-        "password_hash": hash_password(data.password),
-        "phone": data.phone or "",
-        "level": data.level,
-        "parent_agent_id": data.parent_agent_id if data.level > 1 else None,
-        "tracking_code": tracking_code,
-        "is_active": True,
-        "created_at": datetime.now(timezone.utc),
-    }
-    await db.agents.insert_one(doc)
-    doc.pop("_id", None)
-    doc.pop("password_hash", None)
-    doc["created_at"] = serialize_datetime(doc["created_at"])
-    return doc
-
-@api_router.put("/dashboard/agents/{agent_id}")
-async def update_agent(agent_id: str, request: Request):
-    user = await require_shop_owner(request)
-    shop_id = await resolve_shop_id(request, user)
-    body = await request.json()
-    update_fields = {}
-    for key in ["name", "phone", "level", "parent_agent_id", "is_active"]:
-        if key in body:
-            update_fields[key] = body[key]
-    if "password" in body and body["password"]:
-        update_fields["password_hash"] = hash_password(body["password"])
-    if not update_fields:
-        raise HTTPException(status_code=400, detail="No fields to update")
-    result = await db.agents.update_one({"id": agent_id, "shop_id": shop_id}, {"$set": update_fields})
-    if result.matched_count == 0:
-        raise HTTPException(status_code=404, detail="Agent not found")
-    return {"message": "Agent updated"}
-
-@api_router.delete("/dashboard/agents/{agent_id}")
-async def delete_agent(agent_id: str, request: Request):
-    user = await require_shop_owner(request)
-    shop_id = await resolve_shop_id(request, user)
-    result = await db.agents.delete_one({"id": agent_id, "shop_id": shop_id})
-    if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Agent not found")
-    return {"message": "Agent deleted"}
-
-# Agent Dashboard - for agents to view their sales
-@api_router.get("/agent/dashboard")
-async def get_agent_dashboard(request: Request):
-    """Agent's own dashboard showing their sales data"""
-    token = request.cookies.get("access_token")
-    if not token:
-        auth_header = request.headers.get("Authorization", "")
-        if auth_header.startswith("Bearer "):
-            token = auth_header[7:]
-    if not token:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-    try:
-        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
-    except Exception:
-        raise HTTPException(status_code=401, detail="Invalid token")
-    agent_id = payload.get("sub")
-    agent = await db.agents.find_one({"id": agent_id}, {"_id": 0, "password_hash": 0})
-    if not agent:
-        raise HTTPException(status_code=404, detail="Agent not found")
-    shop_id = agent["shop_id"]
-    shop = await db.shops.find_one({"_id": ObjectId(shop_id)}, {"_id": 0, "name": 1, "slug": 1, "logo_url": 1, "theme_color": 1})
-    # Get sales attributed to this agent
-    sales = await db.agent_sales.find({"agent_id": agent_id}, {"_id": 0}).sort("created_at", -1).to_list(500)
-    total_sales = sum(s.get("amount", 0) for s in sales)
-    for s in sales:
-        s["created_at"] = serialize_datetime(s.get("created_at"))
-    # Get parent info if applicable
-    parent_info = None
-    if agent.get("parent_agent_id"):
-        parent = await db.agents.find_one({"id": agent["parent_agent_id"]}, {"_id": 0, "password_hash": 0})
-        if parent:
-            parent_info = {"id": parent["id"], "name": parent["name"], "level": parent.get("level", 1)}
-    agent["created_at"] = serialize_datetime(agent.get("created_at"))
-    return {
-        "agent": agent,
-        "shop": shop,
-        "sales": sales[:50],
-        "total_sales": total_sales,
-        "total_orders": len(sales),
-        "parent_info": parent_info,
-    }
-
-# Shop owner view of all agent sales
-@api_router.get("/dashboard/agent-sales")
-async def get_agent_sales_overview(request: Request):
-    user = await require_shop_owner(request)
-    shop_id = await resolve_shop_id(request, user)
-    agents = await db.agents.find({"shop_id": shop_id}, {"_id": 0, "password_hash": 0}).to_list(200)
-    # Get all sales for this shop
-    all_sales = await db.agent_sales.find({"shop_id": shop_id}, {"_id": 0}).to_list(5000)
-    # Build sales by agent
-    sales_by_agent = {}
-    for s in all_sales:
-        aid = s.get("agent_id", "owner")
-        if aid not in sales_by_agent:
-            sales_by_agent[aid] = {"total": 0, "count": 0}
-        sales_by_agent[aid]["total"] += s.get("amount", 0)
-        sales_by_agent[aid]["count"] += 1
-    # Get owner's direct sales
-    owner_sales = sales_by_agent.get("owner", {"total": 0, "count": 0})
-    # Map agents to their sales
-    agent_data = []
-    for a in agents:
-        a["created_at"] = serialize_datetime(a.get("created_at"))
-        s = sales_by_agent.get(a["id"], {"total": 0, "count": 0})
-        agent_data.append({**a, "total_sales": s["total"], "order_count": s["count"]})
-    grand_total = sum(s.get("amount", 0) for s in all_sales)
-    return {
-        "agents": agent_data,
-        "owner_sales": owner_sales,
-        "grand_total": grand_total,
-        "total_agents": len(agents),
-    }
-
-# Super Admin: Toggle agents feature for a shop
-@api_router.put("/admin/shops/{shop_id}/agents-toggle")
-async def toggle_agents_feature(shop_id: str, request: Request):
-    user = await require_super_admin_only(request)
-    body = await request.json()
-    enabled = body.get("agents_enabled", False)
-    await db.shops.update_one({"_id": ObjectId(shop_id)}, {"$set": {"agents_enabled": enabled}})
-    return {"message": f"Agents feature {'enabled' if enabled else 'disabled'}"}
-
-# Super Admin: Toggle business card feature for a shop
-@api_router.put("/admin/shops/{shop_id}/business-card-toggle")
-async def toggle_business_card_feature(shop_id: str, request: Request):
-    await require_super_admin_only(request)
-    body = await request.json()
-    enabled = bool(body.get("business_card_enabled", False))
-    await db.shops.update_one({"_id": ObjectId(shop_id)}, {"$set": {"business_card_enabled": enabled}})
-    return {"message": f"Business card feature {'enabled' if enabled else 'disabled'}"}
-
-# Track sale via agent referral code
-@api_router.get("/shop/{slug}/ref/{tracking_code}")
-async def track_agent_referral(slug: str, tracking_code: str):
-    """Returns shop info with agent tracking. Frontend will store the code in session."""
-    shop = await db.shops.find_one({"slug": slug, "status": "active"})
-    if not shop:
-        raise HTTPException(status_code=404, detail="Shop not found")
-    agent = await db.agents.find_one({"tracking_code": tracking_code, "shop_id": str(shop["_id"]), "is_active": True}, {"_id": 0, "password_hash": 0})
-    if not agent:
-        raise HTTPException(status_code=404, detail="Invalid referral code")
-    return {"agent_id": agent["id"], "agent_name": agent["name"], "tracking_code": tracking_code}
-
-# ==================== BUSINESS CARD ====================
-
-@api_router.get("/dashboard/business-card")
-async def get_business_card(request: Request):
-    user = await require_shop_owner(request)
-    shop_id = await resolve_shop_id(request, user)
-    shop = await db.shops.find_one({"_id": ObjectId(shop_id)})
-    if not shop or not shop.get("business_card_enabled", False):
-        raise HTTPException(status_code=403, detail="Business card feature is not enabled for this shop")
-    card = await db.business_cards.find_one({"owner_id": user["_id"], "owner_type": "shop_owner"}, {"_id": 0})
-    if not card:
-        # Return default from shop info
-        card = {
-            "id": f"card-{uuid_lib.uuid4().hex[:12]}", "shop_id": shop_id,
-            "owner_id": user["_id"], "owner_type": "shop_owner",
-            "display_name": user.get("name", ""), "title": "",
-            "phone": shop.get("contact_phone", ""), "email": shop.get("contact_email", ""),
-            "address": shop.get("address", ""), "avatar_url": "", "logo_url": shop.get("logo_url", ""),
-            "social_facebook": shop.get("social_facebook", ""), "social_instagram": shop.get("social_instagram", ""),
-            "social_tiktok": "", "social_zalo": "", "website": "",
-            "selected_products": [], "theme_color": shop.get("theme_color", "#0055FF"),
-        }
-    card.pop("created_at", None)
-    card.pop("updated_at", None)
-    return card
-
-@api_router.put("/dashboard/business-card")
-async def update_business_card(request: Request):
-    user = await require_shop_owner(request)
-    shop_id = await resolve_shop_id(request, user)
-    shop = await db.shops.find_one({"_id": ObjectId(shop_id)}, {"business_card_enabled": 1})
-    if not shop or not shop.get("business_card_enabled", False):
-        raise HTTPException(status_code=403, detail="Business card feature is not enabled for this shop")
-    body = await request.json()
-    card = await db.business_cards.find_one({"owner_id": user["_id"], "owner_type": "shop_owner"})
-    update_fields = {}
-    for key in ["display_name", "title", "phone", "email", "address", "avatar_url", "logo_url", "social_facebook", "social_instagram", "social_tiktok", "social_zalo", "website", "selected_products", "theme_color"]:
-        if key in body:
-            update_fields[key] = body[key]
-    if not card:
-        card_id = f"card-{uuid_lib.uuid4().hex[:12]}"
-        doc = {
-            "id": card_id, "shop_id": shop_id, "owner_id": user["_id"], "owner_type": "shop_owner",
-            **update_fields,
-            "created_at": datetime.now(timezone.utc), "updated_at": datetime.now(timezone.utc),
-        }
-        await db.business_cards.insert_one(doc)
-    else:
-        update_fields["updated_at"] = datetime.now(timezone.utc)
-        await db.business_cards.update_one({"owner_id": user["_id"], "owner_type": "shop_owner"}, {"$set": update_fields})
-    return {"message": "Business card updated"}
-
-# Agent business card
-@api_router.get("/agent/business-card")
-async def get_agent_business_card(request: Request):
-    token = request.cookies.get("access_token")
-    if not token:
-        auth_header = request.headers.get("Authorization", "")
-        if auth_header.startswith("Bearer "):
-            token = auth_header[7:]
-    if not token:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-    payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
-    agent_id = payload.get("sub")
-    agent = await db.agents.find_one({"id": agent_id}, {"_id": 0, "password_hash": 0})
-    if not agent:
-        raise HTTPException(status_code=404, detail="Agent not found")
-    shop = await db.shops.find_one({"_id": ObjectId(agent["shop_id"])})
-    if not shop or not shop.get("business_card_enabled", False):
-        raise HTTPException(status_code=403, detail="Business card feature is not enabled for this shop")
-    card = await db.business_cards.find_one({"owner_id": agent_id, "owner_type": "agent"}, {"_id": 0})
-    if not card:
-        card = {
-            "id": f"card-{uuid_lib.uuid4().hex[:12]}", "shop_id": agent["shop_id"],
-            "owner_id": agent_id, "owner_type": "agent",
-            "display_name": agent.get("name", ""), "title": "",
-            "phone": agent.get("phone", ""), "email": agent.get("email", ""),
-            "address": "", "avatar_url": "", "logo_url": shop.get("logo_url", "") if shop else "",
-            "social_facebook": "", "social_instagram": "", "social_tiktok": "", "social_zalo": "", "website": "",
-            "selected_products": [], "theme_color": shop.get("theme_color", "#0055FF") if shop else "#0055FF",
-        }
-    card.pop("created_at", None)
-    card.pop("updated_at", None)
-    return card
-
-@api_router.put("/agent/business-card")
-async def update_agent_business_card(request: Request):
-    token = request.cookies.get("access_token")
-    if not token:
-        auth_header = request.headers.get("Authorization", "")
-        if auth_header.startswith("Bearer "):
-            token = auth_header[7:]
-    if not token:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-    payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
-    agent_id = payload.get("sub")
-    agent = await db.agents.find_one({"id": agent_id})
-    if not agent:
-        raise HTTPException(status_code=404, detail="Agent not found")
-    shop = await db.shops.find_one({"_id": ObjectId(agent["shop_id"])}, {"business_card_enabled": 1})
-    if not shop or not shop.get("business_card_enabled", False):
-        raise HTTPException(status_code=403, detail="Business card feature is not enabled for this shop")
-    body = await request.json()
-    card = await db.business_cards.find_one({"owner_id": agent_id, "owner_type": "agent"})
-    update_fields = {}
-    for key in ["display_name", "title", "phone", "email", "address", "avatar_url", "logo_url", "social_facebook", "social_instagram", "social_tiktok", "social_zalo", "website", "selected_products", "theme_color"]:
-        if key in body:
-            update_fields[key] = body[key]
-    if not card:
-        doc = {
-            "id": f"card-{uuid_lib.uuid4().hex[:12]}", "shop_id": agent["shop_id"],
-            "owner_id": agent_id, "owner_type": "agent",
-            **update_fields,
-            "created_at": datetime.now(timezone.utc), "updated_at": datetime.now(timezone.utc),
-        }
-        await db.business_cards.insert_one(doc)
-    else:
-        update_fields["updated_at"] = datetime.now(timezone.utc)
-        await db.business_cards.update_one({"owner_id": agent_id, "owner_type": "agent"}, {"$set": update_fields})
-    return {"message": "Business card updated"}
-
-# Public business card page
-@api_router.get("/card/{card_slug}")
-async def get_public_business_card(card_slug: str):
-    """Get public business card. card_slug can be shop slug or agent tracking code."""
-    # Try shop owner first (by shop slug)
-    shop = await db.shops.find_one({"slug": card_slug, "status": "active"})
-    if shop:
-        if not shop.get("business_card_enabled", False):
-            raise HTTPException(status_code=404, detail="Business card not found")
-        shop_id = str(shop["_id"])
-        owner = await db.users.find_one({"shop_id": shop_id})
-        card = await db.business_cards.find_one({"owner_id": str(owner["_id"]) if owner else "", "owner_type": "shop_owner"}, {"_id": 0})
-        if not card:
-            card = {
-                "display_name": owner.get("name", shop["name"]) if owner else shop["name"],
-                "title": "", "phone": shop.get("contact_phone", ""),
-                "email": shop.get("contact_email", ""), "address": shop.get("address", ""),
-                "avatar_url": "", "logo_url": shop.get("logo_url", ""),
-                "social_facebook": shop.get("social_facebook", ""), "social_instagram": shop.get("social_instagram", ""),
-                "social_tiktok": "", "social_zalo": "", "website": "",
-                "selected_products": [], "theme_color": shop.get("theme_color", "#0055FF"),
-            }
-        # Fetch selected products
-        products = []
-        if card.get("selected_products"):
-            for pid in card["selected_products"]:
-                p = await db.products.find_one({"id": pid, "shop_id": shop_id, "is_active": True, "is_hidden": {"$ne": True}}, {"_id": 0})
-                if p:
-                    products.append({"id": p["id"], "name": p["name"], "price": p["price"], "image_url": p.get("image_url", "")})
-        card.pop("created_at", None)
-        card.pop("updated_at", None)
-        return {**card, "products": products, "shop_name": shop["name"], "shop_slug": shop["slug"], "card_type": "shop_owner"}
-    # Try agent (by tracking code)
-    agent = await db.agents.find_one({"tracking_code": card_slug, "is_active": True}, {"_id": 0, "password_hash": 0})
-    if agent:
-        shop = await db.shops.find_one({"_id": ObjectId(agent["shop_id"]), "status": "active"})
-        if not shop or not shop.get("business_card_enabled", False):
-            raise HTTPException(status_code=404, detail="Business card not found")
-        card = await db.business_cards.find_one({"owner_id": agent["id"], "owner_type": "agent"}, {"_id": 0})
-        if not card:
-            card = {
-                "display_name": agent.get("name", ""), "title": "",
-                "phone": agent.get("phone", ""), "email": agent.get("email", ""),
-                "address": "", "avatar_url": "", "logo_url": shop.get("logo_url", "") if shop else "",
-                "social_facebook": "", "social_instagram": "", "social_tiktok": "", "social_zalo": "", "website": "",
-                "selected_products": [], "theme_color": shop.get("theme_color", "#0055FF") if shop else "#0055FF",
-            }
-        products = []
-        if card.get("selected_products") and shop:
-            for pid in card["selected_products"]:
-                p = await db.products.find_one({"id": pid, "shop_id": str(shop["_id"]), "is_active": True, "is_hidden": {"$ne": True}}, {"_id": 0})
-                if p:
-                    products.append({"id": p["id"], "name": p["name"], "price": p["price"], "image_url": p.get("image_url", "")})
-        card.pop("created_at", None)
-        card.pop("updated_at", None)
-        return {**card, "products": products, "shop_name": shop["name"] if shop else "", "shop_slug": shop["slug"] if shop else "", "card_type": "agent", "agent_name": agent["name"]}
-    raise HTTPException(status_code=404, detail="Business card not found")
-
-# OG tags for business card
-@api_router.get("/og/card/{card_slug}", response_class=HTMLResponse)
-async def og_card_page(card_slug: str):
-    try:
-        card_data = await get_public_business_card(card_slug)
-    except HTTPException:
-        raise HTTPException(status_code=404, detail="Card not found")
-    name = card_data.get("display_name", "")
-    title = card_data.get("title", "")
-    phone = card_data.get("phone", "")
-    logo = card_data.get("logo_url", "") or card_data.get("avatar_url", "")
-    shop_name = card_data.get("shop_name", "")
-    desc = f"{title} - {shop_name}" if title else shop_name
-    frontend_url = os.environ.get("FRONTEND_URL", "")
-    canonical = f"{frontend_url}/card/{card_slug}"
-    html = f"""<!DOCTYPE html>
-<html lang="vi"><head>
-<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>{name} - {shop_name}</title>
-<meta property="og:title" content="{name}"/>
-<meta property="og:description" content="{desc}"/>
-<meta property="og:type" content="profile"/>
-<meta property="og:url" content="{canonical}"/>
-{f'<meta property="og:image" content="{logo}"/>' if logo else ''}
-<meta http-equiv="refresh" content="0;url={canonical}"/>
-</head><body><p>Redirecting...</p><script>window.location.replace("{canonical}");</script></body></html>"""
-    return HTMLResponse(content=html)
 
 # ==================== PUSH NOTIFICATIONS ====================
 
@@ -2652,8 +2004,6 @@ async def get_shop_by_slug(slug: str):
         "banners": shop.get("banners", []), "banner_enabled": shop.get("banner_enabled", True),
         "blog_enabled": shop.get("blog_enabled", True),
         "layout_sections": shop.get("layout_sections", []),
-        "footer_columns": shop.get("footer_columns", []),
-        "menu_items": shop.get("menu_items", []),
         "mega_menu_categories": shop.get("mega_menu_categories", []),
         "custom_pages": shop.get("custom_pages", []),
         "custom_sections": shop.get("custom_sections", []),
@@ -2736,55 +2086,9 @@ async def create_order(slug: str, data: OrderCreate, request: Request):
             total += sub
             items.append({"product_id": item["product_id"], "name": product["name"], "price": product["price"], "quantity": item["quantity"], "subtotal": sub, "image_url": product.get("image_url", "")})
     order_id = f"ORD-{secrets.token_hex(6).upper()}"
-    # Apply voucher discount
-    discount_amount = 0
-    voucher_info = None
-    if data.voucher_code:
-        voucher = await db.vouchers.find_one({"shop_id": shop_id, "code": data.voucher_code.upper(), "is_active": True})
-        if voucher:
-            # Validate expiry
-            valid = True
-            if voucher.get("expiry_date"):
-                from dateutil.parser import parse as parse_date
-                expiry = parse_date(str(voucher["expiry_date"]))
-                if expiry.tzinfo is None:
-                    expiry = expiry.replace(tzinfo=timezone.utc)
-                if expiry < datetime.now(timezone.utc):
-                    valid = False
-            # Validate usage limit
-            if voucher.get("max_uses", 0) > 0 and voucher.get("used_count", 0) >= voucher["max_uses"]:
-                valid = False
-            # Validate min order amount
-            if voucher.get("min_order_amount", 0) > 0 and total < voucher["min_order_amount"]:
-                valid = False
-            if valid:
-                applicable_products = voucher.get("applicable_products", [])
-                if applicable_products:
-                    applicable_total = sum(i["subtotal"] for i in items if i["product_id"] in applicable_products)
-                else:
-                    applicable_total = total
-                if voucher["discount_type"] == "percentage":
-                    discount_amount = round(applicable_total * voucher["discount_value"] / 100)
-                else:
-                    discount_amount = min(voucher["discount_value"], applicable_total)
-                voucher_info = {"code": voucher["code"], "discount_type": voucher["discount_type"], "discount_value": voucher["discount_value"], "discount_amount": discount_amount}
-                # Increment used_count
-                await db.vouchers.update_one({"id": voucher["id"]}, {"$inc": {"used_count": 1}})
-    
-    final_total = max(0, total - discount_amount)
-    doc = {"id": order_id, "shop_id": shop_id, "customer_name": data.customer_name, "customer_phone": data.customer_phone, "customer_email": data.customer_email, "customer_address": data.customer_address, "items": items, "subtotal": total, "discount_amount": discount_amount, "total_amount": final_total, "note": data.note, "status": "pending", "created_at": datetime.now(timezone.utc)}
-    if voucher_info:
-        doc["voucher"] = voucher_info
-    # Track agent referral if provided
-    agent_id_for_order = None
-    if data.agent_tracking_code:
-        agent = await db.agents.find_one({"tracking_code": data.agent_tracking_code, "shop_id": shop_id, "is_active": True})
-        if agent:
-            agent_id_for_order = agent["id"]
-            doc["agent_id"] = agent_id_for_order
-            doc["agent_tracking_code"] = data.agent_tracking_code
+    final_total = total
+    doc = {"id": order_id, "shop_id": shop_id, "customer_name": data.customer_name, "customer_phone": data.customer_phone, "customer_email": data.customer_email, "customer_address": data.customer_address, "items": items, "subtotal": total, "total_amount": final_total, "note": data.note, "status": "pending", "created_at": datetime.now(timezone.utc)}
     await db.orders.insert_one(doc)
-    # Agent sales will be recorded when shop owner approves the order (not immediately)
 
     # Send push notification to shop owner if enabled
     if shop.get("notifications_enabled"):
@@ -2821,7 +2125,7 @@ async def create_order(slug: str, data: OrderCreate, request: Request):
             except Exception as e:
                 logger.error(f"Email notification failed: {e}")
 
-    return {"id": order_id, "order_id": order_id, "subtotal": total, "discount_amount": discount_amount, "total_amount": final_total, "voucher": voucher_info, "items": items, "message": "Order placed successfully"}
+    return {"id": order_id, "order_id": order_id, "subtotal": total, "total_amount": final_total, "items": items, "message": "Order placed successfully"}
 
 @api_router.post("/shop/{slug}/bookings")
 async def create_booking(slug: str, data: BookingCreate, request: Request):
@@ -2841,13 +2145,6 @@ async def create_booking(slug: str, data: BookingCreate, request: Request):
     if not service or service.get("type") != "service":
         raise HTTPException(status_code=404, detail="Service not found")
     booking_id = f"BK-{secrets.token_hex(6).upper()}"
-    agent_id_for_booking = None
-    agent_tracking = None
-    if data.agent_tracking_code:
-        agent = await db.agents.find_one({"tracking_code": data.agent_tracking_code, "shop_id": shop_id, "is_active": True})
-        if agent:
-            agent_id_for_booking = agent["id"]
-            agent_tracking = data.agent_tracking_code
     doc = {
         "id": booking_id,
         "shop_id": shop_id,
@@ -2863,9 +2160,6 @@ async def create_booking(slug: str, data: BookingCreate, request: Request):
         "status": "pending",
         "created_at": datetime.now(timezone.utc),
     }
-    if agent_id_for_booking:
-        doc["agent_id"] = agent_id_for_booking
-        doc["agent_tracking_code"] = agent_tracking
     await db.bookings.insert_one(doc)
 
     # Push notification
@@ -2910,15 +2204,8 @@ async def get_shop_bookings(request: Request):
     user = await require_shop_owner(request)
     shop_id = await resolve_shop_id(request, user)
     bookings = await db.bookings.find({"shop_id": shop_id}, {"_id": 0}).sort("created_at", -1).to_list(500)
-    agent_ids = set(b.get("agent_id") for b in bookings if b.get("agent_id"))
-    agent_map = {}
-    if agent_ids:
-        agents = await db.agents.find({"id": {"$in": list(agent_ids)}}, {"_id": 0, "id": 1, "name": 1, "tracking_code": 1}).to_list(200)
-        agent_map = {a["id"]: a for a in agents}
     for b in bookings:
         b["created_at"] = serialize_datetime(b.get("created_at"))
-        if b.get("agent_id") and b["agent_id"] in agent_map:
-            b["agent_name"] = agent_map[b["agent_id"]]["name"]
     return bookings
 
 @api_router.put("/dashboard/bookings/{booking_id}/status")
@@ -3408,14 +2695,6 @@ async def startup_event():
     await db.posts.create_index([("shop_id", 1), ("id", 1)])
     await db.pages.create_index([("shop_id", 1), ("id", 1)])
     await db.push_subscriptions.create_index([("shop_id", 1), ("subscription.endpoint", 1)])
-    await db.vouchers.create_index([("shop_id", 1), ("code", 1)], unique=True)
-    await db.vouchers.create_index([("shop_id", 1), ("id", 1)])
-    await db.agents.create_index("email", unique=True)
-    await db.agents.create_index([("shop_id", 1), ("id", 1)])
-    await db.agents.create_index("tracking_code", unique=True)
-    await db.agent_sales.create_index([("shop_id", 1), ("agent_id", 1)])
-    await db.agent_sales.create_index([("agent_id", 1), ("created_at", -1)])
-    await db.business_cards.create_index([("owner_id", 1), ("owner_type", 1)], unique=True)
     await db.bookings.create_index([("shop_id", 1), ("created_at", -1)])
 
     # Load security config from DB

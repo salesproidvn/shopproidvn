@@ -176,177 +176,6 @@ function SortableCategoryItem({ cat, idx, themeColor, parentName }) {
   );
 }
 
-const LINK_TYPES = [
-  { value: 'external', label: 'URL', icon: '🔗' },
-  { value: 'page', label: 'Trang', icon: '📄' },
-  { value: 'category', label: 'Danh mục', icon: '📁' },
-  { value: 'post', label: 'Bài viết', icon: '📝' },
-  { value: 'product', label: 'Sản phẩm', icon: '📦' },
-];
-
-const FooterLinkPicker = ({ value, linkType, onChange, shopSlug, categories, products, posts, customPages, testIdPrefix }) => {
-  const [search, setSearch] = useState('');
-  const [open, setOpen] = useState(false);
-  const type = linkType || 'external';
-
-  const getItems = () => {
-    const q = search.toLowerCase();
-    switch (type) {
-      case 'page': return (customPages || []).filter(p => p.title?.toLowerCase().includes(q)).map(p => ({ id: p.id, name: p.title, url: `/shop/${shopSlug}/page/${p.slug || p.id}` }));
-      case 'category': {
-        const allCatOption = { id: 'all-categories', name: 'Tất cả danh mục', url: `/shop/${shopSlug}/categories` };
-        const catItems = (categories || []).filter(c => c.name?.toLowerCase().includes(q)).map(c => ({ id: c.id, name: c.name, url: `/shop/${shopSlug}/category/${c.id}` }));
-        return [allCatOption, ...catItems].filter(i => i.name.toLowerCase().includes(q));
-      }
-      case 'post': return (posts || []).filter(p => p.title?.toLowerCase().includes(q)).map(p => ({ id: p.id, name: p.title, url: `/shop/${shopSlug}/posts/${p.id}` }));
-      case 'product': return (products || []).filter(p => p.name?.toLowerCase().includes(q)).map(p => ({ id: p.id, name: p.name, url: `/shop/${shopSlug}?product=${p.id}` }));
-      default: return [];
-    }
-  };
-
-  if (type === 'external') {
-    return (
-      <div className="flex gap-1" data-testid={testIdPrefix}>
-        <div className="flex border border-[#E2E8F0] rounded-md overflow-hidden flex-1">
-          <select value={type} onChange={e => onChange('', e.target.value)} className="text-[10px] bg-[#F8FAFC] border-r border-[#E2E8F0] px-1.5 outline-none text-[#64748B] cursor-pointer" data-testid={`${testIdPrefix}-type`}>
-            {LINK_TYPES.map(lt => <option key={lt.value} value={lt.value}>{lt.icon} {lt.label}</option>)}
-          </select>
-          <input value={value} onChange={e => onChange(e.target.value, 'external')} placeholder="https://..." className="flex-1 text-xs h-7 px-2 outline-none min-w-0" data-testid={`${testIdPrefix}-input`} />
-        </div>
-      </div>
-    );
-  }
-
-  const items = getItems();
-  const selectedItem = items.find(i => i.url === value);
-
-  return (
-    <div className="relative" data-testid={testIdPrefix}>
-      <div className="flex border border-[#E2E8F0] rounded-md overflow-hidden">
-        <select value={type} onChange={e => { onChange('', e.target.value); setSearch(''); }} className="text-[10px] bg-[#F8FAFC] border-r border-[#E2E8F0] px-1.5 outline-none text-[#64748B] cursor-pointer" data-testid={`${testIdPrefix}-type`}>
-          {LINK_TYPES.map(lt => <option key={lt.value} value={lt.value}>{lt.icon} {lt.label}</option>)}
-        </select>
-        <div className="flex-1 relative">
-          <input
-            value={open ? search : (selectedItem?.name || value || '')}
-            onChange={e => { setSearch(e.target.value); if (!open) setOpen(true); }}
-            onFocus={() => setOpen(true)}
-            placeholder={`Tìm ${LINK_TYPES.find(l => l.value === type)?.label?.toLowerCase()}...`}
-            className="w-full text-xs h-7 px-2 outline-none"
-            data-testid={`${testIdPrefix}-search`}
-          />
-          {selectedItem && !open && <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] text-green-600">&#10003;</span>}
-        </div>
-      </div>
-      {open && (
-        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-[#E2E8F0] rounded-md shadow-lg max-h-40 overflow-y-auto" data-testid={`${testIdPrefix}-dropdown`}>
-          {items.length === 0 ? (
-            <div className="px-3 py-2 text-xs text-[#94A3B8]">Không tìm thấy kết quả</div>
-          ) : items.map(item => (
-            <button key={item.id} className={`w-full text-left px-3 py-1.5 text-xs hover:bg-[#F1F5F9] transition-colors flex items-center justify-between ${value === item.url ? 'bg-[#F1F5F9] font-medium' : ''}`}
-              onClick={() => { onChange(item.url, type); setOpen(false); setSearch(''); }}
-              data-testid={`${testIdPrefix}-option-${item.id}`}
-            >
-              <span className="truncate">{item.name}</span>
-              {value === item.url && <span className="text-green-600 text-[10px] ml-2 shrink-0">&#10003;</span>}
-            </button>
-          ))}
-        </div>
-      )}
-      {open && <div className="fixed inset-0 z-40" onClick={() => { setOpen(false); setSearch(''); }} />}
-    </div>
-  );
-};
-
-
-const MENU_LINK_TYPES = [
-  { value: 'external', label: 'URL', icon: '🔗' },
-  { value: 'quick', label: 'Liên kết nhanh', icon: '⚡' },
-  { value: 'page', label: 'Trang', icon: '📄' },
-  { value: 'category', label: 'Danh mục', icon: '📁' },
-  { value: 'post', label: 'Bài viết', icon: '📝' },
-  { value: 'product', label: 'Sản phẩm', icon: '📦' },
-];
-
-const MenuLinkPicker = ({ value, linkType, onChange, shopSlug, categories, products, posts, customPages, testIdPrefix }) => {
-  const [search, setSearch] = useState('');
-  const [open, setOpen] = useState(false);
-  const type = linkType || 'external';
-
-  const getItems = () => {
-    const q = search.toLowerCase();
-    switch (type) {
-      case 'quick': return [
-        { id: 'home', name: 'Trang chủ', url: `/shop/${shopSlug}` },
-        { id: 'categories', name: 'Danh mục', url: `/shop/${shopSlug}/categories` },
-        { id: 'posts', name: 'Bài viết', url: `/shop/${shopSlug}/posts` },
-        { id: 'contact', name: 'Liên hệ', url: `/shop/${shopSlug}/contact` },
-      ].filter(i => i.name.toLowerCase().includes(q));
-      case 'page': return (customPages || []).filter(p => p.title?.toLowerCase().includes(q)).map(p => ({ id: p.id, name: p.title, url: `/shop/${shopSlug}/page/${p.slug || p.id}` }));
-      case 'category': {
-        const allCatOpt = { id: 'all-categories', name: 'Tất cả danh mục', url: `/shop/${shopSlug}/categories` };
-        const catList = (categories || []).filter(c => c.name?.toLowerCase().includes(q)).map(c => ({ id: c.id, name: c.name, url: `/shop/${shopSlug}/category/${c.id}` }));
-        return [allCatOpt, ...catList].filter(i => i.name.toLowerCase().includes(q));
-      }
-      case 'post': return (posts || []).filter(p => p.title?.toLowerCase().includes(q)).map(p => ({ id: p.id, name: p.title, url: `/shop/${shopSlug}/posts/${p.id}` }));
-      case 'product': return (products || []).filter(p => p.name?.toLowerCase().includes(q)).map(p => ({ id: p.id, name: p.name, url: `/shop/${shopSlug}?product=${p.id}` }));
-      default: return [];
-    }
-  };
-
-  if (type === 'external') {
-    return (
-      <div data-testid={testIdPrefix}>
-        <div className="flex border border-[#E2E8F0] rounded-md overflow-hidden">
-          <select value={type} onChange={e => onChange('', e.target.value, null)} className="text-[10px] bg-[#F8FAFC] border-r border-[#E2E8F0] px-1.5 outline-none text-[#64748B] cursor-pointer" data-testid={`${testIdPrefix}-type`}>
-            {MENU_LINK_TYPES.map(lt => <option key={lt.value} value={lt.value}>{lt.icon} {lt.label}</option>)}
-          </select>
-          <input value={value} onChange={e => onChange(e.target.value, 'external', null)} placeholder="https://..." className="flex-1 text-xs h-8 px-2 outline-none min-w-0" data-testid={`${testIdPrefix}-input`} />
-        </div>
-      </div>
-    );
-  }
-
-  const items = getItems();
-  const selectedItem = items.find(i => i.url === value);
-
-  return (
-    <div className="relative" data-testid={testIdPrefix}>
-      <div className="flex border border-[#E2E8F0] rounded-md overflow-hidden">
-        <select value={type} onChange={e => { onChange('', e.target.value, null); setSearch(''); }} className="text-[10px] bg-[#F8FAFC] border-r border-[#E2E8F0] px-1.5 outline-none text-[#64748B] cursor-pointer" data-testid={`${testIdPrefix}-type`}>
-          {MENU_LINK_TYPES.map(lt => <option key={lt.value} value={lt.value}>{lt.icon} {lt.label}</option>)}
-        </select>
-        <div className="flex-1 relative">
-          <input
-            value={open ? search : (selectedItem?.name || value || '')}
-            onChange={e => { setSearch(e.target.value); if (!open) setOpen(true); }}
-            onFocus={() => setOpen(true)}
-            placeholder={`Tìm ${MENU_LINK_TYPES.find(l => l.value === type)?.label?.toLowerCase()}...`}
-            className="w-full text-xs h-8 px-2 outline-none"
-            data-testid={`${testIdPrefix}-search`}
-          />
-          {selectedItem && !open && <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] text-green-600">&#10003;</span>}
-        </div>
-      </div>
-      {open && (
-        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-[#E2E8F0] rounded-md shadow-lg max-h-48 overflow-y-auto" data-testid={`${testIdPrefix}-dropdown`}>
-          {items.length === 0 ? (
-            <div className="px-3 py-2 text-xs text-[#94A3B8]">Không tìm thấy kết quả</div>
-          ) : items.map(item => (
-            <button key={item.id} className={`w-full text-left px-3 py-2 text-xs hover:bg-[#F1F5F9] transition-colors flex items-center justify-between ${value === item.url ? 'bg-[#F1F5F9] font-medium' : ''}`}
-              onClick={() => { onChange(item.url, type, item.name); setOpen(false); setSearch(''); }}
-              data-testid={`${testIdPrefix}-option-${item.id}`}
-            >
-              <span className="truncate">{item.name}</span>
-              {value === item.url && <span className="text-green-600 text-[10px] ml-2 shrink-0">&#10003;</span>}
-            </button>
-          ))}
-        </div>
-      )}
-      {open && <div className="fixed inset-0 z-40" onClick={() => { setOpen(false); setSearch(''); }} />}
-    </div>
-  );
-};
 
 
 const ShopOwnerDashboard = () => {
@@ -414,129 +243,6 @@ const ShopOwnerDashboard = () => {
   const [mediaSelected, setMediaSelected] = useState([]);
   const mediaBulkInputRef = useRef(null);
 
-  // Voucher state
-  const [vouchers, setVouchers] = useState([]);
-  const [showVoucherModal, setShowVoucherModal] = useState(false);
-  const [editingVoucher, setEditingVoucher] = useState(null);
-  const [voucherForm, setVoucherForm] = useState({ code: '', discount_type: 'percentage', discount_value: '', min_order_amount: '', max_uses: '', applicable_products: [], expiry_date: '', is_active: true });
-  const [voucherProductSearch, setVoucherProductSearch] = useState('');
-
-  // Agent state
-  const [agents, setAgents] = useState([]);
-  const [agentSalesData, setAgentSalesData] = useState(null);
-  const [showAgentModal, setShowAgentModal] = useState(false);
-  const [editingAgent, setEditingAgent] = useState(null);
-  const [agentForm, setAgentForm] = useState({ name: '', email: '', password: '', phone: '', level: 1, parent_agent_id: '' });
-  const [agentSearch, setAgentSearch] = useState('');
-
-  const fetchAgents = async () => {
-    try {
-      const { data } = await axios.get(`${API}/dashboard/agents`);
-      setAgents(data);
-    } catch (err) {
-      if (err.response?.status !== 403) {
-        console.error('Failed to load agents:', err.response?.data?.detail);
-      }
-    }
-  };
-
-  const fetchAgentSales = async () => {
-    try {
-      const { data } = await axios.get(`${API}/dashboard/agent-sales`);
-      setAgentSalesData(data);
-    } catch (err) {
-      if (err.response?.status !== 403) {
-        console.error('Failed to load agent sales:', err.response?.data?.detail);
-      }
-    }
-  };
-
-  const handleSaveAgent = async () => {
-    try {
-      const payload = { ...agentForm, level: Number(agentForm.level) };
-      if (!payload.parent_agent_id) delete payload.parent_agent_id;
-      if (editingAgent) {
-        await axios.put(`${API}/dashboard/agents/${editingAgent.id}`, payload);
-        toast.success(t.agentUpdated);
-      } else {
-        await axios.post(`${API}/dashboard/agents`, payload);
-        toast.success(t.agentCreated);
-      }
-      setShowAgentModal(false);
-      setEditingAgent(null);
-      setAgentForm({ name: '', email: '', password: '', phone: '', level: 1, parent_agent_id: '' });
-      fetchAgents();
-      fetchAgentSales();
-    } catch (err) { toast.error(err.response?.data?.detail || 'Error'); }
-  };
-
-  const handleDeleteAgent = async (id) => {
-    if (!window.confirm(t.confirmDeleteAgent)) return;
-    try {
-      await axios.delete(`${API}/dashboard/agents/${id}`);
-      toast.success(t.agentDeleted);
-      fetchAgents();
-      fetchAgentSales();
-    } catch { toast.error('Error'); }
-  };
-
-  // Business Card state
-  const [businessCard, setBusinessCard] = useState(null);
-  const [cardProductSearch, setCardProductSearch] = useState('');
-  const [cardCategoryFilter, setCardCategoryFilter] = useState('all');
-
-  const fetchBusinessCard = async () => {
-    try {
-      const { data } = await axios.get(`${API}/dashboard/business-card`);
-      setBusinessCard(data);
-    } catch { }
-  };
-
-  const handleSaveBusinessCard = async () => {
-    try {
-      await axios.put(`${API}/dashboard/business-card`, businessCard);
-      toast.success(t.saved || 'Saved');
-    } catch (err) { toast.error(err.response?.data?.detail || 'Error'); }
-  };
-
-  const fetchVouchers = async () => {
-    try {
-      const { data } = await axios.get(`${API}/dashboard/vouchers`);
-      setVouchers(data);
-    } catch { console.error('Failed to load vouchers'); }
-  };
-
-  const handleSaveVoucher = async () => {
-    try {
-      const payload = {
-        ...voucherForm,
-        discount_value: Number(voucherForm.discount_value) || 0,
-        min_order_amount: Number(voucherForm.min_order_amount) || 0,
-        max_uses: Number(voucherForm.max_uses) || 0,
-      };
-      if (editingVoucher) {
-        await axios.put(`${API}/dashboard/vouchers/${editingVoucher.id}`, payload);
-        toast.success(t.voucherUpdated);
-      } else {
-        await axios.post(`${API}/dashboard/vouchers`, payload);
-        toast.success(t.voucherCreated);
-      }
-      setShowVoucherModal(false);
-      setEditingVoucher(null);
-      setVoucherForm({ code: '', discount_type: 'percentage', discount_value: '', min_order_amount: '', max_uses: '', applicable_products: [], expiry_date: '', is_active: true });
-      fetchVouchers();
-    } catch (err) { toast.error(err.response?.data?.detail || 'Error'); }
-  };
-
-  const handleDeleteVoucher = async (id) => {
-    if (!window.confirm(t.confirmDeleteVoucher)) return;
-    try {
-      await axios.delete(`${API}/dashboard/vouchers/${id}`);
-      toast.success(t.voucherDeleted);
-      fetchVouchers();
-    } catch { toast.error('Error'); }
-  };
-
   const fetchMediaList = async (p = 1) => {
     setMediaLoading(true);
     try {
@@ -591,10 +297,7 @@ const ShopOwnerDashboard = () => {
 
   useEffect(() => {
     if (activeTab === 'media') fetchMediaList(1);
-    if (activeTab === 'vouchers') fetchVouchers();
-    if (activeTab === 'agents' && shop?.agents_enabled) { fetchAgents(); fetchAgentSales(); }
-    if (activeTab === 'card' && shop?.business_card_enabled) fetchBusinessCard();
-  }, [activeTab, shop?.agents_enabled, shop?.business_card_enabled]);
+  }, [activeTab]);
 
   const openMediaLibrary = (callback, { multiple = false, maxSelect = 1 } = {}) => {
     setMediaCallback(() => callback);
@@ -609,8 +312,7 @@ const ShopOwnerDashboard = () => {
   const [editingPage, setEditingPage] = useState(null);
   const [pageForm, setPageForm] = useState({ title: '', sections: [], is_published: true });
 
-  // Menu Manager state
-  const [shopMenuItems, setShopMenuItems] = useState([]);
+  // Mega Menu state
   const [megaMenuItems, setMegaMenuItems] = useState([]);
 
   // Push Notification & PWA Install state
@@ -682,7 +384,7 @@ const ShopOwnerDashboard = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [statsRes, shopRes, productsRes, categoriesRes, ordersRes, bookingsRes, postsRes, pagesRes, menuRes, megaMenuRes] = await Promise.all([
+      const [statsRes, shopRes, productsRes, categoriesRes, ordersRes, bookingsRes, postsRes, pagesRes, megaMenuRes] = await Promise.all([
         axios.get(`${API}/dashboard/stats${shopQuery}`),
         axios.get(`${API}/dashboard/shop${shopQuery}`),
         axios.get(`${API}/dashboard/products${shopQuery}`),
@@ -691,7 +393,6 @@ const ShopOwnerDashboard = () => {
         axios.get(`${API}/dashboard/bookings${shopQuery}`).catch(() => ({ data: [] })),
         axios.get(`${API}/dashboard/posts${shopQuery}`),
         axios.get(`${API}/dashboard/pages${shopQuery}`),
-        axios.get(`${API}/dashboard/menu${shopQuery}`),
         axios.get(`${API}/dashboard/mega-menu${shopQuery}`)
       ]);
       setStats(statsRes.data);
@@ -704,7 +405,6 @@ const ShopOwnerDashboard = () => {
       setBookings(bookingsRes.data || []);
       setPosts(postsRes.data || []);
       setCustomPages(pagesRes.data || []);
-      setShopMenuItems(menuRes.data || []);
       setMegaMenuItems(megaMenuRes.data || []);
     } catch (err) {
       toast.error(t.failedToLoad);
@@ -762,12 +462,8 @@ const ShopOwnerDashboard = () => {
 
   const fetchMenuOnly = async () => {
     try {
-      const [menuRes, megaMenuRes] = await Promise.all([
-        axios.get(`${API}/dashboard/menu${shopQuery}`),
-        axios.get(`${API}/dashboard/mega-menu${shopQuery}`)
-      ]);
-      setShopMenuItems(menuRes.data || []);
-      setMegaMenuItems(megaMenuRes.data || []);
+      const { data } = await axios.get(`${API}/dashboard/mega-menu${shopQuery}`);
+      setMegaMenuItems(data || []);
     } catch { }
   };
 
@@ -1347,11 +1043,8 @@ const ShopOwnerDashboard = () => {
     { id: 'pages', label: t.customPages, icon: Globe },
     { id: 'orders', label: t.orders, icon: ShoppingCart },
     { id: 'media', label: t.mediaLibrary || 'Thư viện ảnh', icon: Image },
-    { id: 'menu', label: t.menuManager, icon: Navigation },
+    { id: 'megamenu', label: t.megaMenu || 'Mega Menu', icon: Grid3X3 },
     { id: 'layout', label: t.displayLayout, icon: LayoutGrid },
-    { id: 'vouchers', label: t.vouchers || 'Voucher', icon: Ticket },
-    ...(shop?.agents_enabled ? [{ id: 'agents', label: t.agents || 'Đại lý', icon: Users }] : []),
-    ...(shop?.business_card_enabled ? [{ id: 'card', label: t.businessCard || 'Danh thiếp', icon: Globe }] : []),
     { id: 'settings', label: t.settings, icon: Settings },
   ];
 
@@ -1511,10 +1204,7 @@ const ShopOwnerDashboard = () => {
                   {activeTab === 'pages' && t.customPages}
                   {activeTab === 'orders' && t.orders}
                   {activeTab === 'media' && (t.mediaLibrary || 'Thư viện ảnh')}
-                  {activeTab === 'menu' && t.menuManager}
-                  {activeTab === 'vouchers' && (t.vouchers || 'Voucher')}
-                  {activeTab === 'agents' && (t.agents || 'Đại lý')}
-                  {activeTab === 'card' && (t.businessCard || 'Danh thiếp')}
+                  {activeTab === 'megamenu' && (t.megaMenu || 'Mega Menu')}
                   {activeTab === 'layout' && t.displayLayout}
                   {activeTab === 'settings' && t.settings}
                 </h1>
@@ -1546,16 +1236,6 @@ const ShopOwnerDashboard = () => {
             {activeTab === 'pages' && customPages.length < 10 && (
               <Button onClick={() => { setEditingPage(null); setPageForm({ title: '', sections: [], is_published: true }); setShowPageModal(true); }} style={{ backgroundColor: themeColor }} className="hover:opacity-90 text-sm" data-testid="add-page-btn">
                 <Plus className="w-4 h-4 mr-2" /> {t.createPage}
-              </Button>
-            )}
-            {activeTab === 'vouchers' && (
-              <Button onClick={() => { setEditingVoucher(null); setVoucherForm({ code: '', discount_type: 'percentage', discount_value: '', min_order_amount: '', max_uses: '', applicable_products: [], expiry_date: '', is_active: true }); setShowVoucherModal(true); }} style={{ backgroundColor: themeColor }} className="hover:opacity-90 text-sm" data-testid="add-voucher-btn">
-                <Plus className="w-4 h-4 mr-2" /> {t.createVoucher}
-              </Button>
-            )}
-            {activeTab === 'agents' && shop?.agents_enabled && agents.length < 100 && (
-              <Button onClick={() => { setEditingAgent(null); setAgentForm({ name: '', email: '', password: '', phone: '', level: 1, parent_agent_id: '' }); setShowAgentModal(true); }} style={{ backgroundColor: themeColor }} className="hover:opacity-90 text-sm" data-testid="add-agent-btn">
-                <Plus className="w-4 h-4 mr-2" /> {t.createAgent}
               </Button>
             )}
           </div>
@@ -1838,35 +1518,6 @@ const ShopOwnerDashboard = () => {
           )}
           {activeTab === 'orders' && !loading && (
             <div className="space-y-4">
-              {/* Agent Sales Summary - only show if there are agent orders */}
-              {orders.some(o => o.agent_name) && (
-                <Card className="border-0 shadow-sm border-l-4" style={{ borderLeftColor: themeColor }}>
-                  <CardContent className="p-4">
-                    <h3 className="text-sm font-bold text-[#0F172A] mb-3">{t.agentSalesOverview || 'Tổng quan doanh số'}</h3>
-                    <div className="grid grid-cols-3 gap-3 text-center">
-                      <div className="bg-[#F8FAFC] rounded-lg p-2.5">
-                        <p className="text-[10px] text-[#94A3B8]">{t.totalSales || 'Tổng doanh số'}</p>
-                        <p className="text-base font-bold" style={{ color: themeColor }}>
-                          {formatVND(orders.filter(o => o.status === 'confirmed' || o.status === 'completed').reduce((s, o) => s + (o.total_amount || 0), 0))}
-                        </p>
-                      </div>
-                      <div className="bg-[#F8FAFC] rounded-lg p-2.5">
-                        <p className="text-[10px] text-[#94A3B8]">Doanh số đại lý</p>
-                        <p className="text-base font-bold text-blue-600">
-                          {formatVND(orders.filter(o => o.agent_name && (o.status === 'confirmed' || o.status === 'completed')).reduce((s, o) => s + (o.total_amount || 0), 0))}
-                        </p>
-                      </div>
-                      <div className="bg-[#F8FAFC] rounded-lg p-2.5">
-                        <p className="text-[10px] text-[#94A3B8]">{t.pending || 'Chờ duyệt'}</p>
-                        <p className="text-base font-bold text-amber-500">
-                          {orders.filter(o => o.status === 'pending').length}
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
               <Card className="border-0 shadow-sm">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between mb-3">
@@ -1883,21 +1534,11 @@ const ShopOwnerDashboard = () => {
                       {orders.slice((orderPage - 1) * ORDERS_PER_PAGE, orderPage * ORDERS_PER_PAGE).map((order) => {
                         const isExpanded = expandedOrderId === order.id;
                         return (
-                        <div key={order.id} className={`border rounded-lg bg-white ${order.agent_name ? 'border-l-4 border-l-blue-400' : ''}`} data-testid={`order-card-${order.id}`}>
+                        <div key={order.id} className="border rounded-lg bg-white" data-testid={`order-card-${order.id}`}>
                           <div className="p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                             <div className="flex-1 min-w-0 cursor-pointer" onClick={() => setExpandedOrderId(isExpanded ? null : order.id)} data-testid={`order-row-${order.id}`}>
                               <div className="flex items-center gap-2 flex-wrap">
                                 <p className="font-medium text-[#0F172A] text-sm hover:text-[#0055FF] transition-colors">{order.id}</p>
-                                {order.agent_name && (
-                                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 font-bold border border-blue-200" data-testid={`order-agent-${order.id}`}>
-                                    Đại lý: {order.agent_name}
-                                  </span>
-                                )}
-                                {order.voucher && (
-                                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-50 text-green-600 font-medium">
-                                    {order.voucher.code}
-                                  </span>
-                                )}
                               </div>
                               <p className="text-xs text-[#64748B] mt-0.5">{order.customer_name} - {order.customer_phone}</p>
                               <p className="text-[10px] text-[#94A3B8]">{order.items?.length || 0} {t.items} - {new Date(order.created_at).toLocaleDateString('vi-VN')} {new Date(order.created_at).toLocaleTimeString('vi-VN', {hour:'2-digit',minute:'2-digit'})}</p>
@@ -1953,7 +1594,7 @@ const ShopOwnerDashboard = () => {
                                     </div>
                                     {order.discount_amount > 0 && (
                                       <div className="flex justify-between">
-                                        <span className="text-[#64748B]">Giảm giá{order.voucher?.code ? ` (${order.voucher.code})` : ''}:</span>
+                                        <span className="text-[#64748B]">Giảm giá:</span>
                                         <span className="font-medium text-red-500">-{formatVND(order.discount_amount)}</span>
                                       </div>
                                     )}
@@ -2056,11 +1697,6 @@ const ShopOwnerDashboard = () => {
                               <div className="flex items-center gap-2 flex-wrap">
                                 <p className="font-medium text-[#0F172A] text-sm">{bk.id}</p>
                                 <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[#0F172A] text-white font-medium">Dịch vụ</span>
-                                {bk.agent_name && (
-                                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 font-bold border border-blue-200">
-                                    Đại lý: {bk.agent_name}
-                                  </span>
-                                )}
                               </div>
                               <p className="text-xs text-[#0F172A] mt-1 font-medium">{bk.service_name} · {formatVND(bk.service_price || 0)}</p>
                               <p className="text-xs text-[#64748B] mt-0.5">{bk.customer_name} - {bk.customer_phone}</p>
@@ -2339,89 +1975,9 @@ const ShopOwnerDashboard = () => {
             </div>
           )}
 
-          {/* Menu Manager Tab */}
-          {activeTab === 'menu' && (
+          {/* Mega Menu Manager Tab */}
+          {activeTab === 'megamenu' && (
             <div className="space-y-6">
-            <Card className="border-0 shadow-sm" data-testid="menu-manager-tab">
-              <CardHeader className="p-4">
-                <CardTitle className="text-base flex items-center gap-2"><Navigation className="w-4 h-4" /> {t.menuItems}</CardTitle>
-              </CardHeader>
-              <CardContent className="p-4 pt-0 space-y-3">
-                {shopMenuItems.length === 0 && (
-                  <p className="text-sm text-[#64748B] text-center py-6">{t.noMenuItems}</p>
-                )}
-                {shopMenuItems.map((item, idx) => (
-                  <div key={item.id} className="flex items-center gap-2 p-3 border border-[#E2E8F0] rounded-[5px]" data-testid={`menu-item-${idx}`}>
-                    <div className="flex flex-col gap-0.5">
-                      <Button variant="ghost" size="icon" className="h-5 w-5" disabled={idx === 0} onClick={() => {
-                        const items = [...shopMenuItems];
-                        [items[idx - 1], items[idx]] = [items[idx], items[idx - 1]];
-                        items.forEach((it, i) => it.position = i);
-                        setShopMenuItems(items);
-                      }} data-testid={`menu-up-${idx}`}><ArrowUp className="w-3 h-3" /></Button>
-                      <Button variant="ghost" size="icon" className="h-5 w-5" disabled={idx === shopMenuItems.length - 1} onClick={() => {
-                        const items = [...shopMenuItems];
-                        [items[idx], items[idx + 1]] = [items[idx + 1], items[idx]];
-                        items.forEach((it, i) => it.position = i);
-                        setShopMenuItems(items);
-                      }} data-testid={`menu-down-${idx}`}><ArrowDown className="w-3 h-3" /></Button>
-                    </div>
-                    <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      <Input value={item.label} onChange={(e) => {
-                        const items = [...shopMenuItems]; items[idx] = { ...items[idx], label: e.target.value }; setShopMenuItems(items);
-                      }} placeholder={t.menuItemLabel} className="text-sm h-8" data-testid={`menu-label-${idx}`} />
-                      <MenuLinkPicker
-                        value={item.url || ''}
-                        linkType={item.link_type || (item.url?.startsWith('http') ? 'external' : item.url?.includes('/page/') ? 'page' : item.url?.includes('/posts/') ? 'post' : item.url?.includes('/category/') ? 'category' : item.url?.includes('?product=') ? 'product' : item.url ? 'quick' : 'external')}
-                        onChange={(url, linkType, autoLabel) => {
-                          const items = [...shopMenuItems];
-                          items[idx] = { ...items[idx], url, link_type: linkType };
-                          if (autoLabel && !items[idx].label) items[idx].label = autoLabel;
-                          setShopMenuItems(items);
-                        }}
-                        shopSlug={shop?.slug}
-                        categories={categories}
-                        products={products}
-                        posts={posts}
-                        customPages={customPages}
-                        testIdPrefix={`menu-link-${idx}`}
-                      />
-                    </div>
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => {
-                      const items = [...shopMenuItems]; items[idx] = { ...items[idx], enabled: !items[idx].enabled }; setShopMenuItems(items);
-                    }} data-testid={`menu-toggle-${idx}`}>
-                      {item.enabled ? <Eye className="w-3.5 h-3.5 text-green-600" /> : <EyeOff className="w-3.5 h-3.5 text-[#94A3B8]" />}
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => {
-                      setShopMenuItems(shopMenuItems.filter((_, i) => i !== idx));
-                    }} data-testid={`menu-remove-${idx}`}><Trash2 className="w-3.5 h-3.5 text-red-400" /></Button>
-                  </div>
-                ))}
-                <div className="flex gap-3 pt-2">
-                  {shopMenuItems.length < 10 && (
-                    <Button variant="outline" size="sm" className="text-xs" onClick={() => {
-                      const newItem = { id: `mi-${Date.now()}`, label: '', url: '', type: 'internal', enabled: true, position: shopMenuItems.length };
-                      setShopMenuItems([...shopMenuItems, newItem]);
-                    }} data-testid="add-menu-item-btn">
-                      <Plus className="w-3 h-3 mr-1" /> {t.addMenuItem}
-                    </Button>
-                  )}
-                  {shopMenuItems.length >= 10 && (
-                    <span className="text-xs text-yellow-600">{t.maxMenuItemsReached}</span>
-                  )}
-                  <Button size="sm" className="text-xs hover:opacity-90" style={{ backgroundColor: themeColor }} onClick={async () => {
-                    try {
-                      await axios.put(`${API}/dashboard/menu`, { items: shopMenuItems });
-                      toast.success(t.menuSaved);
-                      fetchMenuOnly();
-                    } catch { toast.error(t.failedToSave); }
-                  }} data-testid="save-menu-btn">
-                    {t.saveChanges}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
             {/* Mega Menu Manager */}
             <Card className="border-0 shadow-sm" data-testid="mega-menu-manager">
               <CardHeader className="p-4">
@@ -2617,460 +2173,8 @@ const ShopOwnerDashboard = () => {
                 </CardContent>
               </Card>
 
-              {/* Footer Settings */}
-              <Card className="border-0 shadow-sm">
-                <CardHeader className="p-4">
-                  <CardTitle className="text-base flex items-center gap-2"><LayoutGrid className="w-4 h-4" /> {t.footerSettings}</CardTitle>
-                  <p className="text-sm text-[#64748B] mt-1">{t.footerDescription}</p>
-                </CardHeader>
-                <CardContent className="p-4 pt-0 space-y-4" data-testid="footer-settings">
-                  {(shopForm.footer_columns || []).map((col, idx) => (
-                    <div key={idx} className="p-3 border border-[#E2E8F0] rounded-[5px] space-y-3" data-testid={`footer-col-editor-${idx}`}>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-medium text-[#64748B]">{t.footerColumn} {idx + 1}</span>
-                        <Button variant="ghost" size="sm" className="h-6 text-xs text-red-500 hover:text-red-700" onClick={async () => {
-                          const newCols = (shopForm.footer_columns || []).filter((_, i) => i !== idx);
-                          setShopForm({ ...shopForm, footer_columns: newCols });
-                          try {
-                            await axios.put(`${API}/dashboard/shop`, { footer_columns: newCols });
-                            toast.success(t.footerSaved);
-                          } catch { toast.error(t.failedToSave); }
-                        }} data-testid={`remove-footer-col-${idx}`}>
-                          <Trash2 className="w-3 h-3 mr-1" /> {t.removeFooterColumn}
-                        </Button>
-                      </div>
-                      <Input
-                        value={col.title}
-                        onChange={(e) => {
-                          const newCols = [...(shopForm.footer_columns || [])];
-                          newCols[idx] = { ...newCols[idx], title: e.target.value };
-                          setShopForm({ ...shopForm, footer_columns: newCols });
-                        }}
-                        placeholder={t.footerColumnTitle}
-                        className="text-sm"
-                        data-testid={`footer-col-title-${idx}`}
-                      />
-                      {/* Footer items with text + optional link */}
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-medium text-[#94A3B8] uppercase tracking-wide">{t.footerItems}</label>
-                        {(col.items || []).map((item, itemIdx) => (
-                          <div key={itemIdx} className="flex gap-2 items-start" data-testid={`footer-item-${idx}-${itemIdx}`}>
-                            <div className="flex-1 space-y-1">
-                              <Input
-                                value={item.text}
-                                onChange={(e) => {
-                                  const newCols = [...(shopForm.footer_columns || [])];
-                                  const newItems = [...(newCols[idx].items || [])];
-                                  newItems[itemIdx] = { ...newItems[itemIdx], text: e.target.value };
-                                  newCols[idx] = { ...newCols[idx], items: newItems };
-                                  setShopForm({ ...shopForm, footer_columns: newCols });
-                                }}
-                                placeholder={t.footerItemText}
-                                className="text-sm h-8"
-                                data-testid={`footer-item-text-${idx}-${itemIdx}`}
-                              />
-                              <FooterLinkPicker
-                                value={item.url || ''}
-                                linkType={item.link_type || 'external'}
-                                onChange={(url, linkType) => {
-                                  const newCols = [...(shopForm.footer_columns || [])];
-                                  const newItems = [...(newCols[idx].items || [])];
-                                  newItems[itemIdx] = { ...newItems[itemIdx], url, link_type: linkType };
-                                  newCols[idx] = { ...newCols[idx], items: newItems };
-                                  setShopForm({ ...shopForm, footer_columns: newCols });
-                                }}
-                                shopSlug={shop?.slug}
-                                categories={categories}
-                                products={products}
-                                posts={posts}
-                                customPages={customPages}
-                                testIdPrefix={`footer-item-url-${idx}-${itemIdx}`}
-                              />
-                            </div>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-red-400 hover:text-red-600 flex-shrink-0 mt-0" onClick={() => {
-                              const newCols = [...(shopForm.footer_columns || [])];
-                              const newItems = (newCols[idx].items || []).filter((_, i) => i !== itemIdx);
-                              newCols[idx] = { ...newCols[idx], items: newItems };
-                              setShopForm({ ...shopForm, footer_columns: newCols });
-                            }} data-testid={`remove-footer-item-${idx}-${itemIdx}`}>
-                              <X className="w-3 h-3" />
-                            </Button>
-                          </div>
-                        ))}
-                        <Button variant="outline" size="sm" className="text-[10px] h-7" onClick={() => {
-                          const newCols = [...(shopForm.footer_columns || [])];
-                          const newItems = [...(newCols[idx].items || []), { text: '', url: '' }];
-                          newCols[idx] = { ...newCols[idx], items: newItems };
-                          setShopForm({ ...shopForm, footer_columns: newCols });
-                        }} data-testid={`add-footer-item-${idx}`}>
-                          <Plus className="w-3 h-3 mr-1" /> {t.addFooterItem}
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                  <div className="flex gap-3">
-                    {(shopForm.footer_columns || []).length < 4 && (
-                      <Button variant="outline" size="sm" className="text-xs" onClick={() => {
-                        const newCols = [...(shopForm.footer_columns || []), { title: '', items: [{ text: '', url: '' }] }];
-                        setShopForm({ ...shopForm, footer_columns: newCols });
-                      }} data-testid="add-footer-col-btn">
-                        <Plus className="w-3 h-3 mr-1" /> {t.addFooterColumn}
-                      </Button>
-                    )}
-                    <Button size="sm" className="text-xs hover:opacity-90" style={{ backgroundColor: themeColor }} onClick={async () => {
-                      try {
-                        await axios.put(`${API}/dashboard/shop`, { footer_columns: shopForm.footer_columns || [] });
-                        toast.success(t.footerSaved);
-                        const { data: s } = await axios.get(`${API}/dashboard/shop${shopQuery}`);
-                        setShop(s); setShopForm(s);
-                      } catch { toast.error(t.failedToSave); }
-                    }} data-testid="save-footer-btn">
-                      {t.saveChanges}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
             </div>
           )}
-
-
-          {/* Vouchers Tab */}
-          {activeTab === 'vouchers' && loading && (
-            <div className="space-y-3">{[1,2].map(i => <div key={i} className="h-20 bg-[#F1F5F9] rounded-xl animate-pulse" />)}</div>
-          )}
-          {activeTab === 'vouchers' && !loading && (
-            <div className="space-y-4" data-testid="vouchers-tab">
-              {vouchers.length === 0 ? (
-                <Card className="border-0 shadow-sm">
-                  <CardContent className="p-8 text-center">
-                    <Ticket className="w-12 h-12 mx-auto mb-3 text-[#CBD5E1]" />
-                    <p className="text-[#64748B]">{t.noVouchers}</p>
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="grid gap-3">
-                  {vouchers.map(v => {
-                    const isExpired = v.expiry_date && new Date(v.expiry_date) < new Date();
-                    const isMaxed = v.max_uses > 0 && v.used_count >= v.max_uses;
-                    return (
-                      <Card key={v.id} className="border-0 shadow-sm" data-testid={`voucher-${v.id}`}>
-                        <CardContent className="p-4">
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-1">
-                                <span className="font-mono font-bold text-lg tracking-wider" style={{ color: themeColor }}>{v.code}</span>
-                                {v.is_active && !isExpired && !isMaxed ? (
-                                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-medium">{t.voucherActive}</span>
-                                ) : isExpired ? (
-                                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-medium">{t.expired}</span>
-                                ) : (
-                                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 font-medium">{t.voucherInactive}</span>
-                                )}
-                              </div>
-                              <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-[#64748B]">
-                                <span>{v.discount_type === 'percentage' ? `${v.discount_value}%` : formatVND(v.discount_value)}</span>
-                                <span>{t.usedCount}: {v.used_count}/{v.max_uses > 0 ? v.max_uses : '∞'}</span>
-                                {v.min_order_amount > 0 && <span>{t.minOrderAmount}: {formatVND(v.min_order_amount)}</span>}
-                                {v.expiry_date && <span>{t.expiryDate}: {new Date(v.expiry_date).toLocaleDateString('vi-VN')}</span>}
-                                {v.applicable_products?.length > 0 && <span>{v.applicable_products.length} {t.selectedProducts?.toLowerCase()}</span>}
-                              </div>
-                            </div>
-                            <div className="flex gap-2 flex-shrink-0">
-                              <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => {
-                                setEditingVoucher(v);
-                                setVoucherForm({
-                                  code: v.code, discount_type: v.discount_type, discount_value: v.discount_value,
-                                  min_order_amount: v.min_order_amount || '', max_uses: v.max_uses || '',
-                                  applicable_products: v.applicable_products || [],
-                                  expiry_date: v.expiry_date ? v.expiry_date.split('T')[0] : '',
-                                  is_active: v.is_active,
-                                });
-                                setShowVoucherModal(true);
-                              }} data-testid={`edit-voucher-${v.id}`}>
-                                <Pencil className="w-3 h-3 mr-1" /> {t.editVoucher}
-                              </Button>
-                              <Button variant="outline" size="sm" className="h-8 text-xs text-red-500 hover:text-red-700 hover:border-red-300" onClick={() => handleDeleteVoucher(v.id)} data-testid={`delete-voucher-${v.id}`}>
-                                <Trash2 className="w-3 h-3" />
-                              </Button>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          )}
-
-
-          {/* Agents Tab */}
-          {activeTab === 'agents' && (
-            <div className="space-y-4" data-testid="agents-tab">
-              {!shop?.agents_enabled ? (
-                <Card className="border-0 shadow-sm">
-                  <CardContent className="p-8 text-center">
-                    <Users className="w-12 h-12 mx-auto mb-3 text-[#CBD5E1]" />
-                    <p className="text-[#64748B] text-sm mb-2">{t.agentsFeature || 'Tính năng đại lý'}</p>
-                    <p className="text-[#94A3B8] text-xs">Tính năng này chưa được kích hoạt. Vui lòng liên hệ quản trị viên (Super Admin) để bật tính năng đại lý cho cửa hàng của bạn.</p>
-                  </CardContent>
-                </Card>
-              ) : (
-                <>
-              {/* Sales Overview */}
-              {agentSalesData && (
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                  <Card className="border-0 shadow-sm">
-                    <CardContent className="p-4">
-                      <p className="text-xs text-[#64748B]">{t.totalSales}</p>
-                      <p className="text-lg font-bold" style={{ color: themeColor }}>{formatVND(agentSalesData.grand_total)}</p>
-                    </CardContent>
-                  </Card>
-                  <Card className="border-0 shadow-sm">
-                    <CardContent className="p-4">
-                      <p className="text-xs text-[#64748B]">{t.ownerSales}</p>
-                      <p className="text-lg font-bold">{formatVND(agentSalesData.owner_sales?.total || 0)}</p>
-                    </CardContent>
-                  </Card>
-                  <Card className="border-0 shadow-sm">
-                    <CardContent className="p-4">
-                      <p className="text-xs text-[#64748B]">{t.agents}</p>
-                      <p className="text-lg font-bold">{agentSalesData.total_agents}</p>
-                    </CardContent>
-                  </Card>
-                </div>
-              )}
-              {/* Agent Search + List */}
-              {agents.length === 0 ? (
-                <Card className="border-0 shadow-sm">
-                  <CardContent className="p-8 text-center">
-                    <Users className="w-12 h-12 mx-auto mb-3 text-[#CBD5E1]" />
-                    <p className="text-[#64748B]">{t.noAgents}</p>
-                  </CardContent>
-                </Card>
-              ) : (
-                <>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#94A3B8]" />
-                  <Input
-                    placeholder="Tìm đại lý theo tên, email, SĐT..."
-                    value={agentSearch}
-                    onChange={(e) => setAgentSearch(e.target.value)}
-                    className="pl-9 h-9 text-sm bg-white"
-                    data-testid="agent-search-input"
-                  />
-                </div>
-                <div className="grid gap-3">
-                  {agents.filter(a => {
-                    if (!agentSearch) return true;
-                    const q = agentSearch.toLowerCase();
-                    return (a.name || '').toLowerCase().includes(q) || (a.email || '').toLowerCase().includes(q) || (a.phone || '').includes(q);
-                  }).map(a => {
-                    const salesInfo = agentSalesData?.agents?.find(ag => ag.id === a.id);
-                    const parentAgent = a.parent_agent_id ? agents.find(p => p.id === a.parent_agent_id) : null;
-                    const shopSlug = shop?.slug || '';
-                    const refLink = `${window.location.origin}/shop/${shopSlug}?ref=${a.tracking_code}`;
-                    return (
-                      <Card key={a.id} className="border-0 shadow-sm" data-testid={`agent-${a.id}`}>
-                        <CardContent className="p-4">
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-1">
-                                <span className="font-bold text-[#0F172A]">{a.name}</span>
-                                <span className="text-[10px] px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: themeColor + '15', color: themeColor }}>Cấp {a.level}</span>
-                                {a.is_active ? (
-                                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-medium">{t.agentActive}</span>
-                                ) : (
-                                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 font-medium">{t.voucherInactive}</span>
-                                )}
-                              </div>
-                              <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-[#64748B]">
-                                <span>{a.email}</span>
-                                {a.phone && <span>{a.phone}</span>}
-                                {parentAgent && <span>{t.parentAgent}: {parentAgent.name}</span>}
-                                <span>{t.trackingCode}: <span className="font-mono">{a.tracking_code}</span></span>
-                              </div>
-                              {salesInfo && (
-                                <div className="flex gap-4 mt-1 text-xs">
-                                  <span className="font-medium" style={{ color: themeColor }}>{t.totalSales}: {formatVND(salesInfo.total_sales)}</span>
-                                  <span className="text-[#64748B]">{t.orderCount}: {salesInfo.order_count}</span>
-                                </div>
-                              )}
-                            </div>
-                            <div className="flex gap-2 flex-shrink-0">
-                              <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => {
-                                try {
-                                  if (navigator.clipboard && navigator.clipboard.writeText) {
-                                    navigator.clipboard.writeText(refLink).then(() => {
-                                      toast.success(t.linkCopied || 'Copied!');
-                                    }).catch(() => {
-                                      const ta = document.createElement('textarea');
-                                      ta.value = refLink; ta.style.position = 'fixed'; ta.style.left = '-9999px';
-                                      document.body.appendChild(ta); ta.select(); document.execCommand('copy');
-                                      document.body.removeChild(ta);
-                                      toast.success(t.linkCopied || 'Copied!');
-                                    });
-                                  } else {
-                                    const ta = document.createElement('textarea');
-                                    ta.value = refLink; ta.style.position = 'fixed'; ta.style.left = '-9999px';
-                                    document.body.appendChild(ta); ta.select(); document.execCommand('copy');
-                                    document.body.removeChild(ta);
-                                    toast.success(t.linkCopied || 'Copied!');
-                                  }
-                                } catch { toast.error('Copy failed'); }
-                              }} data-testid={`copy-agent-link-${a.id}`}>
-                                <Copy className="w-3 h-3 mr-1" /> {t.copyLink}
-                              </Button>
-                              <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => {
-                                setEditingAgent(a);
-                                setAgentForm({ name: a.name, email: a.email, password: '', phone: a.phone || '', level: a.level, parent_agent_id: a.parent_agent_id || '' });
-                                setShowAgentModal(true);
-                              }} data-testid={`edit-agent-${a.id}`}>
-                                <Pencil className="w-3 h-3" />
-                              </Button>
-                              <Button variant="outline" size="sm" className="h-8 text-xs text-red-500 hover:text-red-700" onClick={() => handleDeleteAgent(a.id)} data-testid={`delete-agent-${a.id}`}>
-                                <Trash2 className="w-3 h-3" />
-                              </Button>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
-                </div>
-                </>
-              )}
-              </>
-              )}
-            </div>
-          )}
-
-
-
-          {/* Business Card Tab */}
-          {activeTab === 'card' && businessCard && (
-            <div className="space-y-4" data-testid="business-card-tab">
-              <Card className="border-0 shadow-sm">
-                <CardHeader className="p-4">
-                  <CardTitle className="text-base">{t.businessCard || 'Danh thiếp điện tử'}</CardTitle>
-                  <p className="text-xs text-[#94A3B8] mt-1">
-                    Link: <a href={`/card/${shop?.slug}`} target="_blank" rel="noopener noreferrer" className="underline" style={{ color: themeColor }}>{window.location.origin}/card/{shop?.slug}</a>
-                  </p>
-                </CardHeader>
-                <CardContent className="p-4 pt-0 space-y-4">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-xs font-medium text-[#334155] mb-1 block">{t.name || 'Tên hiển thị'}</label>
-                      <Input value={businessCard.display_name || ''} onChange={(e) => setBusinessCard({...businessCard, display_name: e.target.value})} className="text-sm" data-testid="card-display-name" />
-                    </div>
-                    <div>
-                      <label className="text-xs font-medium text-[#334155] mb-1 block">Chức danh</label>
-                      <Input value={businessCard.title || ''} onChange={(e) => setBusinessCard({...businessCard, title: e.target.value})} placeholder="VD: CEO, Sales Manager" className="text-sm" data-testid="card-title-input" />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-xs font-medium text-[#334155] mb-1 block">{t.phone}</label>
-                      <Input value={businessCard.phone || ''} onChange={(e) => setBusinessCard({...businessCard, phone: e.target.value})} className="text-sm" data-testid="card-phone" />
-                    </div>
-                    <div>
-                      <label className="text-xs font-medium text-[#334155] mb-1 block">Email</label>
-                      <Input value={businessCard.email || ''} onChange={(e) => setBusinessCard({...businessCard, email: e.target.value})} className="text-sm" data-testid="card-email" />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-[#334155] mb-1 block">{t.address}</label>
-                    <Input value={businessCard.address || ''} onChange={(e) => setBusinessCard({...businessCard, address: e.target.value})} className="text-sm" data-testid="card-address" />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-xs font-medium text-[#334155] mb-1 block">Ảnh đại diện URL</label>
-                      <div className="flex gap-2">
-                        <Input value={businessCard.avatar_url || ''} onChange={(e) => setBusinessCard({...businessCard, avatar_url: e.target.value})} className="text-sm flex-1" data-testid="card-avatar-url" />
-                        <Button variant="outline" size="sm" onClick={() => openMediaLibrary((url) => {
-                          const imgUrl = Array.isArray(url) ? url[0] : url;
-                          setBusinessCard(prev => ({...prev, avatar_url: imgUrl}));
-                        })}>
-                          <Upload className="w-3 h-3" />
-                        </Button>
-                      </div>
-                    </div>
-                    <div>
-                      <label className="text-xs font-medium text-[#334155] mb-1 block">Website</label>
-                      <Input value={businessCard.website || ''} onChange={(e) => setBusinessCard({...businessCard, website: e.target.value})} placeholder="https://" className="text-sm" data-testid="card-website" />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-3 gap-3">
-                    <div>
-                      <label className="text-xs font-medium text-[#334155] mb-1 block">Facebook</label>
-                      <Input value={businessCard.social_facebook || ''} onChange={(e) => setBusinessCard({...businessCard, social_facebook: e.target.value})} className="text-sm" />
-                    </div>
-                    <div>
-                      <label className="text-xs font-medium text-[#334155] mb-1 block">TikTok</label>
-                      <Input value={businessCard.social_tiktok || ''} onChange={(e) => setBusinessCard({...businessCard, social_tiktok: e.target.value})} placeholder="https://tiktok.com/@..." className="text-sm" data-testid="card-tiktok-input" />
-                    </div>
-                    <div>
-                      <label className="text-xs font-medium text-[#334155] mb-1 block">Zalo</label>
-                      <Input value={businessCard.social_zalo || ''} onChange={(e) => setBusinessCard({...businessCard, social_zalo: e.target.value})} placeholder="Số điện thoại Zalo" className="text-sm" />
-                    </div>
-                  </div>
-                  {/* Product Selection */}
-                  <div>
-                    <label className="text-xs font-medium text-[#334155] mb-1 block">{t.applicableProducts || 'Sản phẩm hiển thị'}</label>
-                    <div className="border border-[#E2E8F0] rounded-[5px] overflow-hidden">
-                      <div className="p-2 border-b border-[#F1F5F9] flex gap-2">
-                        <div className="relative flex-1">
-                          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#94A3B8]" />
-                          <Input placeholder="Tìm sản phẩm..." value={cardProductSearch} onChange={(e) => setCardProductSearch(e.target.value)} className="pl-8 h-8 text-xs" data-testid="card-product-search" />
-                        </div>
-                        <Select value={cardCategoryFilter} onValueChange={setCardCategoryFilter}>
-                          <SelectTrigger className="h-8 text-xs w-[140px] flex-shrink-0" data-testid="card-category-filter">
-                            <SelectValue placeholder="Danh mục" />
-                          </SelectTrigger>
-                          <SelectContent className="bg-white">
-                            <SelectItem value="all">Tất cả danh mục</SelectItem>
-                            {categories.map(c => (
-                              <SelectItem key={c.id} value={c.id}>{c.parent_id ? '↳ ' : ''}{c.name}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="p-3 max-h-40 overflow-y-auto space-y-1.5">
-                        {products
-                          .filter(p => cardCategoryFilter === 'all' || p.category_id === cardCategoryFilter)
-                          .filter(p => !cardProductSearch || p.name.toLowerCase().includes(cardProductSearch.toLowerCase()))
-                          .map(p => (
-                          <label key={p.id} className="flex items-center gap-2 cursor-pointer">
-                            <input type="checkbox" checked={(businessCard.selected_products || []).includes(p.id)}
-                              onChange={(e) => {
-                                const sel = businessCard.selected_products || [];
-                                if (e.target.checked) {
-                                  setBusinessCard({...businessCard, selected_products: [...sel, p.id]});
-                                } else {
-                                  setBusinessCard({...businessCard, selected_products: sel.filter(id => id !== p.id)});
-                                }
-                              }} className="rounded" />
-                            <span className="text-xs text-[#334155] truncate">{p.name} - {formatVND(p.price)}</span>
-                          </label>
-                        ))}
-                        {products.filter(p => cardCategoryFilter === 'all' || p.category_id === cardCategoryFilter).filter(p => !cardProductSearch || p.name.toLowerCase().includes(cardProductSearch.toLowerCase())).length === 0 && (
-                          <p className="text-[10px] text-[#94A3B8] text-center py-2">Không tìm thấy sản phẩm</p>
-                        )}
-                      </div>
-                    </div>
-                    {(businessCard.selected_products || []).length > 0 && (
-                      <p className="text-[10px] text-[#94A3B8] mt-1">{(businessCard.selected_products || []).length} sản phẩm được chọn</p>
-                    )}
-                  </div>
-                  <Button className="w-full text-white" style={{ backgroundColor: themeColor }} onClick={handleSaveBusinessCard} data-testid="save-business-card-btn">
-                    {t.save}
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-
-
 
           {/* Settings Tab */}
           {activeTab === 'settings' && shop && (
@@ -3864,28 +2968,6 @@ const ShopOwnerDashboard = () => {
           </DialogHeader>
           {selectedOrder && (
             <div className="space-y-4">
-              {/* Agent Info Banner */}
-              {selectedOrder.agent_name && (
-                <div className="flex items-center gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <Users className="w-5 h-5 text-blue-600 flex-shrink-0" />
-                  <div className="flex-1">
-                    <p className="text-sm font-bold text-blue-700">Đơn hàng từ đại lý: {selectedOrder.agent_name}</p>
-                    <p className="text-[10px] text-blue-500">
-                      {selectedOrder.status === 'pending' ? 'Cần duyệt để ghi nhận doanh số cho đại lý' : 
-                       selectedOrder.status === 'confirmed' || selectedOrder.status === 'completed' ? 'Đã ghi nhận doanh số cho đại lý' : 
-                       selectedOrder.status === 'cancelled' ? 'Đã hủy - không ghi nhận doanh số' : 'Đang xử lý'}
-                    </p>
-                  </div>
-                  {selectedOrder.status === 'pending' && (
-                    <Button size="sm" className="text-white text-xs" style={{ backgroundColor: '#22C55E' }}
-                      onClick={() => { handleOrderStatus(selectedOrder.id, 'confirmed'); setSelectedOrder({ ...selectedOrder, status: 'confirmed' }); }}
-                      data-testid="modal-approve-order">
-                      <Check className="w-3 h-3 mr-1" /> Duyệt đơn
-                    </Button>
-                  )}
-                </div>
-              )}
-
               <div className="grid grid-cols-2 gap-3 p-3 bg-[#F8FAFC] rounded-lg text-sm">
                 <div>
                   <p className="text-xs text-[#64748B]">{t.customerName}</p>
@@ -3926,7 +3008,7 @@ const ShopOwnerDashboard = () => {
                       <span>{formatVND(selectedOrder.subtotal)}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-green-600">Giảm giá {selectedOrder.voucher?.code && `(${selectedOrder.voucher.code})`}</span>
+                      <span className="text-green-600">Giảm giá</span>
                       <span className="text-green-600">-{formatVND(selectedOrder.discount_amount)}</span>
                     </div>
                   </>
@@ -4216,151 +3298,6 @@ const ShopOwnerDashboard = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Voucher Modal */}
-      <Dialog open={showVoucherModal} onOpenChange={setShowVoucherModal}>
-        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto bg-white">
-          <DialogHeader>
-            <DialogTitle className="text-base font-bold">{editingVoucher ? t.editVoucher : t.createVoucher}</DialogTitle>
-            <DialogDescription className="sr-only">Voucher form</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 mt-2">
-            <div>
-              <label className="text-xs font-medium text-[#334155] mb-1 block">{t.voucherCode} *</label>
-              <Input value={voucherForm.code} onChange={(e) => setVoucherForm({...voucherForm, code: e.target.value.toUpperCase()})} placeholder="VD: SALE10" className="text-sm font-mono" data-testid="voucher-code-input" />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs font-medium text-[#334155] mb-1 block">{t.discountType}</label>
-                <Select value={voucherForm.discount_type} onValueChange={(v) => setVoucherForm({...voucherForm, discount_type: v})}>
-                  <SelectTrigger className="text-sm" data-testid="voucher-type-select"><SelectValue /></SelectTrigger>
-                  <SelectContent className="bg-white">
-                    <SelectItem value="percentage">{t.discountPercentage}</SelectItem>
-                    <SelectItem value="fixed">{t.discountFixed}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <label className="text-xs font-medium text-[#334155] mb-1 block">{t.discountValue} *</label>
-                <Input type="number" value={voucherForm.discount_value} onChange={(e) => setVoucherForm({...voucherForm, discount_value: e.target.value})} placeholder={voucherForm.discount_type === 'percentage' ? '10' : '50000'} className="text-sm" data-testid="voucher-value-input" />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs font-medium text-[#334155] mb-1 block">{t.minOrderAmount}</label>
-                <Input type="number" value={voucherForm.min_order_amount} onChange={(e) => setVoucherForm({...voucherForm, min_order_amount: e.target.value})} placeholder="0" className="text-sm" data-testid="voucher-min-order-input" />
-              </div>
-              <div>
-                <label className="text-xs font-medium text-[#334155] mb-1 block">{t.maxUses} (0 = {t.unlimited})</label>
-                <Input type="number" value={voucherForm.max_uses} onChange={(e) => setVoucherForm({...voucherForm, max_uses: e.target.value})} placeholder="0" className="text-sm" data-testid="voucher-max-uses-input" />
-              </div>
-            </div>
-            <div>
-              <label className="text-xs font-medium text-[#334155] mb-1 block">{t.expiryDate}</label>
-              <Input type="date" value={voucherForm.expiry_date} onChange={(e) => setVoucherForm({...voucherForm, expiry_date: e.target.value})} className="text-sm" data-testid="voucher-expiry-input" />
-            </div>
-            <div>
-              <label className="text-xs font-medium text-[#334155] mb-1 block">{t.applicableProducts}</label>
-              <div className="border border-[#E2E8F0] rounded-[5px] overflow-hidden">
-                <label className="flex items-center gap-2 px-3 pt-3 pb-2 cursor-pointer">
-                  <input type="checkbox" checked={voucherForm.applicable_products.length === 0} onChange={() => setVoucherForm({...voucherForm, applicable_products: []})} className="rounded" />
-                  <span className="text-sm font-medium">{t.allProducts}</span>
-                </label>
-                <div className="px-3 pb-2">
-                  <div className="relative">
-                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#94A3B8]" />
-                    <Input placeholder="Tìm sản phẩm..." value={voucherProductSearch} onChange={(e) => setVoucherProductSearch(e.target.value)} className="pl-8 h-8 text-xs" data-testid="voucher-product-search" />
-                  </div>
-                </div>
-                <div className="border-t border-[#F1F5F9] px-3 py-2 max-h-36 overflow-y-auto space-y-1.5">
-                  {products.filter(p => !voucherProductSearch || p.name.toLowerCase().includes(voucherProductSearch.toLowerCase())).map(p => (
-                    <label key={p.id} className="flex items-center gap-2 cursor-pointer">
-                      <input type="checkbox" checked={voucherForm.applicable_products.includes(p.id)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setVoucherForm({...voucherForm, applicable_products: [...voucherForm.applicable_products, p.id]});
-                          } else {
-                            setVoucherForm({...voucherForm, applicable_products: voucherForm.applicable_products.filter(id => id !== p.id)});
-                          }
-                        }} className="rounded" />
-                      <span className="text-xs text-[#334155] truncate">{p.name} - {formatVND(p.price)}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-              {voucherForm.applicable_products.length > 0 && <p className="text-[10px] text-[#94A3B8] mt-1">{voucherForm.applicable_products.length} {t.selectedProducts?.toLowerCase()}</p>}
-            </div>
-            <div className="flex items-center gap-3">
-              <Switch checked={voucherForm.is_active} onCheckedChange={(v) => setVoucherForm({...voucherForm, is_active: v})} data-testid="voucher-active-switch" />
-              <span className="text-sm text-[#334155]">{voucherForm.is_active ? t.voucherActive : t.voucherInactive}</span>
-            </div>
-            <div className="flex gap-2 pt-2">
-              <Button variant="outline" className="flex-1 text-sm" onClick={() => setShowVoucherModal(false)}>Cancel</Button>
-              <Button className="flex-1 text-sm text-white" style={{ backgroundColor: themeColor }} onClick={handleSaveVoucher} data-testid="save-voucher-btn">{t.save}</Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Agent Modal */}
-      <Dialog open={showAgentModal} onOpenChange={setShowAgentModal}>
-        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto bg-white">
-          <DialogHeader>
-            <DialogTitle className="text-base font-bold">{editingAgent ? t.editAgent : t.createAgent}</DialogTitle>
-            <DialogDescription className="sr-only">Agent form</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 mt-2">
-            <div>
-              <label className="text-xs font-medium text-[#334155] mb-1 block">{t.agentName} *</label>
-              <Input value={agentForm.name} onChange={(e) => setAgentForm({...agentForm, name: e.target.value})} className="text-sm" data-testid="agent-name-input" />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs font-medium text-[#334155] mb-1 block">{t.agentEmail} *</label>
-                <Input type="email" value={agentForm.email} onChange={(e) => setAgentForm({...agentForm, email: e.target.value})} className="text-sm" disabled={!!editingAgent} data-testid="agent-email-input" />
-              </div>
-              <div>
-                <label className="text-xs font-medium text-[#334155] mb-1 block">{editingAgent ? 'Mật khẩu mới (bỏ trống = giữ nguyên)' : 'Mật khẩu *'}</label>
-                <Input type="password" value={agentForm.password} onChange={(e) => setAgentForm({...agentForm, password: e.target.value})} className="text-sm" data-testid="agent-password-input" />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs font-medium text-[#334155] mb-1 block">{t.agentPhone}</label>
-                <Input value={agentForm.phone} onChange={(e) => setAgentForm({...agentForm, phone: e.target.value})} className="text-sm" data-testid="agent-phone-input" />
-              </div>
-              <div>
-                <label className="text-xs font-medium text-[#334155] mb-1 block">{t.agentLevel}</label>
-                <Select value={String(agentForm.level)} onValueChange={(v) => setAgentForm({...agentForm, level: Number(v)})}>
-                  <SelectTrigger className="text-sm" data-testid="agent-level-select"><SelectValue /></SelectTrigger>
-                  <SelectContent className="bg-white">
-                    <SelectItem value="1">{t.agentLevel1}</SelectItem>
-                    <SelectItem value="2">{t.agentLevel2}</SelectItem>
-                    <SelectItem value="3">{t.agentLevel3}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            {agentForm.level > 1 && (
-              <div>
-                <label className="text-xs font-medium text-[#334155] mb-1 block">{t.parentAgent}</label>
-                <Select value={agentForm.parent_agent_id || 'none'} onValueChange={(v) => setAgentForm({...agentForm, parent_agent_id: v === 'none' ? '' : v})}>
-                  <SelectTrigger className="text-sm" data-testid="agent-parent-select"><SelectValue /></SelectTrigger>
-                  <SelectContent className="bg-white">
-                    <SelectItem value="none">{t.noParentAgent}</SelectItem>
-                    {agents.filter(a => a.level < agentForm.level && a.id !== editingAgent?.id).map(a => (
-                      <SelectItem key={a.id} value={a.id}>{a.name} (Cấp {a.level})</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-            <div className="flex gap-2 pt-2">
-              <Button variant="outline" className="flex-1 text-sm" onClick={() => setShowAgentModal(false)}>Cancel</Button>
-              <Button className="flex-1 text-sm text-white" style={{ backgroundColor: themeColor }} onClick={handleSaveAgent} data-testid="save-agent-btn">{t.save}</Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       <MediaLibrary
         open={mediaOpen}

@@ -570,41 +570,6 @@ const SuperAdminDashboard = () => {
                                 className="text-xs border rounded px-1 py-0.5 w-14 text-center" />
                               <span className="text-[10px] text-[#94A3B8]">({u.shop.image_count ?? 0})</span>
                             </div>
-                            <div className="flex items-center gap-1.5">
-                              <span>Đại lý:</span>
-                              <button
-                                onClick={async () => {
-                                  try {
-                                    const newVal = !u.shop.agents_enabled;
-                                    await axios.put(`${API}/admin/shops/${u.shop.id}/agents-toggle`, { agents_enabled: newVal });
-                                    setUsers(prev => prev.map(usr => usr.id === u.id ? {...usr, shop: {...usr.shop, agents_enabled: newVal}} : usr));
-                                    toast.success(newVal ? 'Agents enabled' : 'Agents disabled');
-                                  } catch { toast.error('Error'); }
-                                }}
-                                className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${u.shop.agents_enabled ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}
-                                data-testid={`agents-toggle-${u.shop.id}`}>
-                                {u.shop.agents_enabled ? 'ON' : 'OFF'}
-                              </button>
-                              <input type="number" min="0" value={u.shop.max_agents ?? 100}
-                                onChange={(e) => handleSetLimits(u.shop.id, 'max_agents', e.target.value)}
-                                className="text-xs border rounded px-1 py-0.5 w-14 text-center" />
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                              <span>Danh thiếp:</span>
-                              <button
-                                onClick={async () => {
-                                  try {
-                                    const newVal = !u.shop.business_card_enabled;
-                                    await axios.put(`${API}/admin/shops/${u.shop.id}/business-card-toggle`, { business_card_enabled: newVal });
-                                    setUsers(prev => prev.map(usr => usr.id === u.id ? {...usr, shop: {...usr.shop, business_card_enabled: newVal}} : usr));
-                                    toast.success(newVal ? 'Business card enabled' : 'Business card disabled');
-                                  } catch { toast.error('Error'); }
-                                }}
-                                className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${u.shop.business_card_enabled ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}
-                                data-testid={`business-card-toggle-${u.shop.id}`}>
-                                {u.shop.business_card_enabled ? 'ON' : 'OFF'}
-                              </button>
-                            </div>
                             <button
                               onClick={() => {
                                 const newStatus = u.shop.status === 'active' ? 'suspended' : 'active';

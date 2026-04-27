@@ -19,8 +19,6 @@ import BlogPostPage from "./pages/BlogPostPage";
 import CategoryPage from "./pages/CategoryPage";
 import SingleCategoryPage from "./pages/SingleCategoryPage";
 import CustomPage from "./pages/CustomPage";
-import AgentDashboard from "./pages/AgentDashboard";
-import BusinessCardPage from "./pages/BusinessCardPage";
 import ProductDetailPage from "./pages/ProductDetailPage";
 import ProductEditPage from "./pages/ProductEditPage";
 
@@ -40,8 +38,6 @@ function App() {
                 <Route path="/dashboard" element={<ShopOwnerDashboard />} />
                 <Route path="/dashboard/product/new" element={<ProductEditPage />} />
                 <Route path="/dashboard/product/:productId/edit" element={<ProductEditPage />} />
-                <Route path="/agent" element={<AgentDashboard />} />
-                <Route path="/card/:cardSlug" element={<BusinessCardPage />} />
                 <Route path="/shop/:slug" element={<StorefrontPage />} />
                 <Route path="/shop/:slug/product/:productId" element={<ProductDetailPage />} />
                 <Route path="/shop/:slug/categories" element={<CategoryPage />} />
