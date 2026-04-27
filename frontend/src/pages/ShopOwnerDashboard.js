@@ -1720,7 +1720,7 @@ const ShopOwnerDashboard = () => {
             <Card className="border-0 shadow-sm" data-testid="mega-menu-manager">
               <CardHeader className="p-4">
                 <CardTitle className="text-base flex items-center gap-2"><Grid3X3 className="w-4 h-4" /> {t.megaMenu || 'Mega Menu'}</CardTitle>
-                <p className="text-xs text-[#64748B] mt-1">{t.megaMenuDesc || 'Chọn danh mục hiển thị trên thanh mega menu (desktop)'}</p>
+                <p className="text-xs text-[#64748B] mt-1">Bật/tắt danh mục hiển thị trên mega menu desktop. <strong>Thứ tự</strong> theo Danh mục tab — kéo-thả tại "Danh mục" để đổi thứ tự (áp dụng cho cả mega menu và categories ở trang chủ).</p>
               </CardHeader>
               <CardContent className="p-4 pt-0 space-y-2">
                 {megaMenuItems.length === 0 && (
@@ -1728,20 +1728,7 @@ const ShopOwnerDashboard = () => {
                 )}
                 {megaMenuItems.map((item, idx) => (
                   <div key={item.category_id} className={`flex items-center gap-3 p-3 rounded-[5px] border transition-all ${item.enabled ? 'bg-white border-[#E2E8F0]' : 'bg-[#F8FAFC] border-dashed border-[#E2E8F0] opacity-60'}`} data-testid={`mega-item-${idx}`}>
-                    <div className="flex flex-col gap-0.5">
-                      <Button variant="ghost" size="icon" className="h-5 w-5" disabled={idx === 0} onClick={() => {
-                        const items = [...megaMenuItems];
-                        [items[idx - 1], items[idx]] = [items[idx], items[idx - 1]];
-                        items.forEach((it, i) => it.position = i);
-                        setMegaMenuItems(items);
-                      }} data-testid={`mega-up-${idx}`}><ArrowUp className="w-3 h-3" /></Button>
-                      <Button variant="ghost" size="icon" className="h-5 w-5" disabled={idx === megaMenuItems.length - 1} onClick={() => {
-                        const items = [...megaMenuItems];
-                        [items[idx], items[idx + 1]] = [items[idx + 1], items[idx]];
-                        items.forEach((it, i) => it.position = i);
-                        setMegaMenuItems(items);
-                      }} data-testid={`mega-down-${idx}`}><ArrowDown className="w-3 h-3" /></Button>
-                    </div>
+                    <span className="w-6 h-6 bg-[#F1F5F9] rounded text-[11px] font-bold text-[#475569] flex items-center justify-center shrink-0">{idx + 1}</span>
                     {item.image_url ? (
                       <img src={item.image_url} alt={item.name} className="w-8 h-8 rounded object-cover shrink-0" />
                     ) : (
@@ -1768,7 +1755,7 @@ const ShopOwnerDashboard = () => {
                 <div className="pt-2">
                   <Button size="sm" className="text-xs hover:opacity-90" style={{ backgroundColor: themeColor }} onClick={async () => {
                     try {
-                      await axios.put(`${API}/dashboard/mega-menu${shopQuery}`, { items: megaMenuItems.map(it => ({ category_id: it.category_id, enabled: it.enabled, position: it.position })) });
+                      await axios.put(`${API}/dashboard/mega-menu${shopQuery}`, { items: megaMenuItems.map(it => ({ category_id: it.category_id, enabled: it.enabled })) });
                       toast.success(t.megaMenuSaved || 'Mega menu đã lưu');
                       fetchMenuOnly();
                     } catch { toast.error(t.failedToSave); }

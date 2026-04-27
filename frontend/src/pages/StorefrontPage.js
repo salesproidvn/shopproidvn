@@ -610,14 +610,24 @@ const StorefrontPage = () => {
   };
 
   // Category Grid Component
+  // Helper: parent categories filtered & ordered by mega_menu_categories config.
+  // Single source of truth for: desktop mega menu, mobile mega drawer, homepage CategoryGrid.
+  const visibleParentCategories = (() => {
+    const parents = categories.filter(c => !c.parent_id);
+    const cfg = shop?.mega_menu_categories || [];
+    if (!cfg.length) return parents;
+    const enabledMap = {};
+    cfg.forEach(mc => { enabledMap[mc.category_id] = mc.enabled !== false; });
+    return parents.filter(c => enabledMap[c.id] !== false);
+  })();
+
   const CategoryGrid = () => {
-    const parentCats = categories.filter(c => !c.parent_id);
-    if (!parentCats.length) return null;
+    if (!visibleParentCategories.length) return null;
     return (
       <div className="mb-8" data-testid="category-grid-section">
         <h3 className="text-xl sm:text-2xl font-bold text-[#0F172A] mb-4">{t.productCategories}</h3>
         <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-8 gap-2 lg:gap-4">
-          {parentCats.map(cat => (
+          {visibleParentCategories.map(cat => (
             <Link
               key={cat.id}
               to={`/shop/${slug}/category/${cat.id}`}
@@ -808,15 +818,7 @@ const StorefrontPage = () => {
             <div className="px-4 py-3">
               <p className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] mb-2 px-1">{t.categories}</p>
               {(() => {
-                const parentCats = categories.filter(c => !c.parent_id);
-                const megaConfig = shop.mega_menu_categories || [];
-                let megaCats;
-                if (megaConfig.length > 0) {
-                  megaCats = megaConfig.filter(mc => mc.enabled).sort((a, b) => a.position - b.position)
-                    .map(mc => parentCats.find(c => c.id === mc.category_id)).filter(Boolean);
-                } else {
-                  megaCats = parentCats;
-                }
+                const megaCats = visibleParentCategories;
                 if (megaCats.length === 0) return null;
                 return (
                   <div className="flex flex-col" data-testid="mobile-mega-cat-list">
@@ -875,22 +877,7 @@ const StorefrontPage = () => {
       <div className="hidden lg:block sticky top-14 z-30 bg-white border-b border-[#E2E8F0] shadow-sm" data-testid="mega-menu-bar">
         <div className="max-w-7xl lg:max-w-[65vw] mx-auto px-4 sm:px-6 lg:px-8 relative">
           <nav className="flex items-center justify-center gap-0">
-            {(() => {
-              const parentCats = categories.filter(c => !c.parent_id);
-              const megaConfig = shop.mega_menu_categories || [];
-              // If config exists, use it to filter and sort; otherwise show all parent cats
-              let megaCats;
-              if (megaConfig.length > 0) {
-                megaCats = megaConfig
-                  .filter(mc => mc.enabled)
-                  .sort((a, b) => a.position - b.position)
-                  .map(mc => parentCats.find(c => c.id === mc.category_id))
-                  .filter(Boolean);
-              } else {
-                megaCats = parentCats;
-              }
-              return megaCats;
-            })().map(cat => {
+            {visibleParentCategories.map(cat => {
               const subs = categories.filter(c => c.parent_id === cat.id);
               const catProducts = products.filter(p => {
                 const subIds = subs.map(s => s.id);
