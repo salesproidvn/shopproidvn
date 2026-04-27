@@ -281,9 +281,6 @@ const ShopOwnerDashboard = () => {
     setMediaOpen(true);
   };
 
-  // Mega Menu state
-  const [megaMenuItems, setMegaMenuItems] = useState([]);
-
   // Push Notification & PWA Install state
   const [notifEnabled, setNotifEnabled] = useState(false);
   const [notifLoading, setNotifLoading] = useState(false);
@@ -353,7 +350,7 @@ const ShopOwnerDashboard = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [statsRes, shopRes, productsRes, categoriesRes, ordersRes, bookingsRes, postsRes, megaMenuRes] = await Promise.all([
+      const [statsRes, shopRes, productsRes, categoriesRes, ordersRes, bookingsRes, postsRes] = await Promise.all([
         axios.get(`${API}/dashboard/stats${shopQuery}`),
         axios.get(`${API}/dashboard/shop${shopQuery}`),
         axios.get(`${API}/dashboard/products${shopQuery}`),
@@ -361,7 +358,6 @@ const ShopOwnerDashboard = () => {
         axios.get(`${API}/dashboard/orders${shopQuery}`),
         axios.get(`${API}/dashboard/bookings${shopQuery}`).catch(() => ({ data: [] })),
         axios.get(`${API}/dashboard/posts${shopQuery}`),
-        axios.get(`${API}/dashboard/mega-menu${shopQuery}`)
       ]);
       setStats(statsRes.data);
       setShop(shopRes.data);
@@ -372,7 +368,6 @@ const ShopOwnerDashboard = () => {
       setOrders(ordersRes.data);
       setBookings(bookingsRes.data || []);
       setPosts(postsRes.data || []);
-      setMegaMenuItems(megaMenuRes.data || []);
     } catch (err) {
       toast.error(t.failedToLoad);
     } finally {
@@ -417,13 +412,6 @@ const ShopOwnerDashboard = () => {
     try {
       const { data } = await axios.get(`${API}/dashboard/posts${shopQuery}`);
       setPosts(data || []);
-    } catch { }
-  };
-
-  const fetchMenuOnly = async () => {
-    try {
-      const { data } = await axios.get(`${API}/dashboard/mega-menu${shopQuery}`);
-      setMegaMenuItems(data || []);
     } catch { }
   };
 
@@ -489,7 +477,6 @@ const ShopOwnerDashboard = () => {
       setShowCategoryModal(false);
       resetCategoryForm();
       await fetchCategoriesOnly();
-      await fetchMenuOnly();
       requestAnimationFrame(() => window.scrollTo(0, savedScrollY));
     } catch (err) {
       toast.error(t.failedToSave);
@@ -504,7 +491,6 @@ const ShopOwnerDashboard = () => {
       await axios.delete(`${API}/dashboard/categories/${target}`);
       toast.success(t.categoryDeleted);
       fetchCategoriesOnly();
-      fetchMenuOnly();
     } catch (err) {
       toast.error(err.response?.data?.detail || t.failedToDelete);
     } finally {
@@ -856,7 +842,6 @@ const ShopOwnerDashboard = () => {
     { id: 'posts', label: t.posts, icon: FileText },
     { id: 'orders', label: t.orders, icon: ShoppingCart },
     { id: 'media', label: t.mediaLibrary || 'Thư viện ảnh', icon: Image },
-    { id: 'megamenu', label: t.megaMenu || 'Mega Menu', icon: Grid3X3 },
     { id: 'layout', label: t.displayLayout, icon: LayoutGrid },
     { id: 'profile', label: t.shopProfile || 'Hồ sơ shop', icon: User },
     { id: 'settings', label: t.settings, icon: Settings },
@@ -1017,7 +1002,6 @@ const ShopOwnerDashboard = () => {
                   {activeTab === 'posts' && t.posts}
                   {activeTab === 'orders' && t.orders}
                   {activeTab === 'media' && (t.mediaLibrary || 'Thư viện ảnh')}
-                  {activeTab === 'megamenu' && (t.megaMenu || 'Mega Menu')}
                   {activeTab === 'layout' && t.displayLayout}
                   {activeTab === 'profile' && (t.shopProfile || 'Hồ sơ shop')}
                   {activeTab === 'settings' && t.settings}
@@ -1710,61 +1694,6 @@ const ShopOwnerDashboard = () => {
                   )}
                 </CardContent>
               </Card>
-            </div>
-          )}
-
-          {/* Mega Menu Manager Tab */}
-          {activeTab === 'megamenu' && (
-            <div className="space-y-6">
-            {/* Mega Menu Manager */}
-            <Card className="border-0 shadow-sm" data-testid="mega-menu-manager">
-              <CardHeader className="p-4">
-                <CardTitle className="text-base flex items-center gap-2"><Grid3X3 className="w-4 h-4" /> {t.megaMenu || 'Mega Menu'}</CardTitle>
-                <p className="text-xs text-[#64748B] mt-1">Bật/tắt danh mục hiển thị trên mega menu desktop. <strong>Thứ tự</strong> theo Danh mục tab — kéo-thả tại "Danh mục" để đổi thứ tự (áp dụng cho cả mega menu và categories ở trang chủ).</p>
-              </CardHeader>
-              <CardContent className="p-4 pt-0 space-y-2">
-                {megaMenuItems.length === 0 && (
-                  <p className="text-sm text-[#64748B] text-center py-4">{t.noCategories || 'Chưa có danh mục nào'}</p>
-                )}
-                {megaMenuItems.map((item, idx) => (
-                  <div key={item.category_id} className={`flex items-center gap-3 p-3 rounded-[5px] border transition-all ${item.enabled ? 'bg-white border-[#E2E8F0]' : 'bg-[#F8FAFC] border-dashed border-[#E2E8F0] opacity-60'}`} data-testid={`mega-item-${idx}`}>
-                    <span className="w-6 h-6 bg-[#F1F5F9] rounded text-[11px] font-bold text-[#475569] flex items-center justify-center shrink-0">{idx + 1}</span>
-                    {item.image_url ? (
-                      <img src={item.image_url} alt={item.name} className="w-8 h-8 rounded object-cover shrink-0" />
-                    ) : (
-                      <div className="w-8 h-8 rounded flex items-center justify-center shrink-0" style={{ backgroundColor: themeColor + '15' }}>
-                        <FolderOpen className="w-4 h-4" style={{ color: themeColor }} />
-                      </div>
-                    )}
-                    <span className="flex-1 text-sm font-medium text-[#0F172A]">{item.name}</span>
-                    <button onClick={() => {
-                      const items = [...megaMenuItems];
-                      items[idx] = { ...items[idx], enabled: !items[idx].enabled };
-                      setMegaMenuItems(items);
-                    }} className={`w-[68px] h-8 rounded-full transition-all relative overflow-hidden ${item.enabled ? '' : 'bg-[#E2E8F0]'}`}
-                      style={item.enabled ? { backgroundColor: themeColor } : {}}
-                      data-testid={`mega-toggle-${idx}`}>
-                      <span className={`absolute inset-0 flex items-center ${item.enabled ? 'justify-start pl-2.5' : 'justify-end pr-2.5'}`}>
-                        <span className="text-[10px] font-bold text-white tracking-wide select-none">{item.enabled ? 'BẬT' : ''}</span>
-                        <span className="text-[10px] font-bold text-[#94A3B8] tracking-wide select-none">{!item.enabled ? 'TẮT' : ''}</span>
-                      </span>
-                      <span className={`absolute top-[3px] w-[26px] h-[26px] bg-white rounded-full shadow-md transition-transform ${item.enabled ? 'translate-x-[38px]' : 'translate-x-[3px]'}`} />
-                    </button>
-                  </div>
-                ))}
-                <div className="pt-2">
-                  <Button size="sm" className="text-xs hover:opacity-90" style={{ backgroundColor: themeColor }} onClick={async () => {
-                    try {
-                      await axios.put(`${API}/dashboard/mega-menu${shopQuery}`, { items: megaMenuItems.map(it => ({ category_id: it.category_id, enabled: it.enabled })) });
-                      toast.success(t.megaMenuSaved || 'Mega menu đã lưu');
-                      fetchMenuOnly();
-                    } catch { toast.error(t.failedToSave); }
-                  }} data-testid="save-mega-menu-btn">
-                    {t.saveChanges}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
             </div>
           )}
 

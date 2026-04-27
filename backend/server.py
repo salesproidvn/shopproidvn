@@ -567,9 +567,6 @@ class PageCreate(BaseModel):
     is_published: Optional[bool] = True
     sections: Optional[List[dict]] = []
 
-class MegaMenuUpdate(BaseModel):
-    items: List[dict]
-
 class ContactForm(BaseModel):
     name: str
     email: Optional[str] = ""
@@ -1030,7 +1027,7 @@ async def create_shop_owner(data: ShopOwnerCreate, request: Request):
     slug = generate_shop_slug(data.shop_name)
     if await db.shops.find_one({"slug": slug}):
         slug = f"{slug}-{secrets.token_hex(3)}"
-    shop_doc = {"name": data.shop_name, "slug": slug, "description": "", "logo_url": "", "contact_phone": data.phone or "", "contact_email": email, "address": "", "social_facebook": "", "social_instagram": "", "social_tiktok": "", "social_shopee": "", "theme_color": "#0055FF", "status": "active", "expiry_date": "", "blog_enabled": True, "layout_sections": [], "mega_menu_categories": [], "post_carousel_position": "top", "max_products": 100, "max_posts": 50, "max_pages": 20, "max_categories": 50, "created_at": datetime.now(timezone.utc)}
+    shop_doc = {"name": data.shop_name, "slug": slug, "description": "", "logo_url": "", "contact_phone": data.phone or "", "contact_email": email, "address": "", "social_facebook": "", "social_instagram": "", "social_tiktok": "", "social_shopee": "", "theme_color": "#0055FF", "status": "active", "expiry_date": "", "blog_enabled": True, "layout_sections": [], "post_carousel_position": "top", "max_products": 100, "max_posts": 50, "max_pages": 20, "max_categories": 50, "created_at": datetime.now(timezone.utc)}
     shop_result = await db.shops.insert_one(shop_doc)
     shop_id = str(shop_result.inserted_id)
     user_doc = {"email": email, "password_hash": hash_password(data.password), "name": data.name, "role": "shop_owner", "shop_id": shop_id, "phone": data.phone or "", "status": "active", "created_at": datetime.now(timezone.utc)}
@@ -1687,36 +1684,6 @@ async def delete_post(post_id: str, request: Request):
 
 # ==================== DASHBOARD - MEGA MENU ====================
 
-@api_router.get("/dashboard/mega-menu")
-async def get_mega_menu(request: Request):
-    user = await require_shop_owner(request)
-    shop_id = await resolve_shop_id(request, user)
-    shop = await db.shops.find_one({"_id": ObjectId(shop_id)}, {"mega_menu_categories": 1})
-    saved = shop.get("mega_menu_categories", []) if shop else []
-    # Build enabled lookup from saved config (only the boolean matters now;
-    # ordering follows natural category sort_order from Danh mục tab)
-    enabled_map = {item.get("category_id"): bool(item.get("enabled", True)) for item in saved}
-    # Get all parent categories sorted by their position (single source of truth)
-    parent_cats = await db.categories.find({"shop_id": shop_id, "parent_id": None}, {"_id": 0}).sort("position", 1).to_list(200)
-    result = []
-    for cat in parent_cats:
-        result.append({
-            "category_id": cat["id"], "name": cat["name"],
-            "image_url": cat.get("image_url", ""),
-            "enabled": enabled_map.get(cat["id"], True),
-            "position": len(result),
-        })
-    return result
-
-@api_router.put("/dashboard/mega-menu")
-async def update_mega_menu(data: MegaMenuUpdate, request: Request):
-    user = await require_shop_owner(request)
-    shop_id = await resolve_shop_id(request, user)
-    # Persist only category_id + enabled; position is derived from category sort order
-    cleaned = [{"category_id": it.get("category_id"), "enabled": bool(it.get("enabled", True))} for it in (data.items or []) if it.get("category_id")]
-    await db.shops.update_one({"_id": ObjectId(shop_id)}, {"$set": {"mega_menu_categories": cleaned}})
-    return {"message": "Mega menu updated"}
-
 
 # ==================== PUSH NOTIFICATIONS ====================
 
@@ -1904,7 +1871,6 @@ async def get_shop_by_slug(slug: str):
         "custom_domain": shop.get("custom_domain", ""),
         "blog_enabled": shop.get("blog_enabled", True),
         "layout_sections": shop.get("layout_sections", []),
-        "mega_menu_categories": shop.get("mega_menu_categories", []),
         "post_carousel_position": shop.get("post_carousel_position", "top"),
         "max_products": shop.get("max_products", 100), "max_posts": shop.get("max_posts", 50),
         "expiry_date": shop.get("expiry_date", ""),

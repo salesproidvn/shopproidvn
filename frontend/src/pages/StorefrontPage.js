@@ -610,16 +610,9 @@ const StorefrontPage = () => {
   };
 
   // Category Grid Component
-  // Helper: parent categories filtered & ordered by mega_menu_categories config.
+  // Parent categories (sorted by their natural position from Danh mục tab).
   // Single source of truth for: desktop mega menu, mobile mega drawer, homepage CategoryGrid.
-  const visibleParentCategories = (() => {
-    const parents = categories.filter(c => !c.parent_id);
-    const cfg = shop?.mega_menu_categories || [];
-    if (!cfg.length) return parents;
-    const enabledMap = {};
-    cfg.forEach(mc => { enabledMap[mc.category_id] = mc.enabled !== false; });
-    return parents.filter(c => enabledMap[c.id] !== false);
-  })();
+  const visibleParentCategories = categories.filter(c => !c.parent_id);
 
   const CategoryGrid = () => {
     if (!visibleParentCategories.length) return null;

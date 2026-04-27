@@ -62,6 +62,13 @@ Multi-tenant e-commerce platform allowing shop owners to create and manage onlin
 - Rebuilt the **mobile mega-menu** as a 2-column grid of main categories (image thumbnail + name). Tapping a category opens `/shop/:slug/category/:id`
 - **Custom homepage sections** (max 5 per shop): shop owner creates simple blocks (title + image + rich text) from the **Bố cục hiển thị** tab. Each custom section appears inside the draggable layout list alongside Banner/Categories/Featured/... with its own BẬT/TẮT toggle + inline Edit pencil, and renders inline on the public storefront at the chosen position.
 
+### Phase 13 - Remove Mega Menu Tab from Dashboard (April 27, 2026)
+- **Removed Mega Menu tab** from sidebar (no longer needed - thứ tự danh mục trên storefront mega menu đã đồng bộ với Danh mục tab)
+- **Backend**: deleted endpoints `GET/PUT /api/dashboard/mega-menu`, `MegaMenuUpdate` model, `mega_menu_categories` field từ shop_doc init và /shop/{slug} response
+- **Frontend**: removed `megaMenuItems` state, fetch in fetchData, `fetchMenuOnly` function + 2 callers; gỡ menu sidebar item, title trong topbar, entire activeTab='megamenu' UI block
+- **Storefront**: simplified `visibleParentCategories` — giờ trả về tất cả parent categories (sorted theo natural position từ Danh mục tab). Áp dụng cho desktop mega nav + mobile mega drawer + homepage CategoryGrid (3 nơi đồng bộ)
+- **Sidebar còn 9 mục**: Tổng quan / Sản phẩm / Danh mục / Bài viết / Đơn hàng / Thư viện ảnh / Bố cục hiển thị / Hồ sơ cửa hàng / Cài đặt
+
 ### Phase 12 - Unify Mega Menu with Categories (April 27, 2026)
 - **Mega Menu order = Categories order**: backend `GET /api/dashboard/mega-menu` now returns categories sorted by their natural `position` (managed via Danh mục tab drag-drop). The mega_menu_categories config is used **only for the enabled flag**, not for ordering.
 - **PUT /api/dashboard/mega-menu** now accepts only `{category_id, enabled}` per item; position is derived.
