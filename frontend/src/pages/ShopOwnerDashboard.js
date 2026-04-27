@@ -306,12 +306,6 @@ const ShopOwnerDashboard = () => {
     setMediaOpen(true);
   };
 
-  // Custom Pages state
-  const [customPages, setCustomPages] = useState([]);
-  const [showPageModal, setShowPageModal] = useState(false);
-  const [editingPage, setEditingPage] = useState(null);
-  const [pageForm, setPageForm] = useState({ title: '', sections: [], is_published: true });
-
   // Mega Menu state
   const [megaMenuItems, setMegaMenuItems] = useState([]);
 
@@ -384,7 +378,7 @@ const ShopOwnerDashboard = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [statsRes, shopRes, productsRes, categoriesRes, ordersRes, bookingsRes, postsRes, pagesRes, megaMenuRes] = await Promise.all([
+      const [statsRes, shopRes, productsRes, categoriesRes, ordersRes, bookingsRes, postsRes, megaMenuRes] = await Promise.all([
         axios.get(`${API}/dashboard/stats${shopQuery}`),
         axios.get(`${API}/dashboard/shop${shopQuery}`),
         axios.get(`${API}/dashboard/products${shopQuery}`),
@@ -392,7 +386,6 @@ const ShopOwnerDashboard = () => {
         axios.get(`${API}/dashboard/orders${shopQuery}`),
         axios.get(`${API}/dashboard/bookings${shopQuery}`).catch(() => ({ data: [] })),
         axios.get(`${API}/dashboard/posts${shopQuery}`),
-        axios.get(`${API}/dashboard/pages${shopQuery}`),
         axios.get(`${API}/dashboard/mega-menu${shopQuery}`)
       ]);
       setStats(statsRes.data);
@@ -404,7 +397,6 @@ const ShopOwnerDashboard = () => {
       setOrders(ordersRes.data);
       setBookings(bookingsRes.data || []);
       setPosts(postsRes.data || []);
-      setCustomPages(pagesRes.data || []);
       setMegaMenuItems(megaMenuRes.data || []);
     } catch (err) {
       toast.error(t.failedToLoad);
@@ -450,13 +442,6 @@ const ShopOwnerDashboard = () => {
     try {
       const { data } = await axios.get(`${API}/dashboard/posts${shopQuery}`);
       setPosts(data || []);
-    } catch { }
-  };
-
-  const fetchPagesOnly = async () => {
-    try {
-      const { data } = await axios.get(`${API}/dashboard/pages${shopQuery}`);
-      setCustomPages(data || []);
     } catch { }
   };
 
@@ -1040,7 +1025,6 @@ const ShopOwnerDashboard = () => {
     { id: 'products', label: t.products, icon: Package },
     { id: 'categories', label: t.categories, icon: FolderOpen },
     { id: 'posts', label: t.posts, icon: FileText },
-    { id: 'pages', label: t.customPages, icon: Globe },
     { id: 'orders', label: t.orders, icon: ShoppingCart },
     { id: 'media', label: t.mediaLibrary || 'Thư viện ảnh', icon: Image },
     { id: 'megamenu', label: t.megaMenu || 'Mega Menu', icon: Grid3X3 },
@@ -1201,7 +1185,6 @@ const ShopOwnerDashboard = () => {
                   {activeTab === 'products' && t.products}
                   {activeTab === 'categories' && t.categories}
                   {activeTab === 'posts' && t.posts}
-                  {activeTab === 'pages' && t.customPages}
                   {activeTab === 'orders' && t.orders}
                   {activeTab === 'media' && (t.mediaLibrary || 'Thư viện ảnh')}
                   {activeTab === 'megamenu' && (t.megaMenu || 'Mega Menu')}
@@ -1231,11 +1214,6 @@ const ShopOwnerDashboard = () => {
             {activeTab === 'posts' && (
               <Button onClick={() => { resetPostForm(); setShowPostModal(true); }} style={{ backgroundColor: themeColor }} className="hover:opacity-90 text-sm" data-testid="add-post-btn">
                 <Plus className="w-4 h-4 mr-2" /> {t.addPost}
-              </Button>
-            )}
-            {activeTab === 'pages' && customPages.length < 10 && (
-              <Button onClick={() => { setEditingPage(null); setPageForm({ title: '', sections: [], is_published: true }); setShowPageModal(true); }} style={{ backgroundColor: themeColor }} className="hover:opacity-90 text-sm" data-testid="add-page-btn">
-                <Plus className="w-4 h-4 mr-2" /> {t.createPage}
               </Button>
             )}
           </div>
@@ -1383,14 +1361,6 @@ const ShopOwnerDashboard = () => {
                             <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                               {product.category_id && categories.find(c => c.id === product.category_id) && (
                                 <span className="text-[10px] lg:text-xs px-1.5 py-0.5 bg-[#F1F5F9] text-[#475569] rounded">{categories.find(c => c.id === product.category_id)?.name}</span>
-                              )}
-                              {product.out_of_stock && (
-                                <span className="text-[10px] lg:text-xs px-1.5 py-0.5 bg-red-100 text-red-700 rounded font-medium" data-testid={`out-of-stock-badge-${product.id}`}>Hết hàng</span>
-                              )}
-                              {product.is_hidden && (
-                                <span className="text-[10px] lg:text-xs px-1.5 py-0.5 bg-[#F1F5F9] text-[#64748B] rounded font-medium inline-flex items-center gap-1" data-testid={`hidden-badge-${product.id}`}>
-                                  <EyeOff className="w-2.5 h-2.5" /> Ẩn
-                                </span>
                               )}
                               {product.sku && <p className="text-[10px] lg:text-xs text-[#94A3B8]">SKU: {product.sku}</p>}
                             </div>
@@ -1816,69 +1786,6 @@ const ShopOwnerDashboard = () => {
           )}
 
 
-          {/* Custom Pages Tab */}
-          {activeTab === 'pages' && loading && (
-            <div className="space-y-3">{[1,2].map(i => <div key={i} className="h-20 bg-[#F1F5F9] rounded-xl animate-pulse" />)}</div>
-          )}
-          {activeTab === 'pages' && !loading && (
-            <div className="space-y-4" data-testid="pages-tab">
-              {customPages.length >= 10 && (
-                <div className="bg-yellow-50 border border-yellow-200 rounded-[5px] p-3 text-sm text-yellow-700">{t.maxPagesReached}</div>
-              )}
-              {customPages.length === 0 ? (
-                <Card className="border-0 shadow-sm">
-                  <CardContent className="p-12 text-center">
-                    <Globe className="w-12 h-12 text-[#E2E8F0] mx-auto mb-4" />
-                    <p className="text-[#64748B] text-sm">{t.noCustomPages}</p>
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="grid gap-3">
-                  {customPages.map(pg => (
-                    <Card key={pg.id} className="border-0 shadow-sm" data-testid={`page-card-${pg.id}`}>
-                      <CardContent className="p-4 flex items-center justify-between">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <h3 className="font-medium text-sm text-[#0F172A] truncate">{pg.title}</h3>
-                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${pg.is_published ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                              {pg.is_published ? t.published : t.draft}
-                            </span>
-                          </div>
-                          <p className="text-xs text-[#94A3B8] mt-0.5">/page/{pg.slug} &middot; {pg.sections?.length || 0} {t.pageSections.toLowerCase()}</p>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          {pg.is_published && (
-                            <a href={`/shop/${shop?.slug}/page/${pg.slug}`} target="_blank" rel="noopener noreferrer">
-                              <Button variant="ghost" size="icon" className="h-8 w-8" data-testid={`view-page-${pg.id}`}><Eye className="w-3.5 h-3.5 text-[#64748B]" /></Button>
-                            </a>
-                          )}
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => {
-                            const url = `${window.location.origin}/shop/${shop?.slug}/page/${pg.slug}`;
-                            navigator.clipboard.writeText(url);
-                            toast.success(t.linkCopied);
-                          }} data-testid={`copy-page-link-${pg.id}`}><Copy className="w-3.5 h-3.5 text-[#64748B]" /></Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => {
-                            setEditingPage(pg);
-                            setPageForm({ title: pg.title, sections: JSON.parse(JSON.stringify(pg.sections || [])), is_published: pg.is_published });
-                            setShowPageModal(true);
-                          }} data-testid={`edit-page-${pg.id}`}><Pencil className="w-3.5 h-3.5 text-[#64748B]" /></Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={async () => {
-                            if (!window.confirm(t.confirmDeletePage)) return;
-                            try {
-                              await axios.delete(`${API}/dashboard/pages/${pg.id}`);
-                              toast.success(t.pageDeleted);
-                              fetchPagesOnly();
-                            } catch { toast.error(t.failedToSave); }
-                          }} data-testid={`delete-page-${pg.id}`}><Trash2 className="w-3.5 h-3.5 text-red-400" /></Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-
-                </div>
-              )}
-            </div>
-          )}
 
           {/* Media Library Tab */}
           {activeTab === 'media' && (
@@ -3150,151 +3057,6 @@ const ShopOwnerDashboard = () => {
               <Button type="submit" className="flex-1 hover:opacity-90 text-sm" style={{ backgroundColor: themeColor }} data-testid="save-post-btn">{t.save}</Button>
             </div>
           </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Custom Page Modal */}
-      <Dialog open={showPageModal} onOpenChange={setShowPageModal}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-white" hideClose data-testid="page-modal" onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
-          <DialogHeader>
-            <DialogTitle className="text-lg">{editingPage ? t.editPage : t.createPage}</DialogTitle>
-            <DialogDescription className="text-sm">{t.customPages}</DialogDescription>
-          </DialogHeader>
-          <button type="button" onClick={() => setShowPageModal(false)}
-            className="absolute top-3 right-3 w-8 h-8 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-md transition-colors z-10"
-            data-testid="page-modal-close-btn">
-            <X className="w-4 h-4" />
-          </button>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-xs font-medium mb-1">{t.pageTitleLabel} *</label>
-              <Input value={pageForm.title} onChange={(e) => setPageForm({ ...pageForm, title: e.target.value })} placeholder={t.pageTitleLabel} className="text-sm" data-testid="page-title-input" />
-            </div>
-            <div className="flex items-center gap-3">
-              <label className="text-xs font-medium">{t.published}:</label>
-              <button type="button" onClick={() => setPageForm({ ...pageForm, is_published: !pageForm.is_published })}
-                className={`relative w-[68px] h-8 rounded-full transition-all overflow-hidden ${pageForm.is_published ? '' : 'bg-[#E2E8F0]'}`}
-                style={{ backgroundColor: pageForm.is_published ? themeColor : undefined }}
-                data-testid="page-publish-toggle">
-                <span className={`absolute inset-0 flex items-center ${pageForm.is_published ? 'justify-start pl-2.5' : 'justify-end pr-2.5'}`}>
-                  <span className="text-[10px] font-bold text-white tracking-wide select-none">{pageForm.is_published ? 'BẬT' : ''}</span>
-                  <span className="text-[10px] font-bold text-[#94A3B8] tracking-wide select-none">{!pageForm.is_published ? 'TẮT' : ''}</span>
-                </span>
-                <span className={`absolute top-[3px] w-[26px] h-[26px] rounded-full bg-white shadow-md transition-transform ${pageForm.is_published ? 'translate-x-[38px]' : 'translate-x-[3px]'}`} />
-              </button>
-              <span className="text-xs text-[#64748B]">{pageForm.is_published ? t.published : t.draft}</span>
-            </div>
-
-            {/* Sections */}
-            <div>
-              <label className="block text-xs font-medium mb-2">{t.pageSections} ({pageForm.sections.length})</label>
-              <div className="space-y-3">
-                {pageForm.sections.map((section, idx) => (
-                  <div key={idx} className="p-3 border border-[#E2E8F0] rounded-[5px] space-y-2" data-testid={`page-section-editor-${idx}`}>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        {section.type === 'text' && <Type className="w-3.5 h-3.5 text-[#64748B]" />}
-                        {section.type === 'image' && <Image className="w-3.5 h-3.5 text-[#64748B]" />}
-                        {section.type === 'link' && <Link2 className="w-3.5 h-3.5 text-[#64748B]" />}
-                        {section.type === 'video' && <Video className="w-3.5 h-3.5 text-[#64748B]" />}
-                        <span className="text-xs font-medium text-[#64748B] capitalize">{t[`section${section.type.charAt(0).toUpperCase() + section.type.slice(1)}`] || section.type}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Button variant="ghost" size="icon" className="h-6 w-6" disabled={idx === 0} onClick={() => {
-                          const secs = [...pageForm.sections]; [secs[idx - 1], secs[idx]] = [secs[idx], secs[idx - 1]]; setPageForm({ ...pageForm, sections: secs });
-                        }}><ArrowUp className="w-3 h-3" /></Button>
-                        <Button variant="ghost" size="icon" className="h-6 w-6" disabled={idx === pageForm.sections.length - 1} onClick={() => {
-                          const secs = [...pageForm.sections]; [secs[idx], secs[idx + 1]] = [secs[idx + 1], secs[idx]]; setPageForm({ ...pageForm, sections: secs });
-                        }}><ArrowDown className="w-3 h-3" /></Button>
-                        <Button variant="ghost" size="icon" className="h-6 w-6 text-red-400 hover:text-red-600" onClick={() => {
-                          setPageForm({ ...pageForm, sections: pageForm.sections.filter((_, i) => i !== idx) });
-                        }} data-testid={`remove-section-${idx}`}><X className="w-3 h-3" /></Button>
-                      </div>
-                    </div>
-
-                    {section.type === 'text' && (
-                      <ReactQuill theme="snow" value={section.content || ''} onChange={(val) => {
-                        const secs = [...pageForm.sections]; secs[idx] = { ...secs[idx], content: val }; setPageForm({ ...pageForm, sections: secs });
-                      }} modules={quillModulesProduct} className="bg-white [&_.ql-container]:min-h-[100px]" data-testid={`section-text-editor-${idx}`} />
-                    )}
-
-                    {section.type === 'image' && (
-                      <div className="space-y-2">
-                        <div className="flex gap-2">
-                          <Input value={section.url || ''} onChange={(e) => {
-                            const secs = [...pageForm.sections]; secs[idx] = { ...secs[idx], url: e.target.value }; setPageForm({ ...pageForm, sections: secs });
-                          }} placeholder={t.imageUrl} className="text-sm flex-1" data-testid={`section-image-url-${idx}`} />
-                          <Button type="button" variant="outline" size="sm" className="text-xs shrink-0" onClick={() => {
-                            openMediaLibrary((url) => {
-                              const secs = [...pageForm.sections]; secs[idx] = { ...secs[idx], url }; setPageForm({ ...pageForm, sections: secs });
-                            });
-                          }} data-testid={`section-image-upload-${idx}`}>
-                            <Image className="w-3 h-3 mr-1" /> Chọn ảnh
-                          </Button>
-                        </div>
-                        <Input value={section.caption || ''} onChange={(e) => {
-                          const secs = [...pageForm.sections]; secs[idx] = { ...secs[idx], caption: e.target.value }; setPageForm({ ...pageForm, sections: secs });
-                        }} placeholder="Caption (optional)" className="text-xs" />
-                        {section.url && <img src={section.url} alt="" className="w-full max-h-40 object-cover rounded-[5px]" />}
-                      </div>
-                    )}
-
-                    {section.type === 'link' && (
-                      <div className="space-y-2">
-                        <Input value={section.text || ''} onChange={(e) => {
-                          const secs = [...pageForm.sections]; secs[idx] = { ...secs[idx], text: e.target.value }; setPageForm({ ...pageForm, sections: secs });
-                        }} placeholder={t.linkText} className="text-sm" data-testid={`section-link-text-${idx}`} />
-                        <Input value={section.url || ''} onChange={(e) => {
-                          const secs = [...pageForm.sections]; secs[idx] = { ...secs[idx], url: e.target.value }; setPageForm({ ...pageForm, sections: secs });
-                        }} placeholder={t.linkUrl} className="text-sm" data-testid={`section-link-url-${idx}`} />
-                      </div>
-                    )}
-
-                    {section.type === 'video' && (
-                      <Input value={section.url || ''} onChange={(e) => {
-                        const secs = [...pageForm.sections]; secs[idx] = { ...secs[idx], url: e.target.value }; setPageForm({ ...pageForm, sections: secs });
-                      }} placeholder={t.videoUrl} className="text-sm" data-testid={`section-video-url-${idx}`} />
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              {/* Add Section Buttons */}
-              <div className="flex flex-wrap gap-2 mt-3">
-                {[
-                  { type: 'text', icon: Type, label: t.sectionText },
-                  { type: 'image', icon: Image, label: t.sectionImage },
-                  { type: 'link', icon: Link2, label: t.sectionLink },
-                  { type: 'video', icon: Video, label: t.sectionVideo }
-                ].map(({ type, icon: Icon, label }) => (
-                  <Button key={type} variant="outline" size="sm" className="text-xs gap-1" onClick={() => {
-                    setPageForm({ ...pageForm, sections: [...pageForm.sections, { type, content: '', url: '', text: '' }] });
-                  }} data-testid={`add-section-${type}`}>
-                    <Icon className="w-3 h-3" /> {label}
-                  </Button>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex gap-3 pt-4">
-              <Button variant="outline" className="flex-1 text-sm" onClick={() => setShowPageModal(false)}>{t.cancel}</Button>
-              <Button className="flex-1 hover:opacity-90 text-sm" style={{ backgroundColor: themeColor }} onClick={async () => {
-                if (!pageForm.title.trim()) return toast.error(t.pageTitleLabel + ' is required');
-                const savedScrollY = window.scrollY;
-                try {
-                  if (editingPage) {
-                    await axios.put(`${API}/dashboard/pages/${editingPage.id}`, pageForm);
-                  } else {
-                    await axios.post(`${API}/dashboard/pages`, pageForm);
-                  }
-                  toast.success(t.pageSaved);
-                  setShowPageModal(false);
-                  await fetchPagesOnly();
-                  requestAnimationFrame(() => window.scrollTo(0, savedScrollY));
-                } catch (err) { toast.error(err.response?.data?.detail || t.failedToSave); }
-              }} data-testid="save-page-btn">{t.save}</Button>
-            </div>
-          </div>
         </DialogContent>
       </Dialog>
 

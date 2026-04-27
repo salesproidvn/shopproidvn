@@ -75,8 +75,6 @@ export default function ProductEditPage() {
     sku: '',
     category_id: 'none',
     price: '',
-    out_of_stock: false,
-    is_hidden: false,
     is_featured: false,
     description: '',
     images: [],
@@ -118,8 +116,6 @@ export default function ProductEditPage() {
             sku: found.sku || '',
             category_id: found.category_id || 'none',
             price: (found.price ?? '').toString(),
-            out_of_stock: !!found.out_of_stock,
-            is_hidden: !!found.is_hidden,
             is_featured: !!found.is_featured,
             description: found.description || '',
             images: found.images || (found.image_url ? [found.image_url] : []),
@@ -194,8 +190,6 @@ export default function ProductEditPage() {
       sku: form.sku.trim(),
       category_id: form.category_id === 'none' ? null : form.category_id,
       price: parseInt(form.price, 10) || 0,
-      out_of_stock: !!form.out_of_stock,
-      is_hidden: !!form.is_hidden,
       is_featured: !!form.is_featured,
       description: form.description,
       images: form.images || [],
@@ -463,14 +457,6 @@ export default function ProductEditPage() {
                     data-testid="edit-product-price-input"
                   />
                 </div>
-                <ToggleRow
-                  checked={form.out_of_stock}
-                  onChange={(v) => setForm({ ...form, out_of_stock: v })}
-                  label={t.outOfStock || 'Out of Stock'}
-                  desc={t.outOfStockDesc}
-                  themeColor={themeColor}
-                  testId="edit-product-out-of-stock-toggle"
-                />
               </div>
             </Card>
 
@@ -508,14 +494,6 @@ export default function ProductEditPage() {
                   desc={t.featuredProductDesc}
                   themeColor={themeColor}
                   testId="edit-product-featured-toggle"
-                />
-                <ToggleRow
-                  checked={form.is_hidden}
-                  onChange={(v) => setForm({ ...form, is_hidden: v })}
-                  label={t.isHidden || 'Hidden from Listing'}
-                  desc={t.isHiddenDesc}
-                  themeColor={themeColor}
-                  testId="edit-product-is-hidden-toggle"
                 />
               </div>
             </Card>

@@ -514,8 +514,6 @@ class ProductCreate(BaseModel):
     position: Optional[int] = 0
     is_featured: Optional[bool] = False
     is_active: Optional[bool] = True
-    is_hidden: Optional[bool] = False
-    out_of_stock: Optional[bool] = False
     sku: Optional[str] = ""
     type: Optional[str] = "product"
     affiliate_links: Optional[List[dict]] = []
@@ -1575,8 +1573,6 @@ async def create_product(data: ProductCreate, request: Request):
         "video_links": data.video_links or [],
         "position": data.position or 0,
         "is_active": data.is_active if data.is_active is not None else True,
-        "is_hidden": bool(data.is_hidden),
-        "out_of_stock": bool(data.out_of_stock),
         "is_featured": data.is_featured or False, "sku": data.sku or "",
         "type": data.type if data.type in ("product", "service") else "product",
         "affiliate_links": _clean_affiliate_links(data.affiliate_links or []),
@@ -1712,67 +1708,6 @@ async def delete_post(post_id: str, request: Request):
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Post not found")
     return {"message": "Post deleted"}
-
-# ==================== DASHBOARD - PAGES ====================
-
-@api_router.get("/dashboard/pages")
-async def get_shop_pages(request: Request):
-    user = await require_shop_owner(request)
-    shop_id = await resolve_shop_id(request, user)
-    pages = await db.pages.find({"shop_id": shop_id}, {"_id": 0}).sort("created_at", -1).to_list(50)
-    for p in pages:
-        p["created_at"] = serialize_datetime(p.get("created_at"))
-        p["updated_at"] = serialize_datetime(p.get("updated_at"))
-    return pages
-
-@api_router.post("/dashboard/pages")
-async def create_page(data: PageCreate, request: Request):
-    user = await require_shop_owner(request)
-    shop_id = await resolve_shop_id(request, user)
-    shop = await db.shops.find_one({"_id": ObjectId(shop_id)}, {"max_pages": 1})
-    max_pg = (shop or {}).get("max_pages", 20)
-    count = await db.pages.count_documents({"shop_id": shop_id})
-    if count >= max_pg:
-        raise HTTPException(status_code=400, detail=f"Đã đạt giới hạn {max_pg} trang")
-    page_id = f"page-{secrets.token_hex(6)}"
-    slug = data.slug or generate_shop_slug(data.title)
-    now = datetime.now(timezone.utc)
-    doc = {
-        "id": page_id, "shop_id": shop_id, "title": data.title, "slug": slug,
-        "is_published": data.is_published, "sections": data.sections or [],
-        "created_at": now, "updated_at": now
-    }
-    await db.pages.insert_one(doc)
-    doc.pop("_id", None)
-    doc["created_at"] = serialize_datetime(doc["created_at"])
-    doc["updated_at"] = serialize_datetime(doc["updated_at"])
-    return doc
-
-@api_router.put("/dashboard/pages/{page_id}")
-async def update_page(page_id: str, request: Request):
-    user = await require_shop_owner(request)
-    shop_id = await resolve_shop_id(request, user)
-    body = await request.json()
-    body.pop("id", None)
-    body.pop("shop_id", None)
-    body["updated_at"] = datetime.now(timezone.utc)
-    result = await db.pages.update_one({"id": page_id, "shop_id": shop_id}, {"$set": body})
-    if result.matched_count == 0:
-        raise HTTPException(status_code=404, detail="Page not found")
-    updated = await db.pages.find_one({"id": page_id}, {"_id": 0})
-    if updated:
-        updated["created_at"] = serialize_datetime(updated.get("created_at"))
-        updated["updated_at"] = serialize_datetime(updated.get("updated_at"))
-    return updated
-
-@api_router.delete("/dashboard/pages/{page_id}")
-async def delete_page(page_id: str, request: Request):
-    user = await require_shop_owner(request)
-    shop_id = await resolve_shop_id(request, user)
-    result = await db.pages.delete_one({"id": page_id, "shop_id": shop_id})
-    if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Page not found")
-    return {"message": "Page deleted"}
 
 # ==================== DASHBOARD - MEGA MENU ====================
 
@@ -2018,7 +1953,7 @@ async def get_shop_products_public(slug: str, category: Optional[str] = None, se
     if not shop:
         raise HTTPException(status_code=404, detail="Shop not found")
     shop_id = str(shop["_id"])
-    query = {"shop_id": shop_id, "is_active": True, "is_hidden": {"$ne": True}}
+    query = {"shop_id": shop_id, "is_active": True}
     if category and category != "all":
         query["category_id"] = category
     if search:
@@ -2049,23 +1984,6 @@ async def get_shop_posts_public(slug: str):
     for p in posts:
         p["created_at"] = serialize_datetime(p.get("created_at"))
     return posts
-
-@api_router.get("/shop/{slug}/page/{page_slug}")
-async def get_shop_page_public(slug: str, page_slug: str):
-    shop = await db.shops.find_one({"slug": slug, "status": "active"})
-    if not shop:
-        raise HTTPException(status_code=404, detail="Shop not found")
-    shop_id = str(shop["_id"])
-    page = await db.pages.find_one({"shop_id": shop_id, "slug": page_slug, "is_published": True}, {"_id": 0})
-    if not page:
-        # Also check custom_pages embedded in shop document
-        for cp in shop.get("custom_pages", []):
-            if cp.get("slug") == page_slug and cp.get("is_published", True):
-                return cp
-        raise HTTPException(status_code=404, detail="Page not found")
-    page["created_at"] = serialize_datetime(page.get("created_at"))
-    page["updated_at"] = serialize_datetime(page.get("updated_at"))
-    return page
 
 @api_router.post("/shop/{slug}/orders")
 async def create_order(slug: str, data: OrderCreate, request: Request):
@@ -2141,7 +2059,7 @@ async def create_booking(slug: str, data: BookingCreate, request: Request):
     if not shop:
         raise HTTPException(status_code=404, detail="Shop not found")
     shop_id = str(shop["_id"])
-    service = await db.products.find_one({"id": data.service_id, "shop_id": shop_id, "is_active": True, "is_hidden": {"$ne": True}})
+    service = await db.products.find_one({"id": data.service_id, "shop_id": shop_id, "is_active": True})
     if not service or service.get("type") != "service":
         raise HTTPException(status_code=404, detail="Service not found")
     booking_id = f"BK-{secrets.token_hex(6).upper()}"
@@ -2254,7 +2172,7 @@ async def submit_contact(slug: str, data: ContactForm, request: Request):
 
 @api_router.get("/products")
 async def get_products(category: Optional[str] = None, search: Optional[str] = None):
-    query = {"is_active": {"$ne": False}, "is_hidden": {"$ne": True}}
+    query = {"is_active": {"$ne": False}}
     if category and category != "All Categories":
         query["category"] = category
     if search:
@@ -2555,7 +2473,7 @@ async def og_product_page(slug: str, product_id: str):
     if not shop:
         raise HTTPException(status_code=404, detail="Shop not found")
     shop_id = str(shop["_id"])
-    product = await db.products.find_one({"id": product_id, "shop_id": shop_id, "is_active": True, "is_hidden": {"$ne": True}}, {"_id": 0})
+    product = await db.products.find_one({"id": product_id, "shop_id": shop_id, "is_active": True}, {"_id": 0})
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
     

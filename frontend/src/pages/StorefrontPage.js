@@ -504,7 +504,6 @@ const StorefrontPage = () => {
   // Product Card
   const ProductCard = ({ product }) => {
     const isService = product.type === 'service';
-    const isOut = !!product.out_of_stock;
     return (
     <Link to={`/shop/${slug}/product/${product.id}`} className="group bg-white border border-[#E2E8F0] rounded-[5px] overflow-hidden hover:shadow-lg transition-all cursor-pointer relative block"
       data-testid={`product-${product.id}`}>
@@ -515,25 +514,20 @@ const StorefrontPage = () => {
           <Pencil className="w-3.5 h-3.5 text-[#475569]" />
         </button>
       )}
-      {!isOut && (
-        <button type="button" onClick={(e) => {
-            e.preventDefault(); e.stopPropagation();
-            if (isService) { openBooking(product); } else { addToCart(product); }
-          }}
-          className="absolute top-2 right-2 z-10 w-8 h-8 rounded-full flex items-center justify-center shadow-md text-white transition-all opacity-90 hover:opacity-100 hover:scale-110"
-          style={{ backgroundColor: themeColor }}
-          data-testid={isService ? `book-service-${product.id}` : `add-cart-${product.id}`}
-          title={isService ? 'Đặt lịch' : 'Thêm vào giỏ'}>
-          {isService ? <Calendar className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-        </button>
-      )}
-      {isOut && (
-        <span className="absolute top-2 right-2 z-10 px-2 py-0.5 text-[10px] font-bold rounded bg-red-500 text-white shadow" data-testid={`out-of-stock-${product.id}`}>Hết hàng</span>
-      )}
+      <button type="button" onClick={(e) => {
+          e.preventDefault(); e.stopPropagation();
+          if (isService) { openBooking(product); } else { addToCart(product); }
+        }}
+        className="absolute top-2 right-2 z-10 w-8 h-8 rounded-full flex items-center justify-center shadow-md text-white transition-all opacity-90 hover:opacity-100 hover:scale-110"
+        style={{ backgroundColor: themeColor }}
+        data-testid={isService ? `book-service-${product.id}` : `add-cart-${product.id}`}
+        title={isService ? 'Đặt lịch' : 'Thêm vào giỏ'}>
+        {isService ? <Calendar className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+      </button>
       {isService && (
         <span className="absolute top-2 left-2 z-10 px-1.5 py-0.5 text-[10px] font-bold rounded bg-[#0F172A] text-white">Dịch vụ</span>
       )}
-      <div className={`aspect-square bg-[#F8FAFC] overflow-hidden ${isOut ? 'opacity-60' : ''}`}>
+      <div className="aspect-square bg-[#F8FAFC] overflow-hidden">
         <img src={optimizeImageUrl(product.image_url, 400) || '/product-fallback.png'} alt={product.name} loading="lazy" decoding="async" onError={(e) => { e.target.src = '/product-fallback.png'; }} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
       </div>
       <div className="p-3 sm:p-4 text-center">

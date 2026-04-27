@@ -18,7 +18,6 @@ import ThankYouPage from "./pages/ThankYouPage";
 import BlogPostPage from "./pages/BlogPostPage";
 import CategoryPage from "./pages/CategoryPage";
 import SingleCategoryPage from "./pages/SingleCategoryPage";
-import CustomPage from "./pages/CustomPage";
 import ProductDetailPage from "./pages/ProductDetailPage";
 import ProductEditPage from "./pages/ProductEditPage";
 
@@ -42,7 +41,6 @@ function App() {
                 <Route path="/shop/:slug/product/:productId" element={<ProductDetailPage />} />
                 <Route path="/shop/:slug/categories" element={<CategoryPage />} />
                 <Route path="/shop/:slug/category/:categoryId" element={<SingleCategoryPage />} />
-                <Route path="/shop/:slug/page/:pageSlug" element={<CustomPage />} />
                 <Route path="/shop/:slug/contact" element={<ContactPage />} />
                 <Route path="/shop/:slug/posts" element={<BlogPostPage />} />
                 <Route path="/shop/:slug/posts/:postId" element={<BlogPostPage />} />

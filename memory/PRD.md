@@ -62,6 +62,12 @@ Multi-tenant e-commerce platform allowing shop owners to create and manage onlin
 - Rebuilt the **mobile mega-menu** as a 2-column grid of main categories (image thumbnail + name). Tapping a category opens `/shop/:slug/category/:id`
 - **Custom homepage sections** (max 5 per shop): shop owner creates simple blocks (title + image + rich text) from the **Bố cục hiển thị** tab. Each custom section appears inside the draggable layout list alongside Banner/Categories/Featured/... with its own BẬT/TẮT toggle + inline Edit pencil, and renders inline on the public storefront at the chosen position.
 
+### Phase 10 - Remove Custom Pages + Hidden Product + Out-of-Stock (April 27, 2026)
+- **Removed Trang tùy chỉnh (Custom Pages)**: tab + page `CustomPage.js`, endpoints `GET/POST/PUT/DELETE /api/dashboard/pages`, public `GET /api/shop/{slug}/page/{page_slug}`, route `/shop/:slug/page/:pageSlug`, `customPages` state, modal, `pageForm`, `editingPage`, `showPageModal`
+- **Removed Ẩn sản phẩm (is_hidden)**: field from `Product` model, product create/update payload, ToggleRow in ProductEditPage, hidden badge in dashboard product list, storefront filters (`is_hidden: {"$ne": True}` removed from product list / featured / detail / booking queries)
+- **Removed Hết hàng (out_of_stock)**: field from model + payload, ToggleRow, "Hết hàng" badge on storefront product card + product detail + dashboard product list, disabled-button logic on ProductDetailPage (Add to Cart / Đặt lịch always enabled now)
+- **Note**: Existing legacy `is_hidden` / `out_of_stock` values still in MongoDB documents but no longer read or written by API; can be cleaned with `db.products.updateMany({}, {$unset: {is_hidden:"", out_of_stock:""}})` if desired
+
 ### Phase 9 - Feature Removal + Default Storefront Menu (April 27, 2026)
 - **Removed Voucher feature** (UI, backend endpoints, MongoDB collection seed, cart UI). All voucher data permanently deleted from active code paths
 - **Removed Agent/Đại lý feature** (collections: `agents`, `agent_sales`; endpoints `/api/dashboard/agents`, `/api/dashboard/agent-sales`, `/api/admin/shops/{id}/agents-toggle`; AgentDashboard page + tab + referral tracking from cart/booking)

@@ -232,26 +232,21 @@ const ProductDetailPage = () => {
             <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-[#0F172A] mb-2 sm:mb-3 break-words" data-testid="product-name">{product.name}</h1>
             <div className="flex items-baseline gap-3 mb-2">
               <p className="text-2xl sm:text-3xl font-bold" style={{ color: themeColor }} data-testid="product-price">{formatVND(product.price)}</p>
-              {product.out_of_stock && (
-                <span className="px-2 py-0.5 text-xs font-bold rounded bg-red-500 text-white" data-testid="product-out-of-stock-badge">Hết hàng</span>
-              )}
             </div>
             {product.sku && <p className="text-xs text-[#94A3B8] mb-2">SKU: {product.sku}</p>}
             {product.category && <p className="text-sm text-[#94A3B8] mb-4">{product.category}</p>}
             <div className="flex gap-2 sm:gap-3 mb-4 sm:mb-6">
               {isService ? (
-                <Button className="flex-1 hover:opacity-90 py-4 sm:py-6 text-sm sm:text-base rounded-[5px] disabled:opacity-50"
+                <Button className="flex-1 hover:opacity-90 py-4 sm:py-6 text-sm sm:text-base rounded-[5px]"
                   style={{ backgroundColor: themeColor }}
-                  disabled={!!product.out_of_stock}
                   onClick={() => setShowBooking(true)} data-testid="product-book-service">
-                  <Calendar className="w-5 h-5 mr-2" /> {product.out_of_stock ? 'Tạm ngưng nhận đặt lịch' : 'Đặt lịch'}
+                  <Calendar className="w-5 h-5 mr-2" /> Đặt lịch
                 </Button>
               ) : (
-                <Button className="flex-1 hover:opacity-90 py-4 sm:py-6 text-sm sm:text-base rounded-[5px] disabled:opacity-50"
+                <Button className="flex-1 hover:opacity-90 py-4 sm:py-6 text-sm sm:text-base rounded-[5px]"
                   style={{ backgroundColor: themeColor }}
-                  disabled={!!product.out_of_stock}
-                  onClick={() => { if (product.out_of_stock) return; addToCart(product.id, product, 1); toast.success(t.addedToCart || 'Đã thêm vào giỏ'); }} data-testid="product-add-cart">
-                  <ShoppingCart className="w-5 h-5 mr-2" /> {product.out_of_stock ? 'Hết hàng' : t.addToCart}
+                  onClick={() => { addToCart(product.id, product, 1); toast.success(t.addedToCart || 'Đã thêm vào giỏ'); }} data-testid="product-add-cart">
+                  <ShoppingCart className="w-5 h-5 mr-2" /> {t.addToCart}
                 </Button>
               )}
               <Button variant="outline" className="py-6 px-4 rounded-[5px]" onClick={handleShare}>
@@ -306,9 +301,7 @@ const ProductDetailPage = () => {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 lg:gap-5">
               {relatedProducts.map(rp => (
                 <Link key={rp.id} to={`/shop/${slug}/product/${rp.id}`} className="group bg-white border border-[#E2E8F0] rounded-[5px] overflow-hidden hover:shadow-lg transition-all relative" data-testid={`related-product-${rp.id}`}>
-                  {rp.out_of_stock ? (
-                    <span className="absolute top-2 right-2 z-10 px-2 py-0.5 text-[10px] font-bold rounded bg-red-500 text-white shadow">Hết hàng</span>
-                  ) : rp.type === 'service' ? (
+                  {rp.type === 'service' ? (
                     <Link to={`/shop/${slug}/product/${rp.id}`} onClick={(e) => e.stopPropagation()}
                       className="absolute top-2 right-2 z-10 w-7 h-7 rounded-full flex items-center justify-center shadow-md text-white opacity-90 hover:opacity-100 hover:scale-110 transition-all"
                       style={{ backgroundColor: themeColor }} title="Đặt lịch">
