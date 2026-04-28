@@ -62,6 +62,12 @@ Multi-tenant e-commerce platform allowing shop owners to create and manage onlin
 - Rebuilt the **mobile mega-menu** as a 2-column grid of main categories (image thumbnail + name). Tapping a category opens `/shop/:slug/category/:id`
 - **Custom homepage sections** (max 5 per shop): shop owner creates simple blocks (title + image + rich text) from the **Bố cục hiển thị** tab. Each custom section appears inside the draggable layout list alongside Banner/Categories/Featured/... with its own BẬT/TẮT toggle + inline Edit pencil, and renders inline on the public storefront at the chosen position.
 
+### Phase 14 - Remove Services + Featured Products (April 28, 2026)
+- **Removed Dịch vụ (Services)**: backend `BookingCreate`, `BookingStatusUpdate` models; endpoints `POST /api/shop/{slug}/bookings`, `GET/PUT/DELETE /api/dashboard/bookings`, `db.bookings` index. `type` field removed from ProductCreate. Public `/products` no longer accepts `type` query param. Frontend: gỡ `BookingProduct` modal + state ở 3 trang (StorefrontPage, ProductDetailPage, SingleCategoryPage), `openBooking`/`submitBooking` handlers, `services` từ layout sections, `ServicesSection` component, "Đặt lịch" button + "Dịch vụ" badge, `bookings` tab + state + fetch + handlers trong dashboard, agent_tracking_code đã không còn vì gỡ Đại lý ở phase 9.
+- **Removed Sản phẩm nổi bật (Featured)**: `is_featured` field từ ProductCreate model + product creation. Frontend: gỡ `FeaturedProducts` component + `featured` từ layout sections + featured badge ở dashboard product list + `ToggleRow` is_featured ở ProductEditPage + `TrendingUp` icon import.
+- **Bố cục hiển thị refactored**: 3 sections cố định — `categories`, `blog`, `products`. `getLayoutSections()` luôn auto-inject 3 sections nếu thiếu. `VALID_SECTION_IDS = ['categories', 'blog', 'products']`. SortableLayoutItem đơn giản hơn (gỡ `isCustom` logic + edit pencil button). Drag-drop reorder + ON/OFF toggle vẫn hoạt động đúng.
+- **Code cleanup**: ProductDetailPage 425→336 dòng, SingleCategoryPage 462→352 dòng, StorefrontPage 1351→1207 dòng, ShopOwnerDashboard ~2480→2340 dòng, server.py 2671→2560 dòng.
+
 ### Phase 13 - Remove Mega Menu Tab from Dashboard (April 27, 2026)
 - **Removed Mega Menu tab** from sidebar (no longer needed - thứ tự danh mục trên storefront mega menu đã đồng bộ với Danh mục tab)
 - **Backend**: deleted endpoints `GET/PUT /api/dashboard/mega-menu`, `MegaMenuUpdate` model, `mega_menu_categories` field từ shop_doc init và /shop/{slug} response

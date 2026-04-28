@@ -37,9 +37,6 @@ const StorefrontPage = () => {
   const [categories, setCategories] = useState([]);
   const [posts, setPosts] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const [bookingProduct, setBookingProduct] = useState(null);
-  const [bookingForm, setBookingForm] = useState({ customer_name: '', customer_phone: '', customer_email: '', preferred_datetime: '', note: '' });
-  const [bookingSubmitting, setBookingSubmitting] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -188,8 +185,6 @@ const StorefrontPage = () => {
 
   useEffect(() => {
     let result = [...products];
-    // Exclude services — they render in a dedicated section above
-    result = result.filter(p => p.type !== 'service');
     if (selectedCategory === 'uncategorized') {
       const allCatIds = categories.map(c => c.id);
       result = result.filter(p => !p.category_id || !allCatIds.includes(p.category_id));
@@ -222,41 +217,6 @@ const StorefrontPage = () => {
     toast.success(t.addedToCart);
   };
 
-  const openBooking = (product) => {
-    setBookingProduct(product);
-    setBookingForm({ customer_name: '', customer_phone: '', customer_email: '', preferred_datetime: '', note: '' });
-  };
-
-  const closeBooking = () => {
-    setBookingProduct(null);
-  };
-
-  const submitBooking = async (e) => {
-    e.preventDefault();
-    if (!bookingProduct) return;
-    if (!bookingForm.customer_name.trim() || !bookingForm.customer_phone.trim() || !bookingForm.preferred_datetime) {
-      toast.error('Vui lòng điền đầy đủ Họ tên, SĐT và Thời gian mong muốn');
-      return;
-    }
-    setBookingSubmitting(true);
-    try {
-      await axios.post(`${API}/shop/${slug}/bookings`, {
-        service_id: bookingProduct.id,
-        customer_name: bookingForm.customer_name.trim(),
-        customer_phone: bookingForm.customer_phone.trim(),
-        customer_email: bookingForm.customer_email.trim(),
-        preferred_datetime: bookingForm.preferred_datetime,
-        note: bookingForm.note.trim(),
-      });
-      toast.success('Đã gửi yêu cầu đặt lịch! Chúng tôi sẽ liên hệ xác nhận sớm.');
-      setBookingProduct(null);
-    } catch (err) {
-      toast.error(err.response?.data?.detail || 'Gửi yêu cầu thất bại');
-    } finally {
-      setBookingSubmitting(false);
-    }
-  };
-
   const updateCartQuantity = (productId, delta) => {
     const item = cart.find(i => i.product_id === productId);
     if (item) updateQuantity(productId, item.quantity + delta);
@@ -270,21 +230,13 @@ const StorefrontPage = () => {
     const defaults = [
       { id: 'categories', enabled: true },
       { id: 'blog', enabled: true },
-      { id: 'featured', enabled: true },
-      { id: 'services', enabled: true },
       { id: 'products', enabled: true }
     ];
     const existing = shop?.layout_sections?.length ? [...shop.layout_sections] : null;
     if (!existing) return defaults;
-    // Filter out deprecated sections (banner, custom:*)
-    const filtered = existing.filter(s => s.id !== 'banner' && !(typeof s.id === 'string' && s.id.startsWith('custom:')));
-    // Auto-inject 'services' before 'products' if missing (backward compat)
-    if (!filtered.some(s => s.id === 'services')) {
-      const prodIdx = filtered.findIndex(s => s.id === 'products');
-      const insertAt = prodIdx >= 0 ? prodIdx : filtered.length;
-      filtered.splice(insertAt, 0, { id: 'services', enabled: true });
-    }
-    return filtered;
+    // Filter out deprecated sections (banner, custom:*, services, featured)
+    const filtered = existing.filter(s => ['categories', 'blog', 'products'].includes(s.id));
+    return filtered.length ? filtered : defaults;
   })();
 
   const isSectionEnabled = (id) => {
@@ -443,7 +395,6 @@ const StorefrontPage = () => {
 
   // Product Card
   const ProductCard = ({ product }) => {
-    const isService = product.type === 'service';
     return (
     <Link to={`/shop/${slug}/product/${product.id}`} className="group bg-white border border-[#E2E8F0] rounded-[5px] overflow-hidden hover:shadow-lg transition-all cursor-pointer relative block"
       data-testid={`product-${product.id}`}>
@@ -456,17 +407,14 @@ const StorefrontPage = () => {
       )}
       <button type="button" onClick={(e) => {
           e.preventDefault(); e.stopPropagation();
-          if (isService) { openBooking(product); } else { addToCart(product); }
+          addToCart(product);
         }}
         className="absolute top-2 right-2 z-10 w-8 h-8 rounded-full flex items-center justify-center shadow-md text-white transition-all opacity-90 hover:opacity-100 hover:scale-110"
         style={{ backgroundColor: themeColor }}
-        data-testid={isService ? `book-service-${product.id}` : `add-cart-${product.id}`}
-        title={isService ? 'Đặt lịch' : 'Thêm vào giỏ'}>
-        {isService ? <Calendar className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+        data-testid={`add-cart-${product.id}`}
+        title="Thêm vào giỏ">
+        <Plus className="w-4 h-4" />
       </button>
-      {isService && (
-        <span className="absolute top-2 left-2 z-10 px-1.5 py-0.5 text-[10px] font-bold rounded bg-[#0F172A] text-white">Dịch vụ</span>
-      )}
       <div className="aspect-square bg-[#F8FAFC] overflow-hidden">
         <img src={optimizeImageUrl(product.image_url, 400) || '/product-fallback.png'} alt={product.name} loading="lazy" decoding="async" onError={(e) => { e.target.src = '/product-fallback.png'; }} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
       </div>
@@ -475,48 +423,6 @@ const StorefrontPage = () => {
         <p className="text-base font-bold mb-2" style={{ color: themeColor }}>{formatVND(product.price)}</p>
       </div>
     </Link>
-    );
-  };
-
-  // Featured Products Section
-  const FeaturedProducts = () => {
-    if (!isSectionEnabled('featured')) return null;
-    const featured = products.filter(p => p.is_featured && p.type !== 'service');
-    if (!featured.length) return null;
-    return (
-      <div className="mb-8" data-testid="featured-products">
-        <h3 className="text-xl sm:text-2xl font-bold text-[#0F172A] mb-4">{t.featuredProducts}</h3>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 lg:gap-5">
-          {featured.map((product) => (<ProductCard key={product.id} product={product} />))}
-        </div>
-      </div>
-    );
-  };
-
-  // Services Section (rendered on its own, above Products)
-  const ServicesSection = () => {
-    const services = products.filter(p => p.type === 'service');
-    if (!services.length) return null;
-    const q = (searchQuery || '').toLowerCase();
-    const filtered = q ? services.filter(s => s.name.toLowerCase().includes(q)) : services;
-    if (!filtered.length) return null;
-    return (
-      <div className="mb-10" data-testid="services-section">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-full flex items-center justify-center text-white" style={{ backgroundColor: themeColor }}>
-            <Calendar className="w-5 h-5" />
-          </div>
-          <div>
-            <h3 className="text-xl sm:text-2xl font-bold text-[#0F172A]">Dịch vụ</h3>
-            <p className="text-xs text-[#64748B]">Đặt lịch nhanh — nhân viên sẽ liên hệ xác nhận</p>
-          </div>
-          <div className="flex-1 h-px bg-[#E2E8F0]" />
-          <span className="text-sm text-[#94A3B8]">{filtered.length}</span>
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 lg:gap-5">
-          {filtered.map((product) => (<ProductCard key={product.id} product={product} />))}
-        </div>
-      </div>
     );
   };
 
@@ -661,8 +567,6 @@ const StorefrontPage = () => {
     switch (section.id) {
       case 'categories': return <CategoryGrid key="categories" />;
       case 'blog': return <PostCarousel key="blog" />;
-      case 'featured': return <FeaturedProducts key="featured" />;
-      case 'services': return <ServicesSection key="services" />;
       case 'products': return null; // products rendered separately below filters
       default: return null;
     }
@@ -1296,55 +1200,6 @@ const StorefrontPage = () => {
         maxSelect={editMediaTarget === 'product' ? 8 - (editProduct?.images?.length || 0) : 1}
       />
 
-      {/* Booking Modal */}
-      <Dialog open={!!bookingProduct} onOpenChange={(v) => { if (!v) closeBooking(); }}>
-        <DialogContent className="sm:max-w-md bg-white" data-testid="booking-modal">
-          <DialogHeader>
-            <DialogTitle className="text-base">Đặt lịch dịch vụ</DialogTitle>
-            <DialogDescription className="text-sm">
-              {bookingProduct ? `${bookingProduct.name} · ${formatVND(bookingProduct.price)}` : ''}
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={submitBooking} className="space-y-3">
-            <div>
-              <label className="block text-xs font-medium text-[#334155] mb-1">Họ tên *</label>
-              <Input value={bookingForm.customer_name} onChange={(e) => setBookingForm({ ...bookingForm, customer_name: e.target.value })}
-                required className="text-sm" data-testid="booking-name-input" />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-[#334155] mb-1">Số điện thoại *</label>
-              <Input type="tel" value={bookingForm.customer_phone} onChange={(e) => setBookingForm({ ...bookingForm, customer_phone: e.target.value })}
-                required className="text-sm" data-testid="booking-phone-input" />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-[#334155] mb-1">Email (không bắt buộc)</label>
-              <Input type="email" value={bookingForm.customer_email} onChange={(e) => setBookingForm({ ...bookingForm, customer_email: e.target.value })}
-                className="text-sm" data-testid="booking-email-input" />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-[#334155] mb-1">Ngày & giờ mong muốn *</label>
-              <Input type="datetime-local" value={bookingForm.preferred_datetime}
-                onChange={(e) => setBookingForm({ ...bookingForm, preferred_datetime: e.target.value })}
-                required className="text-sm" data-testid="booking-datetime-input" />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-[#334155] mb-1">Ghi chú</label>
-              <textarea value={bookingForm.note} onChange={(e) => setBookingForm({ ...bookingForm, note: e.target.value })}
-                rows={3} className="w-full text-sm border border-[#E2E8F0] rounded-[5px] px-3 py-2 focus:outline-none focus:ring-1 focus:ring-[#0055FF]"
-                placeholder="Yêu cầu đặc biệt (nếu có)" data-testid="booking-note-input" />
-            </div>
-            <div className="flex gap-2 pt-2">
-              <Button type="button" variant="outline" className="flex-1" onClick={closeBooking} data-testid="booking-cancel-btn">
-                Hủy
-              </Button>
-              <Button type="submit" className="flex-1 text-white" style={{ backgroundColor: themeColor }}
-                disabled={bookingSubmitting} data-testid="booking-submit-btn">
-                {bookingSubmitting ? 'Đang gửi...' : 'Gửi yêu cầu'}
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };

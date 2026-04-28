@@ -32,11 +32,10 @@ import 'react-quill-new/dist/quill.snow.css';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
-function SortableLayoutItem({ section, sectionLabels, sectionIcons, themeColor, onToggle, onEdit }) {
+function SortableLayoutItem({ section, sectionLabels, sectionIcons, themeColor, onToggle }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: section.id });
   const style = { transform: CSS.Transform.toString(transform), transition, zIndex: isDragging ? 50 : 'auto', opacity: isDragging ? 0.85 : 1 };
-  const isCustom = typeof section.id === 'string' && section.id.startsWith('custom:');
-  const IconComp = isCustom ? LayoutGrid : (sectionIcons[section.id] || Package);
+  const IconComp = sectionIcons[section.id] || Package;
   return (
     <div ref={setNodeRef} style={style}
       className={`flex items-center gap-3 p-3 rounded-[5px] border transition-all ${section.enabled ? 'bg-white border-[#E2E8F0]' : 'bg-[#F8FAFC] border-dashed border-[#E2E8F0] opacity-60'} ${isDragging ? 'shadow-lg ring-2 ring-blue-300' : ''}`}
@@ -49,13 +48,7 @@ function SortableLayoutItem({ section, sectionLabels, sectionIcons, themeColor, 
       </div>
       <div className="flex-1 min-w-0">
         <p className="font-medium text-sm text-[#0F172A] truncate">{sectionLabels[section.id] || section.label}</p>
-        {isCustom && <p className="text-[10px] text-[#94A3B8]">Section tùy chỉnh</p>}
       </div>
-      {isCustom && onEdit && (
-        <button onClick={onEdit} className="w-8 h-8 rounded-[5px] border border-[#E2E8F0] text-[#475569] hover:bg-[#F8FAFC] flex items-center justify-center flex-shrink-0" data-testid={`edit-custom-section-${section.id}`} title="Chỉnh sửa">
-          <Pencil className="w-3.5 h-3.5" />
-        </button>
-      )}
       <button onClick={onToggle}
         className={`w-[68px] h-8 rounded-full transition-all relative overflow-hidden flex-shrink-0 ${section.enabled ? '' : 'bg-[#E2E8F0]'}`}
         style={section.enabled ? { backgroundColor: themeColor } : {}}
@@ -171,10 +164,8 @@ const ShopOwnerDashboard = () => {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [orders, setOrders] = useState([]);
-  const [bookings, setBookings] = useState([]);
   const [expandedOrderId, setExpandedOrderId] = useState(null);
   const [orderPage, setOrderPage] = useState(1);
-  const [bookingPage, setBookingPage] = useState(1);
   const [productPage, setProductPage] = useState(1);
   const ORDERS_PER_PAGE = 10;
   const [activeTab, setActiveTab] = useState(() => searchParams.get('tab') || 'overview');
@@ -350,13 +341,12 @@ const ShopOwnerDashboard = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [statsRes, shopRes, productsRes, categoriesRes, ordersRes, bookingsRes, postsRes] = await Promise.all([
+      const [statsRes, shopRes, productsRes, categoriesRes, ordersRes, postsRes] = await Promise.all([
         axios.get(`${API}/dashboard/stats${shopQuery}`),
         axios.get(`${API}/dashboard/shop${shopQuery}`),
         axios.get(`${API}/dashboard/products${shopQuery}`),
         axios.get(`${API}/dashboard/categories${shopQuery}`),
         axios.get(`${API}/dashboard/orders${shopQuery}`),
-        axios.get(`${API}/dashboard/bookings${shopQuery}`).catch(() => ({ data: [] })),
         axios.get(`${API}/dashboard/posts${shopQuery}`),
       ]);
       setStats(statsRes.data);
@@ -366,7 +356,6 @@ const ShopOwnerDashboard = () => {
       setProducts(productsRes.data);
       setCategories(categoriesRes.data);
       setOrders(ordersRes.data);
-      setBookings(bookingsRes.data || []);
       setPosts(postsRes.data || []);
     } catch (err) {
       toast.error(t.failedToLoad);
@@ -398,13 +387,6 @@ const ShopOwnerDashboard = () => {
     try {
       const { data } = await axios.get(`${API}/dashboard/orders${shopQuery}`);
       setOrders(data);
-    } catch { }
-  };
-
-  const fetchBookingsOnly = async () => {
-    try {
-      const { data } = await axios.get(`${API}/dashboard/bookings${shopQuery}`);
-      setBookings(data || []);
     } catch { }
   };
 
@@ -527,28 +509,6 @@ const ShopOwnerDashboard = () => {
       toast.error(t.failedToUpdate);
     }
   };
-
-  const handleBookingStatus = async (bookingId, status) => {
-    try {
-      await axios.put(`${API}/dashboard/bookings/${bookingId}/status`, { status });
-      toast.success('Đã cập nhật trạng thái đặt lịch');
-      fetchBookingsOnly();
-    } catch (err) {
-      toast.error(t.failedToUpdate);
-    }
-  };
-
-  const handleDeleteBooking = async (bookingId) => {
-    if (!window.confirm('Xóa đơn đặt lịch này?')) return;
-    try {
-      await axios.delete(`${API}/dashboard/bookings/${bookingId}`);
-      toast.success('Đã xóa đơn đặt lịch');
-      fetchBookingsOnly();
-    } catch (err) {
-      toast.error(t.failedToDelete);
-    }
-  };
-
   const openOrderDetail = (order) => {
     setSelectedOrder(order);
     setShowOrderModal(true);
@@ -757,37 +717,32 @@ const ShopOwnerDashboard = () => {
   const sectionLabels = {
     categories: t.categories,
     blog: t.sectionBlog,
-    featured: t.sectionFeatured,
-    services: 'Dịch vụ',
     products: t.sectionProducts,
   };
 
   const sectionIcons = {
     categories: FolderOpen,
     blog: FileText,
-    featured: TrendingUp,
-    services: Calendar,
     products: Package,
   };
 
-  const VALID_SECTION_IDS = ['categories', 'blog', 'featured', 'services', 'products'];
+  const VALID_SECTION_IDS = ['categories', 'blog', 'products'];
 
   const getLayoutSections = () => {
     const sections = shopForm.layout_sections;
     if (sections && sections.length > 0) {
       const valid = sections.filter(s => VALID_SECTION_IDS.includes(s.id));
-      if (!valid.some(s => s.id === 'services')) {
-        const prodIdx = valid.findIndex(s => s.id === 'products');
-        const insertAt = prodIdx >= 0 ? prodIdx : valid.length;
-        valid.splice(insertAt, 0, { id: 'services', label: 'Dịch vụ', enabled: true });
-      }
+      // Ensure all 3 valid sections are present
+      VALID_SECTION_IDS.forEach(id => {
+        if (!valid.some(s => s.id === id)) {
+          valid.push({ id, label: id, enabled: true });
+        }
+      });
       return valid;
     }
     return [
       { id: 'categories', label: 'Categories', enabled: true },
       { id: 'blog', label: 'Blog', enabled: true },
-      { id: 'featured', label: 'Featured Products', enabled: true },
-      { id: 'services', label: 'Dịch vụ', enabled: true },
       { id: 'products', label: 'Products', enabled: true },
     ];
   };
@@ -1159,16 +1114,6 @@ const ShopOwnerDashboard = () => {
                         <div key={product.id} className="border rounded-[5px] overflow-hidden bg-white hover:shadow-lg transition-shadow">
                           <div className="aspect-square bg-[#F8FAFC] cursor-pointer relative" onClick={() => openProductDetail(product)}>
                             <img src={product.image_url || '/product-fallback.png'} alt={product.name} onError={(e) => { e.target.src = '/product-fallback.png'; }} className="w-full h-full object-cover" />
-                            {product.is_featured && (
-                              <span className="absolute top-1 left-1 px-1.5 py-0.5 text-white text-[9px] font-bold rounded-[3px]" style={{ backgroundColor: themeColor }} data-testid={`featured-badge-${product.id}`}>
-                                <TrendingUp className="w-2.5 h-2.5 inline mr-0.5" />Featured
-                              </span>
-                            )}
-                            {product.type === 'service' && (
-                              <span className="absolute top-1 right-1 px-1.5 py-0.5 bg-[#0F172A] text-white text-[9px] font-bold rounded-[3px]" data-testid={`service-badge-${product.id}`}>
-                                Dịch vụ
-                              </span>
-                            )}
                           </div>
                           <div className="p-2 lg:p-3">
                             <h3 className="font-medium text-[#0F172A] text-xs lg:text-sm truncate cursor-pointer hover:text-[#0055FF]" onClick={() => openProductDetail(product)}>{product.name}</h3>
@@ -1449,104 +1394,6 @@ const ShopOwnerDashboard = () => {
                 </CardContent>
               </Card>
 
-              {/* Bookings Section */}
-              <Card className="border-0 shadow-sm" data-testid="bookings-section">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-sm font-bold text-[#0F172A]">Đơn đặt lịch dịch vụ</h3>
-                    <span className="text-xs text-[#94A3B8]">{bookings.length}</span>
-                  </div>
-                  {bookings.length === 0 ? (
-                    <div className="text-center py-10">
-                      <Calendar className="w-10 h-10 text-[#E2E8F0] mx-auto mb-3" />
-                      <p className="text-[#64748B] text-sm">Chưa có đơn đặt lịch nào</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {bookings.slice((bookingPage - 1) * ORDERS_PER_PAGE, bookingPage * ORDERS_PER_PAGE).map((bk) => {
-                        const bkStatusColors = {
-                          pending: 'bg-amber-100 text-amber-700',
-                          confirmed: 'bg-blue-100 text-blue-700',
-                          completed: 'bg-green-100 text-green-700',
-                          cancelled: 'bg-red-100 text-red-700',
-                        };
-                        const bkStatusLabels = {
-                          pending: 'Chờ xác nhận',
-                          confirmed: 'Đã xác nhận',
-                          completed: 'Hoàn thành',
-                          cancelled: 'Đã hủy',
-                        };
-                        return (
-                          <div key={bk.id} className="p-3 border rounded-lg bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-3" data-testid={`booking-row-${bk.id}`}>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <p className="font-medium text-[#0F172A] text-sm">{bk.id}</p>
-                                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[#0F172A] text-white font-medium">Dịch vụ</span>
-                              </div>
-                              <p className="text-xs text-[#0F172A] mt-1 font-medium">{bk.service_name} · {formatVND(bk.service_price || 0)}</p>
-                              <p className="text-xs text-[#64748B] mt-0.5">{bk.customer_name} - {bk.customer_phone}</p>
-                              <p className="text-[11px] text-[#64748B]">
-                                <Calendar className="w-3 h-3 inline mr-1" />
-                                {(() => {
-                                  try {
-                                    const d = new Date(bk.preferred_datetime);
-                                    if (!isNaN(d.getTime())) return d.toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' });
-                                  } catch { }
-                                  return bk.preferred_datetime;
-                                })()}
-                              </p>
-                              {bk.note && <p className="text-[11px] text-[#94A3B8] mt-0.5 italic line-clamp-2">Ghi chú: {bk.note}</p>}
-                            </div>
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${bkStatusColors[bk.status] || 'bg-gray-100 text-gray-700'}`}>
-                                {bkStatusLabels[bk.status] || bk.status}
-                              </span>
-                              {bk.status === 'pending' && (
-                                <Button size="sm" className="h-7 text-xs text-white" style={{ backgroundColor: '#22C55E' }}
-                                  onClick={() => handleBookingStatus(bk.id, 'confirmed')}
-                                  data-testid={`confirm-booking-${bk.id}`}>
-                                  <Check className="w-3 h-3 mr-1" /> Duyệt
-                                </Button>
-                              )}
-                              {bk.status === 'confirmed' && (
-                                <Button size="sm" className="h-7 text-xs text-white" style={{ backgroundColor: themeColor }}
-                                  onClick={() => handleBookingStatus(bk.id, 'completed')}
-                                  data-testid={`complete-booking-${bk.id}`}>
-                                  Hoàn thành
-                                </Button>
-                              )}
-                              {(bk.status === 'pending' || bk.status === 'confirmed') && (
-                                <Button size="sm" variant="outline" className="h-7 text-xs"
-                                  onClick={() => handleBookingStatus(bk.id, 'cancelled')}
-                                  data-testid={`cancel-booking-${bk.id}`}>
-                                  Hủy
-                                </Button>
-                              )}
-                              {bk.customer_phone && (
-                                <a href={`tel:${bk.customer_phone}`} className="inline-flex items-center justify-center h-7 w-7 rounded border border-[#E2E8F0] hover:bg-[#F8FAFC]" data-testid={`call-booking-${bk.id}`}>
-                                  <Phone className="w-3 h-3 text-[#0F172A]" />
-                                </a>
-                              )}
-                              <Button variant="destructive" size="sm" className="h-7 w-7 p-0" onClick={() => handleDeleteBooking(bk.id)} data-testid={`delete-booking-${bk.id}`}>
-                                <Trash2 className="w-3 h-3" />
-                              </Button>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                  {bookings.length > ORDERS_PER_PAGE && (
-                    <Pagination
-                      page={bookingPage}
-                      totalPages={Math.ceil(bookings.length / ORDERS_PER_PAGE)}
-                      onPageChange={setBookingPage}
-                      themeColor={themeColor}
-                      testIdPrefix="bookings"
-                    />
-                  )}
-                </CardContent>
-              </Card>
             </div>
           )}
 

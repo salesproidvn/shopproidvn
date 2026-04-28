@@ -4,7 +4,7 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import { useCart } from '../context/CartContext';
 import { useLanguage } from '../context/LanguageContext';
-import { ArrowLeft, ShoppingCart, Share2, Play, Plus, Minus, Trash2, Calendar, ShoppingBag } from 'lucide-react';
+import { ArrowLeft, ShoppingCart, Share2, Play, Plus, Minus, Trash2, ShoppingBag } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog';
@@ -39,9 +39,6 @@ const ProductDetailPage = () => {
   const [activeImage, setActiveImage] = useState(0);
   const [showVideo, setShowVideo] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [showBooking, setShowBooking] = useState(false);
-  const [bookingForm, setBookingForm] = useState({ customer_name: '', customer_phone: '', customer_email: '', preferred_datetime: '', note: '' });
-  const [bookingSubmitting, setBookingSubmitting] = useState(false);
   const [showCart, setShowCart] = useState(false);
 
   useEffect(() => {
@@ -133,33 +130,6 @@ const ProductDetailPage = () => {
     );
   };
 
-  const submitBooking = async (e) => {
-    e.preventDefault();
-    if (!bookingForm.customer_name.trim() || !bookingForm.customer_phone.trim() || !bookingForm.preferred_datetime) {
-      toast.error('Vui lòng điền đầy đủ Họ tên, SĐT và Thời gian mong muốn');
-      return;
-    }
-    setBookingSubmitting(true);
-    try {
-      await axios.post(`${API}/shop/${slug}/bookings`, {
-        service_id: product.id,
-        customer_name: bookingForm.customer_name.trim(),
-        customer_phone: bookingForm.customer_phone.trim(),
-        customer_email: bookingForm.customer_email.trim(),
-        preferred_datetime: bookingForm.preferred_datetime,
-        note: bookingForm.note.trim(),
-      });
-      toast.success('Đã gửi yêu cầu đặt lịch! Chúng tôi sẽ liên hệ xác nhận sớm.');
-      setShowBooking(false);
-      setBookingForm({ customer_name: '', customer_phone: '', customer_email: '', preferred_datetime: '', note: '' });
-    } catch (err) {
-      toast.error(err.response?.data?.detail || 'Gửi yêu cầu thất bại');
-    } finally {
-      setBookingSubmitting(false);
-    }
-  };
-
-  const isService = product?.type === 'service';
 
   return (
     <div className="min-h-screen bg-white" data-testid="product-detail-page">
@@ -236,19 +206,11 @@ const ProductDetailPage = () => {
             {product.sku && <p className="text-xs text-[#94A3B8] mb-2">SKU: {product.sku}</p>}
             {product.category && <p className="text-sm text-[#94A3B8] mb-4">{product.category}</p>}
             <div className="flex gap-2 sm:gap-3 mb-4 sm:mb-6">
-              {isService ? (
-                <Button className="flex-1 hover:opacity-90 py-4 sm:py-6 text-sm sm:text-base rounded-[5px]"
-                  style={{ backgroundColor: themeColor }}
-                  onClick={() => setShowBooking(true)} data-testid="product-book-service">
-                  <Calendar className="w-5 h-5 mr-2" /> Đặt lịch
-                </Button>
-              ) : (
-                <Button className="flex-1 hover:opacity-90 py-4 sm:py-6 text-sm sm:text-base rounded-[5px]"
-                  style={{ backgroundColor: themeColor }}
-                  onClick={() => { addToCart(product.id, product, 1); toast.success(t.addedToCart || 'Đã thêm vào giỏ'); }} data-testid="product-add-cart">
-                  <ShoppingCart className="w-5 h-5 mr-2" /> {t.addToCart}
-                </Button>
-              )}
+              <Button className="flex-1 hover:opacity-90 py-4 sm:py-6 text-sm sm:text-base rounded-[5px]"
+                style={{ backgroundColor: themeColor }}
+                onClick={() => { addToCart(product.id, product, 1); toast.success(t.addedToCart || 'Đã thêm vào giỏ'); }} data-testid="product-add-cart">
+                <ShoppingCart className="w-5 h-5 mr-2" /> {t.addToCart}
+              </Button>
               <Button variant="outline" className="py-6 px-4 rounded-[5px]" onClick={handleShare}>
                 <Share2 className="w-5 h-5" />
               </Button>
@@ -301,19 +263,11 @@ const ProductDetailPage = () => {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 lg:gap-5">
               {relatedProducts.map(rp => (
                 <Link key={rp.id} to={`/shop/${slug}/product/${rp.id}`} className="group bg-white border border-[#E2E8F0] rounded-[5px] overflow-hidden hover:shadow-lg transition-all relative" data-testid={`related-product-${rp.id}`}>
-                  {rp.type === 'service' ? (
-                    <Link to={`/shop/${slug}/product/${rp.id}`} onClick={(e) => e.stopPropagation()}
-                      className="absolute top-2 right-2 z-10 w-7 h-7 rounded-full flex items-center justify-center shadow-md text-white opacity-90 hover:opacity-100 hover:scale-110 transition-all"
-                      style={{ backgroundColor: themeColor }} title="Đặt lịch">
-                      <Calendar className="w-3.5 h-3.5" />
-                    </Link>
-                  ) : (
-                    <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); addToCart(rp.id, rp, 1); toast.success(t.addedToCart || 'Đã thêm vào giỏ'); }}
-                      className="absolute top-2 right-2 z-10 w-7 h-7 rounded-full flex items-center justify-center shadow-md text-white opacity-80 hover:opacity-100 hover:scale-110 transition-all"
-                      style={{ backgroundColor: themeColor }}>
-                      <Plus className="w-3.5 h-3.5" />
-                    </button>
-                  )}
+                  <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); addToCart(rp.id, rp, 1); toast.success(t.addedToCart || 'Đã thêm vào giỏ'); }}
+                    className="absolute top-2 right-2 z-10 w-7 h-7 rounded-full flex items-center justify-center shadow-md text-white opacity-80 hover:opacity-100 hover:scale-110 transition-all"
+                    style={{ backgroundColor: themeColor }}>
+                    <Plus className="w-3.5 h-3.5" />
+                  </button>
                   <div className="aspect-square bg-[#F8FAFC] overflow-hidden">
                     <img src={rp.image_url || '/product-fallback.png'} alt={rp.name} onError={(e) => { e.target.src = '/product-fallback.png'; }} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                   </div>
@@ -375,51 +329,6 @@ const ProductDetailPage = () => {
         </SheetContent>
       </Sheet>
 
-      {/* Booking Modal */}
-      <Dialog open={showBooking} onOpenChange={setShowBooking}>
-        <DialogContent className="sm:max-w-md bg-white" data-testid="booking-modal">
-          <DialogHeader>
-            <DialogTitle className="text-base">Đặt lịch dịch vụ</DialogTitle>
-            <DialogDescription className="text-sm">{product.name} · {formatVND(product.price)}</DialogDescription>
-          </DialogHeader>
-          <form onSubmit={submitBooking} className="space-y-3">
-            <div>
-              <label className="block text-xs font-medium text-[#334155] mb-1">Họ tên *</label>
-              <Input value={bookingForm.customer_name} onChange={(e) => setBookingForm({ ...bookingForm, customer_name: e.target.value })}
-                required className="text-sm" data-testid="booking-name-input" />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-[#334155] mb-1">Số điện thoại *</label>
-              <Input type="tel" value={bookingForm.customer_phone} onChange={(e) => setBookingForm({ ...bookingForm, customer_phone: e.target.value })}
-                required className="text-sm" data-testid="booking-phone-input" />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-[#334155] mb-1">Email (không bắt buộc)</label>
-              <Input type="email" value={bookingForm.customer_email} onChange={(e) => setBookingForm({ ...bookingForm, customer_email: e.target.value })}
-                className="text-sm" data-testid="booking-email-input" />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-[#334155] mb-1">Ngày & giờ mong muốn *</label>
-              <Input type="datetime-local" value={bookingForm.preferred_datetime}
-                onChange={(e) => setBookingForm({ ...bookingForm, preferred_datetime: e.target.value })}
-                required className="text-sm" data-testid="booking-datetime-input" />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-[#334155] mb-1">Ghi chú</label>
-              <textarea value={bookingForm.note} onChange={(e) => setBookingForm({ ...bookingForm, note: e.target.value })}
-                rows={3} className="w-full text-sm border border-[#E2E8F0] rounded-[5px] px-3 py-2 focus:outline-none focus:ring-1 focus:ring-[#0055FF]"
-                placeholder="Yêu cầu đặc biệt (nếu có)" data-testid="booking-note-input" />
-            </div>
-            <div className="flex gap-2 pt-2">
-              <Button type="button" variant="outline" className="flex-1" onClick={() => setShowBooking(false)} data-testid="booking-cancel-btn">Hủy</Button>
-              <Button type="submit" className="flex-1 text-white" style={{ backgroundColor: themeColor }}
-                disabled={bookingSubmitting} data-testid="booking-submit-btn">
-                {bookingSubmitting ? 'Đang gửi...' : 'Gửi yêu cầu'}
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };

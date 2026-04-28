@@ -512,10 +512,8 @@ class ProductCreate(BaseModel):
     video_url: Optional[str] = ""
     video_links: Optional[List[str]] = []
     position: Optional[int] = 0
-    is_featured: Optional[bool] = False
     is_active: Optional[bool] = True
     sku: Optional[str] = ""
-    type: Optional[str] = "product"
     affiliate_links: Optional[List[dict]] = []
 
 class OrderCreate(BaseModel):
@@ -527,17 +525,6 @@ class OrderCreate(BaseModel):
     note: Optional[str] = ""
 
 class OrderStatusUpdate(BaseModel):
-    status: str
-
-class BookingCreate(BaseModel):
-    service_id: str
-    customer_name: str
-    customer_phone: str
-    customer_email: Optional[str] = ""
-    preferred_datetime: str  # ISO string "YYYY-MM-DDTHH:mm"
-    note: Optional[str] = ""
-
-class BookingStatusUpdate(BaseModel):
     status: str
 
 class ShopOwnerCreate(BaseModel):
@@ -1546,8 +1533,7 @@ async def create_product(data: ProductCreate, request: Request):
         "video_links": data.video_links or [],
         "position": data.position or 0,
         "is_active": data.is_active if data.is_active is not None else True,
-        "is_featured": data.is_featured or False, "sku": data.sku or "",
-        "type": data.type if data.type in ("product", "service") else "product",
+        "sku": data.sku or "",
         "affiliate_links": _clean_affiliate_links(data.affiliate_links or []),
         "created_at": datetime.now(timezone.utc)
     }
@@ -1877,7 +1863,7 @@ async def get_shop_by_slug(slug: str):
     }
 
 @api_router.get("/shop/{slug}/products")
-async def get_shop_products_public(slug: str, category: Optional[str] = None, search: Optional[str] = None, type: Optional[str] = None):
+async def get_shop_products_public(slug: str, category: Optional[str] = None, search: Optional[str] = None):
     shop = await db.shops.find_one({"slug": slug, "status": "active"}, {"_id": 1})
     if not shop:
         raise HTTPException(status_code=404, detail="Shop not found")
@@ -1887,12 +1873,6 @@ async def get_shop_products_public(slug: str, category: Optional[str] = None, se
         query["category_id"] = category
     if search:
         query["name"] = {"$regex": search, "$options": "i"}
-    if type in ("product", "service"):
-        if type == "service":
-            query["type"] = "service"
-        else:
-            # product: include legacy docs without a type field
-            query["$or"] = [{"type": "product"}, {"type": {"$exists": False}}, {"type": None}, {"type": ""}]
     products = await db.products.find(query, {"_id": 0}).sort("position", 1).to_list(500)
     return products
 
@@ -1973,111 +1953,6 @@ async def create_order(slug: str, data: OrderCreate, request: Request):
                 logger.error(f"Email notification failed: {e}")
 
     return {"id": order_id, "order_id": order_id, "subtotal": total, "total_amount": final_total, "items": items, "message": "Order placed successfully"}
-
-@api_router.post("/shop/{slug}/bookings")
-async def create_booking(slug: str, data: BookingCreate, request: Request):
-    # Security: Rate limit booking creation
-    ip = get_client_ip(request)
-    if not rate_limiter.is_allowed(f"booking:{ip}", max_requests=security_config.get("rate_contact", 10), window_seconds=300):
-        raise HTTPException(status_code=429, detail="Quá nhiều yêu cầu đặt lịch. Vui lòng thử lại sau.")
-    # Sanitize inputs
-    data.customer_name = bleach.clean(data.customer_name, tags=[], strip=True)
-    data.customer_phone = bleach.clean(data.customer_phone, tags=[], strip=True)
-    data.note = bleach.clean(data.note or "", tags=[], strip=True)
-    shop = await db.shops.find_one({"slug": slug, "status": "active"})
-    if not shop:
-        raise HTTPException(status_code=404, detail="Shop not found")
-    shop_id = str(shop["_id"])
-    service = await db.products.find_one({"id": data.service_id, "shop_id": shop_id, "is_active": True})
-    if not service or service.get("type") != "service":
-        raise HTTPException(status_code=404, detail="Service not found")
-    booking_id = f"BK-{secrets.token_hex(6).upper()}"
-    doc = {
-        "id": booking_id,
-        "shop_id": shop_id,
-        "service_id": service["id"],
-        "service_name": service["name"],
-        "service_price": service.get("price", 0),
-        "service_image": service.get("image_url", ""),
-        "customer_name": data.customer_name,
-        "customer_phone": data.customer_phone,
-        "customer_email": data.customer_email or "",
-        "preferred_datetime": data.preferred_datetime,
-        "note": data.note,
-        "status": "pending",
-        "created_at": datetime.now(timezone.utc),
-    }
-    await db.bookings.insert_one(doc)
-
-    # Push notification
-    if shop.get("notifications_enabled"):
-        try:
-            await send_push_to_shop(
-                shop_id=shop_id,
-                title=f"Đặt lịch mới #{booking_id}",
-                body=f"{data.customer_name} - {service['name']} - {data.preferred_datetime}",
-                url="/dashboard",
-                order_id=booking_id,
-            )
-        except Exception as e:
-            logger.error(f"Push notification failed: {e}")
-
-    # Email notification
-    if shop.get("email_notifications"):
-        owner = await db.users.find_one({"shop_id": shop_id}, {"email": 1})
-        notify_email = shop.get("contact_email") or (owner["email"] if owner else "")
-        if notify_email:
-            try:
-                await send_order_email(
-                    shop_name=shop["name"],
-                    to_email=notify_email,
-                    order_id=booking_id,
-                    customer_name=data.customer_name,
-                    customer_phone=data.customer_phone,
-                    customer_address=f"Dịch vụ: {service['name']} - Thời gian: {data.preferred_datetime}",
-                    items=[{"name": service["name"], "quantity": 1, "price": service.get("price", 0), "subtotal": service.get("price", 0)}],
-                    total=service.get("price", 0),
-                    note=data.note,
-                )
-            except Exception as e:
-                logger.error(f"Email notification failed: {e}")
-
-    doc.pop("_id", None)
-    doc["created_at"] = serialize_datetime(doc["created_at"])
-    return {"id": booking_id, "booking_id": booking_id, "message": "Booking placed successfully"}
-
-@api_router.get("/dashboard/bookings")
-async def get_shop_bookings(request: Request):
-    user = await require_shop_owner(request)
-    shop_id = await resolve_shop_id(request, user)
-    bookings = await db.bookings.find({"shop_id": shop_id}, {"_id": 0}).sort("created_at", -1).to_list(500)
-    for b in bookings:
-        b["created_at"] = serialize_datetime(b.get("created_at"))
-    return bookings
-
-@api_router.put("/dashboard/bookings/{booking_id}/status")
-async def update_booking_status(booking_id: str, data: BookingStatusUpdate, request: Request):
-    user = await require_shop_owner(request)
-    shop_id = await resolve_shop_id(request, user)
-    valid = ["pending", "confirmed", "completed", "cancelled"]
-    if data.status not in valid:
-        raise HTTPException(status_code=400, detail="Invalid status")
-    result = await db.bookings.update_one(
-        {"id": booking_id, "shop_id": shop_id},
-        {"$set": {"status": data.status, "updated_at": datetime.now(timezone.utc)}},
-    )
-    if result.matched_count == 0:
-        raise HTTPException(status_code=404, detail="Booking not found")
-    return {"message": f"Booking status updated to {data.status}"}
-
-@api_router.delete("/dashboard/bookings/{booking_id}")
-async def delete_booking(booking_id: str, request: Request):
-    user = await require_shop_owner(request)
-    shop_id = await resolve_shop_id(request, user)
-    result = await db.bookings.delete_one({"id": booking_id, "shop_id": shop_id})
-    if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Booking not found")
-    return {"message": "Booking deleted"}
 
 @api_router.post("/shop/{slug}/contact")
 async def submit_contact(slug: str, data: ContactForm, request: Request):
@@ -2542,7 +2417,6 @@ async def startup_event():
     await db.posts.create_index([("shop_id", 1), ("id", 1)])
     await db.pages.create_index([("shop_id", 1), ("id", 1)])
     await db.push_subscriptions.create_index([("shop_id", 1), ("subscription.endpoint", 1)])
-    await db.bookings.create_index([("shop_id", 1), ("created_at", -1)])
 
     # Load security config from DB
     saved_config = await db.settings.find_one({"key": "security_config"})

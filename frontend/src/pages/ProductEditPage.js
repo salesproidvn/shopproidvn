@@ -11,7 +11,7 @@ import {
 } from '../components/ui/select';
 import {
   ArrowLeft, Image as ImageIcon, Plus, X, Youtube,
-  Package, Tag, DollarSign, FileText, Eye, Loader2, TrendingUp, Save, ExternalLink,
+  Package, Tag, DollarSign, FileText, Eye, Loader2, Save, ExternalLink,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import MediaLibrary from '../components/MediaLibrary';
@@ -71,11 +71,9 @@ export default function ProductEditPage() {
 
   const [form, setForm] = useState({
     name: '',
-    type: 'product',
     sku: '',
     category_id: 'none',
     price: '',
-    is_featured: false,
     description: '',
     images: [],
     image_url: '',
@@ -112,11 +110,9 @@ export default function ProductEditPage() {
           const { youtube, tiktok, rest } = splitVideoLinks(found.video_links || []);
           setForm({
             name: found.name || '',
-            type: found.type || 'product',
             sku: found.sku || '',
             category_id: found.category_id || 'none',
             price: (found.price ?? '').toString(),
-            is_featured: !!found.is_featured,
             description: found.description || '',
             images: found.images || (found.image_url ? [found.image_url] : []),
             image_url: found.image_url || '',
@@ -186,11 +182,9 @@ export default function ProductEditPage() {
     (form._extra_videos || []).forEach(pushUnique);
     return {
       name: form.name.trim(),
-      type: form.type,
       sku: form.sku.trim(),
       category_id: form.category_id === 'none' ? null : form.category_id,
       price: parseInt(form.price, 10) || 0,
-      is_featured: !!form.is_featured,
       description: form.description,
       images: form.images || [],
       image_url: (form.images && form.images[0]) || form.image_url || '',
@@ -368,31 +362,6 @@ export default function ProductEditPage() {
               </div>
 
               {/* Type radios */}
-              <div className="grid grid-cols-2 gap-3 mb-4">
-                {[
-                  { value: 'product', label: 'Sản phẩm' },
-                  { value: 'service', label: 'Dịch vụ' },
-                ].map((opt) => {
-                  const selected = form.type === opt.value;
-                  return (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      onClick={() => setForm({ ...form, type: opt.value })}
-                      className={`py-3 rounded-[6px] border text-sm font-medium transition-colors ${selected ? 'text-white border-transparent' : 'border-[#E2E8F0] bg-white text-[#475569] hover:bg-[#F8FAFC]'}`}
-                      style={selected ? { backgroundColor: themeColor } : {}}
-                      data-testid={`edit-product-type-${opt.value}`}
-                    >
-                      <span className="inline-flex items-center justify-center w-4 h-4 rounded-full border-2 mr-2 align-middle"
-                        style={{ borderColor: selected ? '#fff' : '#CBD5E1', backgroundColor: selected ? 'transparent' : '#fff' }}>
-                        {selected && <span className="w-1.5 h-1.5 bg-white rounded-full" />}
-                      </span>
-                      {opt.label}
-                    </button>
-                  );
-                })}
-              </div>
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-medium text-[#475569] mb-1 flex items-center gap-1.5">
@@ -478,24 +447,6 @@ export default function ProductEditPage() {
                 modules={quillModules}
                 className="bg-white [&_.ql-container]:min-h-[180px]"
               />
-            </Card>
-
-            {/* Section 5: Visibility & Promotion */}
-            <Card className="p-5 bg-white" data-testid="section-visibility">
-              <div className="flex items-center gap-2 mb-4">
-                <span className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white" style={{ backgroundColor: themeColor }}>5</span>
-                <h2 className="font-semibold text-[#0F172A] text-sm">{t.visibilityPromotion || 'Visibility & Promotion'}</h2>
-              </div>
-              <div className="space-y-3">
-                <ToggleRow
-                  checked={form.is_featured}
-                  onChange={(v) => setForm({ ...form, is_featured: v })}
-                  label={<span className="flex items-center gap-1.5"><TrendingUp className="w-3.5 h-3.5" /> {t.featuredProducts || 'Feature Product'}</span>}
-                  desc={t.featuredProductDesc}
-                  themeColor={themeColor}
-                  testId="edit-product-featured-toggle"
-                />
-              </div>
             </Card>
 
             {/* Section 6: Affiliate Links */}
