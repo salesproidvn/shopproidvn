@@ -488,7 +488,6 @@ class ShopUpdate(BaseModel):
     banners: Optional[List[str]] = None
     banner_enabled: Optional[bool] = None
     blog_enabled: Optional[bool] = None
-    layout_sections: Optional[List[dict]] = None
     footer_columns: Optional[List[dict]] = None  # deprecated, ignored
     post_carousel_position: Optional[str] = None
     max_products: Optional[int] = None
@@ -1014,7 +1013,7 @@ async def create_shop_owner(data: ShopOwnerCreate, request: Request):
     slug = generate_shop_slug(data.shop_name)
     if await db.shops.find_one({"slug": slug}):
         slug = f"{slug}-{secrets.token_hex(3)}"
-    shop_doc = {"name": data.shop_name, "slug": slug, "description": "", "logo_url": "", "contact_phone": data.phone or "", "contact_email": email, "address": "", "social_facebook": "", "social_instagram": "", "social_tiktok": "", "social_shopee": "", "theme_color": "#0055FF", "status": "active", "expiry_date": "", "blog_enabled": True, "layout_sections": [], "post_carousel_position": "top", "max_products": 100, "max_posts": 50, "max_pages": 20, "max_categories": 50, "created_at": datetime.now(timezone.utc)}
+    shop_doc = {"name": data.shop_name, "slug": slug, "description": "", "logo_url": "", "contact_phone": data.phone or "", "contact_email": email, "address": "", "social_facebook": "", "social_instagram": "", "social_tiktok": "", "social_shopee": "", "theme_color": "#0055FF", "status": "active", "expiry_date": "", "blog_enabled": True, "post_carousel_position": "top", "max_products": 100, "max_posts": 50, "max_pages": 20, "max_categories": 50, "created_at": datetime.now(timezone.utc)}
     shop_result = await db.shops.insert_one(shop_doc)
     shop_id = str(shop_result.inserted_id)
     user_doc = {"email": email, "password_hash": hash_password(data.password), "name": data.name, "role": "shop_owner", "shop_id": shop_id, "phone": data.phone or "", "status": "active", "created_at": datetime.now(timezone.utc)}
@@ -1387,7 +1386,6 @@ async def get_shop_details(request: Request):
         "custom_domain": shop.get("custom_domain", ""),
         "banners": shop.get("banners", []), "banner_enabled": shop.get("banner_enabled", True),
         "blog_enabled": shop.get("blog_enabled", True),
-        "layout_sections": shop.get("layout_sections", []),
         "post_carousel_position": shop.get("post_carousel_position", "top"),
         "max_products": shop.get("max_products", 100), "max_posts": shop.get("max_posts", 50),
     }
@@ -1856,7 +1854,6 @@ async def get_shop_by_slug(slug: str):
         "theme_color": shop.get("theme_color", "#0055FF"),
         "custom_domain": shop.get("custom_domain", ""),
         "blog_enabled": shop.get("blog_enabled", True),
-        "layout_sections": shop.get("layout_sections", []),
         "post_carousel_position": shop.get("post_carousel_position", "top"),
         "max_products": shop.get("max_products", 100), "max_posts": shop.get("max_posts", 50),
         "expiry_date": shop.get("expiry_date", ""),

@@ -62,6 +62,13 @@ Multi-tenant e-commerce platform allowing shop owners to create and manage onlin
 - Rebuilt the **mobile mega-menu** as a 2-column grid of main categories (image thumbnail + name). Tapping a category opens `/shop/:slug/category/:id`
 - **Custom homepage sections** (max 5 per shop): shop owner creates simple blocks (title + image + rich text) from the **Bố cục hiển thị** tab. Each custom section appears inside the draggable layout list alongside Banner/Categories/Featured/... with its own BẬT/TẮT toggle + inline Edit pencil, and renders inline on the public storefront at the chosen position.
 
+### Phase 15 - Remove Display Layout Feature (April 28, 2026)
+- **Gỡ hoàn toàn "Bố cục hiển thị"**: storefront giờ hiển thị sections theo thứ tự cố định — **Danh mục → Bài viết → Sản phẩm** (không cho user tùy chỉnh).
+- **Backend**: gỡ `layout_sections` field khỏi `ShopUpdate` model, `shop_doc` init, và cả 2 shop responses (/dashboard/shop + /shop/{slug}).
+- **Frontend Dashboard**: gỡ sidebar item, title topbar, `SortableLayoutItem` component, 5 helpers (`getLayoutSections`, `moveSection`, `toggleSection`, `handleLayoutDragEnd`, `sectionLabels/sectionIcons/VALID_SECTION_IDS`), toàn bộ UI block `activeTab === 'layout'`. `dndSensors` được giữ vì vẫn dùng cho drag-drop Danh mục.
+- **Frontend StorefrontPage**: gỡ `layoutSections` IIFE, `isSectionEnabled` helper, `renderSection` switch. Thay bằng 2 components tĩnh `<CategoryGrid />` + `<PostCarousel />` render trực tiếp.
+- **Sidebar còn 8 mục**: Tổng quan / Sản phẩm / Danh mục / Bài viết / Đơn hàng / Thư viện ảnh / Hồ sơ cửa hàng / Cài đặt
+
 ### Phase 14 - Remove Services + Featured Products (April 28, 2026)
 - **Removed Dịch vụ (Services)**: backend `BookingCreate`, `BookingStatusUpdate` models; endpoints `POST /api/shop/{slug}/bookings`, `GET/PUT/DELETE /api/dashboard/bookings`, `db.bookings` index. `type` field removed from ProductCreate. Public `/products` no longer accepts `type` query param. Frontend: gỡ `BookingProduct` modal + state ở 3 trang (StorefrontPage, ProductDetailPage, SingleCategoryPage), `openBooking`/`submitBooking` handlers, `services` từ layout sections, `ServicesSection` component, "Đặt lịch" button + "Dịch vụ" badge, `bookings` tab + state + fetch + handlers trong dashboard, agent_tracking_code đã không còn vì gỡ Đại lý ở phase 9.
 - **Removed Sản phẩm nổi bật (Featured)**: `is_featured` field từ ProductCreate model + product creation. Frontend: gỡ `FeaturedProducts` component + `featured` từ layout sections + featured badge ở dashboard product list + `ToggleRow` is_featured ở ProductEditPage + `TrendingUp` icon import.

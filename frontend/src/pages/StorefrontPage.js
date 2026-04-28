@@ -226,24 +226,6 @@ const StorefrontPage = () => {
 
   const themeColor = shop?.theme_color || '#0055FF';
 
-  const layoutSections = (() => {
-    const defaults = [
-      { id: 'categories', enabled: true },
-      { id: 'blog', enabled: true },
-      { id: 'products', enabled: true }
-    ];
-    const existing = shop?.layout_sections?.length ? [...shop.layout_sections] : null;
-    if (!existing) return defaults;
-    // Filter out deprecated sections (banner, custom:*, services, featured)
-    const filtered = existing.filter(s => ['categories', 'blog', 'products'].includes(s.id));
-    return filtered.length ? filtered : defaults;
-  })();
-
-  const isSectionEnabled = (id) => {
-    const section = layoutSections.find(s => s.id === id);
-    return section ? section.enabled : true;
-  };
-
   // Inline edit handlers
   const handleSaveProduct = async () => {
     if (!editProduct) return;
@@ -428,7 +410,6 @@ const StorefrontPage = () => {
 
   // Products Section
   const ProductsSection = () => {
-    if (!isSectionEnabled('products')) return null;
     return (
       <>
         {filteredProducts.length === 0 ? (
@@ -558,18 +539,6 @@ const StorefrontPage = () => {
     const m = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
     if (m) return `https://www.youtube.com/embed/${m[1]}`;
     return null;
-  };
-
-  // Custom Section renderer
-  // Section renderer based on layout order
-  const renderSection = (section) => {
-    if (!section.enabled) return null;
-    switch (section.id) {
-      case 'categories': return <CategoryGrid key="categories" />;
-      case 'blog': return <PostCarousel key="blog" />;
-      case 'products': return null; // products rendered separately below filters
-      default: return null;
-    }
   };
 
   // Helper: Get embed URL from YouTube or TikTok links
@@ -853,7 +822,8 @@ const StorefrontPage = () => {
       {/* Products */}
       <main className="max-w-7xl lg:max-w-[65vw] mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Dynamic sections (banner, blog, featured) in layout order */}
-        {layoutSections.filter(s => s.id !== 'products').map(section => renderSection(section))}
+        <CategoryGrid />
+        <PostCarousel />
 
         {/* Filters (always before products) */}
         <div id="products-section">

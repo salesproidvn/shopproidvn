@@ -32,36 +32,6 @@ import 'react-quill-new/dist/quill.snow.css';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
-function SortableLayoutItem({ section, sectionLabels, sectionIcons, themeColor, onToggle }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: section.id });
-  const style = { transform: CSS.Transform.toString(transform), transition, zIndex: isDragging ? 50 : 'auto', opacity: isDragging ? 0.85 : 1 };
-  const IconComp = sectionIcons[section.id] || Package;
-  return (
-    <div ref={setNodeRef} style={style}
-      className={`flex items-center gap-3 p-3 rounded-[5px] border transition-all ${section.enabled ? 'bg-white border-[#E2E8F0]' : 'bg-[#F8FAFC] border-dashed border-[#E2E8F0] opacity-60'} ${isDragging ? 'shadow-lg ring-2 ring-blue-300' : ''}`}
-      data-testid={`layout-section-${section.id}`}>
-      <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing touch-none">
-        <GripVertical className="w-4 h-4 text-[#94A3B8] flex-shrink-0" />
-      </div>
-      <div className="w-8 h-8 rounded-[5px] flex items-center justify-center flex-shrink-0" style={{ backgroundColor: section.enabled ? themeColor + '15' : '#F1F5F9' }}>
-        <IconComp className="w-4 h-4" style={{ color: section.enabled ? themeColor : '#94A3B8' }} />
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="font-medium text-sm text-[#0F172A] truncate">{sectionLabels[section.id] || section.label}</p>
-      </div>
-      <button onClick={onToggle}
-        className={`w-[68px] h-8 rounded-full transition-all relative overflow-hidden flex-shrink-0 ${section.enabled ? '' : 'bg-[#E2E8F0]'}`}
-        style={section.enabled ? { backgroundColor: themeColor } : {}}
-        data-testid={`toggle-section-${section.id}`}>
-        <span className={`absolute inset-0 flex items-center ${section.enabled ? 'justify-start pl-2.5' : 'justify-end pr-2.5'}`}>
-          <span className="text-[10px] font-bold text-white tracking-wide select-none">{section.enabled ? 'BẬT' : ''}</span>
-          <span className="text-[10px] font-bold text-[#94A3B8] tracking-wide select-none">{!section.enabled ? 'TẮT' : ''}</span>
-        </span>
-        <span className={`absolute top-[3px] w-[26px] h-[26px] bg-white rounded-full shadow-md transition-transform ${section.enabled ? 'translate-x-[38px]' : 'translate-x-[3px]'}`} />
-      </button>
-    </div>
-  );
-}
 
 function Pagination({ page, totalPages, onPageChange, themeColor, testIdPrefix = 'pagination' }) {
   if (totalPages <= 1) return null;
@@ -714,81 +684,11 @@ const ShopOwnerDashboard = () => {
     } catch { toast.error(t.failedToSave); }
   };
 
-  const sectionLabels = {
-    categories: t.categories,
-    blog: t.sectionBlog,
-    products: t.sectionProducts,
-  };
-
-  const sectionIcons = {
-    categories: FolderOpen,
-    blog: FileText,
-    products: Package,
-  };
-
-  const VALID_SECTION_IDS = ['categories', 'blog', 'products'];
-
-  const getLayoutSections = () => {
-    const sections = shopForm.layout_sections;
-    if (sections && sections.length > 0) {
-      const valid = sections.filter(s => VALID_SECTION_IDS.includes(s.id));
-      // Ensure all 3 valid sections are present
-      VALID_SECTION_IDS.forEach(id => {
-        if (!valid.some(s => s.id === id)) {
-          valid.push({ id, label: id, enabled: true });
-        }
-      });
-      return valid;
-    }
-    return [
-      { id: 'categories', label: 'Categories', enabled: true },
-      { id: 'blog', label: 'Blog', enabled: true },
-      { id: 'products', label: 'Products', enabled: true },
-    ];
-  };
-
-  const moveSection = async (idx, direction) => {
-    const sections = [...getLayoutSections()];
-    const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
-    if (swapIdx < 0 || swapIdx >= sections.length) return;
-    [sections[idx], sections[swapIdx]] = [sections[swapIdx], sections[idx]];
-    setShopForm({ ...shopForm, layout_sections: sections });
-    try {
-      await axios.put(`${API}/dashboard/shop`, { layout_sections: sections });
-      toast.success(t.shopUpdated);
-    } catch { toast.error(t.failedToSave); }
-  };
-
-  const toggleSection = async (idx) => {
-    const sections = [...getLayoutSections()];
-    sections[idx] = { ...sections[idx], enabled: !sections[idx].enabled };
-    setShopForm({ ...shopForm, layout_sections: sections });
-    try {
-      await axios.put(`${API}/dashboard/shop`, { layout_sections: sections });
-      toast.success(t.shopUpdated);
-    } catch { toast.error(t.failedToSave); }
-  };
-
   const dndSensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
-
-  const handleLayoutDragEnd = async (event) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-    const sections = getLayoutSections();
-    const oldIndex = sections.findIndex(s => s.id === active.id);
-    const newIndex = sections.findIndex(s => s.id === over.id);
-    if (oldIndex === -1 || newIndex === -1) return;
-    const reordered = arrayMove(sections, oldIndex, newIndex);
-    setShopForm({ ...shopForm, layout_sections: reordered });
-    try {
-      await axios.put(`${API}/dashboard/shop`, { layout_sections: reordered });
-      toast.success(t.shopUpdated);
-    } catch { toast.error(t.failedToSave); }
-  };
 
   const menuItems = [
     { id: 'overview', label: t.overview, icon: LayoutDashboard },
@@ -797,7 +697,6 @@ const ShopOwnerDashboard = () => {
     { id: 'posts', label: t.posts, icon: FileText },
     { id: 'orders', label: t.orders, icon: ShoppingCart },
     { id: 'media', label: t.mediaLibrary || 'Thư viện ảnh', icon: Image },
-    { id: 'layout', label: t.displayLayout, icon: LayoutGrid },
     { id: 'profile', label: t.shopProfile || 'Hồ sơ shop', icon: User },
     { id: 'settings', label: t.settings, icon: Settings },
   ];
@@ -957,7 +856,6 @@ const ShopOwnerDashboard = () => {
                   {activeTab === 'posts' && t.posts}
                   {activeTab === 'orders' && t.orders}
                   {activeTab === 'media' && (t.mediaLibrary || 'Thư viện ảnh')}
-                  {activeTab === 'layout' && t.displayLayout}
                   {activeTab === 'profile' && (t.shopProfile || 'Hồ sơ shop')}
                   {activeTab === 'settings' && t.settings}
                 </h1>
@@ -1544,34 +1442,6 @@ const ShopOwnerDashboard = () => {
             </div>
           )}
 
-          {/* Layout Tab */}
-          {activeTab === 'layout' && (
-            <div className="space-y-6">
-              <Card className="border-0 shadow-sm">
-                <CardContent className="p-4">
-                  <DndContext sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={handleLayoutDragEnd}>
-                    <SortableContext items={getLayoutSections().map(s => s.id)} strategy={verticalListSortingStrategy}>
-                      <div className="space-y-2" data-testid="layout-sections">
-                        {getLayoutSections().map((section, idx) => (
-                          <SortableLayoutItem
-                            key={section.id}
-                            section={section}
-                            sectionLabels={sectionLabels}
-                            sectionIcons={sectionIcons}
-                            themeColor={themeColor}
-                            onToggle={() => toggleSection(idx)}
-                            onEdit={null}
-                          />
-                        ))}
-                      </div>
-                    </SortableContext>
-                  </DndContext>
-                </CardContent>
-              </Card>
-
-
-            </div>
-          )}
 
           {/* Settings Tab */}
           {activeTab === 'settings' && shop && (
